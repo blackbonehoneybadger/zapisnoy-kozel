@@ -117,6 +117,19 @@ variables → Actions → Variables), например `wss://kozel.example.com`
 > Сервер нужно где-то хостить (VPS/облако), чтобы он работал постоянно.
 > Для боевого режима используйте `wss://` (TLS) и задайте `AUTH_SECRET`.
 
+### Развернуть сервер в Docker
+
+В репозитории есть `server/Dockerfile` (контекст сборки — корень проекта):
+
+```bash
+docker build -f server/Dockerfile -t kozel-server .
+docker run -p 8080:8080 -e AUTH_SECRET=задайте-секрет kozel-server
+```
+
+Образ подходит для любого контейнерного хостинга (Render, Railway, Fly.io,
+свой VPS). После деплоя возьмите публичный адрес (`wss://…`) и пропишите его
+в `VITE_SERVER_URL`.
+
 ## 🗂️ Структура проекта
 
 ```
