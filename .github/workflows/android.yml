@@ -52,15 +52,18 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
+      - name: Build release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: >-
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          -PappVersionCode=${{ github.run_number }}
+          -PappVersionName=1.0.${{ github.run_number }}
 
       - name: Stage APK
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/debug/app-debug.apk "out/zapisnoy-kozel-${{ github.run_number }}.apk"
-          cp android/app/build/outputs/apk/debug/app-debug.apk "out/zapisnoy-kozel-latest.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/zapisnoy-kozel-${{ github.run_number }}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/zapisnoy-kozel-latest.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -75,12 +78,14 @@ jobs:
           tag_name: android-latest
           name: Записной Козёл — Android APK
           body: |
-            📦 Установочный APK для Android (debug-сборка, устанавливается напрямую).
+            📦 Установочный APK для Android (release-сборка, подписана постоянным ключом).
 
             **Как установить:**
             1. Скачайте `zapisnoy-kozel-latest.apk` ниже.
             2. На телефоне разрешите установку из неизвестных источников.
             3. Откройте файл и нажмите «Установить».
+
+            Обновления ставятся поверх предыдущей версии — удалять старую не нужно.
 
             Сборка #${{ github.run_number }} · коммит ${{ github.sha }}
           files: |
