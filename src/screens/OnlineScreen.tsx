@@ -12,7 +12,6 @@ interface Props {
 
 export function OnlineScreen({ onBack }: Props) {
   const view = useOnlineStore((s) => s.view);
-  const status = useOnlineStore((s) => s.status);
   const connect = useOnlineStore((s) => s.connect);
   const notice = useOnlineStore((s) => s.notice);
   const clearNotice = useOnlineStore((s) => s.clearNotice);
@@ -29,7 +28,7 @@ export function OnlineScreen({ onBack }: Props) {
 
   return (
     <div className="relative min-h-[100dvh]">
-      {view === 'auth' && <AuthView onBack={onBack} connecting={status !== 'connected'} />}
+      {view === 'auth' && <AuthView onBack={onBack} />}
       {view === 'lobby' && <LobbyView onBack={onBack} />}
       {view === 'table' && <WaitingRoom />}
       {view === 'game' && <OnlineGameScreen />}
@@ -72,7 +71,7 @@ function Header({ title, onBack }: { title: string; onBack?: () => void }) {
   );
 }
 
-function AuthView({ onBack, connecting }: { onBack: () => void; connecting: boolean }) {
+function AuthView({ onBack }: { onBack: () => void }) {
   const register = useOnlineStore((s) => s.register);
   const login = useOnlineStore((s) => s.login);
   const authError = useOnlineStore((s) => s.authError);
@@ -82,10 +81,12 @@ function AuthView({ onBack, connecting }: { onBack: () => void; connecting: bool
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
 
+  const tooShort = mode === 'register' && password.length > 0 && password.length < 4;
+
   const submit = () => {
-    if (!name.trim() || !password) return;
-    if (mode === 'login') login(name, password);
-    else register(name, password);
+    if (!name.trim() || password.length < 4 || busy) return;
+    if (mode === 'login') login(name.trim(), password);
+    else register(name.trim(), password);
   };
 
   return (
@@ -132,11 +133,14 @@ function AuthView({ onBack, connecting }: { onBack: () => void; connecting: bool
             />
           </div>
 
+          {tooShort && (
+            <p className="mt-3 text-center text-xs text-white/40">Пароль — минимум 4 символа</p>
+          )}
           {authError && <p className="mt-3 text-center text-xs text-wine-400">{authError}</p>}
 
           <div className="mt-5">
-            <PremiumButton full onClick={submit} disabled={busy || connecting || !name.trim() || !password}>
-              {connecting ? 'Подключение…' : mode === 'login' ? 'Войти' : 'Создать аккаунт'}
+            <PremiumButton full onClick={submit} disabled={busy || !name.trim() || password.length < 4}>
+              {busy ? 'Подключение…' : mode === 'login' ? 'Войти' : 'Создать аккаунт'}
             </PremiumButton>
           </div>
           <p className="mt-4 text-center text-[11px] leading-relaxed text-white/30">
@@ -229,7 +233,11 @@ function LobbyView({ onBack }: { onBack: () => void }) {
                 {tbl.name}
               </span>
               <span className="text-[11px] text-white/40">
-                {tbl.status === 'playing' ? 'Партия идёт' : 'Ожидание игроков'}
+                {tbl.status === 'playing'
+                  ? 'Партия идёт'
+                  : tbl.players >= tbl.maxPlayers
+                    ? 'Стол заполнен'
+                    : `${tbl.players} в столе · ждут ещё ${tbl.maxPlayers - tbl.players}`}
               </span>
             </span>
             <span className="ml-3 shrink-0 rounded-full bg-white/[0.05] px-3 py-1 text-xs text-gold-300">
@@ -258,7 +266,7 @@ function LobbyView({ onBack }: { onBack: () => void }) {
 function CreateTableModal({ onClose }: { onClose: () => void }) {
   const createTable = useOnlineStore((s) => s.createTable);
   const [name, setName] = useState('');
-  const [maxPlayers, setMaxPlayers] = useState<3 | 4>(4);
+  const [maxPlayers, setMaxPlayers] = useState<2 | 3 | 4>(4);
   const [usePassword, setUsePassword] = useState(false);
   const [password, setPassword] = useState('');
 
@@ -269,7 +277,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
         <div>
           <span className="mb-1.5 block text-[11px] uppercase tracking-widest text-white/40">Игроков</span>
           <div className="flex gap-2">
-            {([3, 4] as const).map((n) => (
+            {([2, 3, 4] as const).map((n) => (
               <button
                 key={n}
                 onClick={() => setMaxPlayers(n)}
@@ -279,7 +287,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
                     : 'border-white/[0.08] bg-white/[0.03] text-white/55'
                 }`}
               >
-                {n} игрока
+                {n}
               </button>
             ))}
           </div>

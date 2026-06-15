@@ -37,7 +37,7 @@ export type ClientMessage =
   | { t: 'auth'; token: string }
   | { t: 'lobby:subscribe' }
   | { t: 'lobby:unsubscribe' }
-  | { t: 'table:create'; name: string; maxPlayers: 3 | 4; password?: string }
+  | { t: 'table:create'; name: string; maxPlayers: 2 | 3 | 4; password?: string }
   | { t: 'table:join'; tableId: string; password?: string }
   | { t: 'table:leave' }
   | { t: 'table:start' }

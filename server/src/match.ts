@@ -14,7 +14,7 @@ export interface SeatAssignment {
  * раздача позиционная, поэтому достаточно подменить id/name/isBot по индексу.
  */
 export function createMatch(seats: SeatAssignment[], settings: GameSettings): GameState {
-  const state = createInitialState({ ...settings, playerCount: seats.length as 3 | 4 });
+  const state = createInitialState({ ...settings, playerCount: seats.length as 2 | 3 | 4 });
   state.players = state.players.map((p, i) => ({
     ...p,
     id: seats[i].userId ?? `bot-${i}`,

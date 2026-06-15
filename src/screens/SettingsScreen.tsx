@@ -44,11 +44,12 @@ export function SettingsScreen({ onBack }: Props) {
         <Section title="Количество игроков" hint="Вы и боты">
           <Segmented
             options={[
+              { label: '2 игрока', value: 2 },
               { label: '3 игрока', value: 3 },
               { label: '4 игрока', value: 4 },
             ]}
             value={s.playerCount}
-            onChange={(v) => s.update({ playerCount: v as 3 | 4 })}
+            onChange={(v) => s.update({ playerCount: v as 2 | 3 | 4 })}
           />
         </Section>
 

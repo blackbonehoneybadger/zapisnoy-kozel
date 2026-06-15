@@ -56,7 +56,7 @@ export interface RoundResult {
 
 export interface GameSettings {
   scoreLimit: number; // лимит очков (по умолчанию 101)
-  playerCount: 3 | 4; // всего игроков (1 человек + боты)
+  playerCount: 2 | 3 | 4; // всего игроков (1 человек + боты)
   startingCards: number; // карт на старте (по умолчанию 6)
   difficulty: Difficulty;
   soundEnabled: boolean;

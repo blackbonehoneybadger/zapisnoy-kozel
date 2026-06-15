@@ -35,7 +35,7 @@ interface OnlineStore {
   login: (name: string, password: string) => void;
   logout: () => void;
   refreshLobby: () => void;
-  createTable: (name: string, maxPlayers: 3 | 4, password?: string) => void;
+  createTable: (name: string, maxPlayers: 2 | 3 | 4, password?: string) => void;
   joinTable: (tableId: string, password?: string) => void;
   leaveTable: () => void;
   startGame: () => void;
@@ -46,12 +46,26 @@ interface OnlineStore {
 }
 
 let socket: WebSocket | null = null;
+// Запрос на вход/регистрацию, отложенный до установки соединения.
+let pendingAuth: ClientMessage | null = null;
+let connectTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useOnlineStore = create<OnlineStore>((set, get) => {
   function sendMsg(msg: ClientMessage): void {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(msg));
     }
+  }
+
+  // Отправить запрос авторизации сейчас, либо подключиться и отправить по готовности.
+  function authOrQueue(msg: ClientMessage): void {
+    set({ busy: true, authError: null });
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      sendMsg(msg);
+      return;
+    }
+    pendingAuth = msg;
+    get().connect();
   }
 
   function onMessage(msg: ServerMessage): void {
@@ -106,11 +120,42 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     connect: () => {
       if (socket && socket.readyState <= WebSocket.OPEN) return;
       set({ status: 'connecting' });
-      socket = new WebSocket(SERVER_URL);
+      if (connectTimer) clearTimeout(connectTimer);
+      // Если за 8 секунд не подключились — сервер недоступен, разблокируем UI.
+      connectTimer = setTimeout(() => {
+        if (get().status !== 'connected') {
+          try {
+            socket?.close();
+          } catch {
+            /* ignore */
+          }
+          pendingAuth = null;
+          set({
+            status: 'idle',
+            busy: false,
+            authError: 'Сервер онлайн-игры недоступен. Попробуйте позже.',
+          });
+        }
+      }, 8000);
+
+      try {
+        socket = new WebSocket(SERVER_URL);
+      } catch {
+        if (connectTimer) clearTimeout(connectTimer);
+        set({ status: 'idle', busy: false, authError: 'Не удалось подключиться к серверу.' });
+        return;
+      }
+
       socket.onopen = () => {
+        if (connectTimer) clearTimeout(connectTimer);
         set({ status: 'connected' });
+        // Сначала пробуем восстановить сессию по токену, иначе шлём отложенный вход.
         const token = localStorage.getItem(TOKEN_KEY);
         if (token) sendMsg({ t: 'auth', token });
+        if (pendingAuth) {
+          sendMsg(pendingAuth);
+          pendingAuth = null;
+        }
       };
       socket.onmessage = (e) => {
         try {
@@ -120,20 +165,26 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         }
       };
       socket.onclose = () => {
+        if (connectTimer) clearTimeout(connectTimer);
         set({ status: 'idle' });
+        // Соединение упало во время ожидания авторизации — сообщаем и не висим.
+        if (get().busy && pendingAuth) {
+          pendingAuth = null;
+          set({ busy: false, authError: 'Соединение с сервером прервано.' });
+        }
       };
       socket.onerror = () => {
+        if (connectTimer) clearTimeout(connectTimer);
+        pendingAuth = null;
         set({ notice: 'Нет связи с сервером', status: 'idle', busy: false });
       };
     },
 
     register: (name, password) => {
-      set({ busy: true, authError: null });
-      sendMsg({ t: 'register', name, password });
+      authOrQueue({ t: 'register', name, password });
     },
     login: (name, password) => {
-      set({ busy: true, authError: null });
-      sendMsg({ t: 'login', name, password });
+      authOrQueue({ t: 'login', name, password });
     },
     logout: () => {
       localStorage.removeItem(TOKEN_KEY);

@@ -21,7 +21,7 @@ interface Table {
   id: string;
   name: string;
   hostId: string;
-  maxPlayers: 3 | 4;
+  maxPlayers: 2 | 3 | 4;
   status: 'waiting' | 'playing';
   passwordSalt?: string;
   passwordHash?: string;
@@ -91,18 +91,19 @@ export interface MutationResult {
 export function createTable(
   user: { id: string; name: string },
   name: string,
-  maxPlayers: 3 | 4,
+  maxPlayers: 2 | 3 | 4,
   password?: string,
 ): MutationResult {
   if (tableOf(user.id)) return { ok: false, error: 'Вы уже за столом' };
+  const safeMax = ([2, 3, 4].includes(maxPlayers) ? maxPlayers : 4) as 2 | 3 | 4;
   const cleanName = (name || '').trim() || `Стол ${user.name}`;
-  const seats: SeatAssignment[] = Array.from({ length: maxPlayers }, emptySeat);
+  const seats: SeatAssignment[] = Array.from({ length: safeMax }, emptySeat);
   seats[0] = { userId: user.id, name: user.name, isBot: false };
   const table: Table = {
     id: randomBytes(6).toString('base64url'),
     name: cleanName.slice(0, 30),
     hostId: user.id,
-    maxPlayers,
+    maxPlayers: safeMax,
     status: 'waiting',
     seats,
     game: null,
