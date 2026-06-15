@@ -72,7 +72,7 @@ export function Card({
     <motion.button
       type="button"
       onClick={onClick}
-      whileHover={playable ? { y: -12, scale: 1.05 } : undefined}
+      whileHover={playable ? { y: -14, scale: 1.05 } : undefined}
       whileTap={playable ? { scale: 0.97 } : undefined}
       animate={selected ? { y: -16 } : { y: 0 }}
       transition={{ type: 'spring', stiffness: 320, damping: 22 }}
@@ -90,7 +90,13 @@ export function Card({
       <span className="pointer-events-none absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/70 to-transparent" />
       {/* мягкое свечение при доступности */}
       {playable && (
-        <span className="pointer-events-none absolute inset-0 rounded-[0.85rem] shadow-[0_0_20px_rgba(205,176,119,0.4)]" />
+        <motion.span
+          className="pointer-events-none absolute inset-0 rounded-[0.85rem]"
+          initial={{ opacity: 0.4 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          style={{ boxShadow: '0 0 28px rgba(205,176,119,0.55), 0 0 8px rgba(205,176,119,0.3)' }}
+        />
       )}
 
       <span className={`absolute left-1.5 top-1 flex flex-col items-center leading-none ${color}`}>

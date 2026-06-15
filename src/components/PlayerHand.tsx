@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Card as CardType } from '../game/types';
 import { Card } from './Card';
@@ -26,6 +27,14 @@ export function PlayerHand({ cards, isPlayable, onPlay, yourTurn }: Props) {
     overlap = Math.max(-56, Math.min(-10, fit));
   }
 
+  // Detect initial deal: hand goes from 0 → N cards
+  const wasEmptyRef = useRef(true);
+  const isInitialDeal = wasEmptyRef.current && cards.length > 1;
+
+  useEffect(() => {
+    wasEmptyRef.current = cards.length === 0;
+  }, [cards.length]);
+
   return (
     <div className="relative flex h-44 items-end justify-center">
       <AnimatePresence initial={false}>
@@ -36,10 +45,18 @@ export function PlayerHand({ cards, isPlayable, onPlay, yourTurn }: Props) {
             <motion.div
               key={card.id}
               layout
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1, rotate: angle }}
+              initial={
+                isInitialDeal
+                  ? { y: 150, opacity: 0, scale: 0.88 }
+                  : { y: 80, opacity: 0 }
+              }
+              animate={{ y: 0, opacity: 1, rotate: angle, scale: 1 }}
               exit={{ y: -120, opacity: 0, transition: { duration: 0.25 } }}
-              transition={{ type: 'spring', stiffness: 260, damping: 24, delay: i * 0.015 }}
+              transition={
+                isInitialDeal
+                  ? { type: 'spring', stiffness: 180, damping: 20, delay: i * 0.075 }
+                  : { type: 'spring', stiffness: 260, damping: 24, delay: i * 0.015 }
+              }
               style={{ marginLeft: i === 0 ? 0 : overlap, transformOrigin: 'bottom center' }}
               className="relative"
             >

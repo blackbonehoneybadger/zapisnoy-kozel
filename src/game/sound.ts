@@ -43,25 +43,45 @@ function sequence(notes: Array<[number, number]>, type: OscillatorType = 'triang
 }
 
 export function playCardSound(): void {
-  tone(440, 0.08, 'triangle', 0.06);
+  // Soft card thud with harmonic
+  tone(520, 0.06, 'sine', 0.07);
+  window.setTimeout(() => tone(260, 0.1, 'sine', 0.04), 15);
 }
 
 export function drawCardSound(): void {
-  tone(220, 0.12, 'sawtooth', 0.05);
+  // Paper rustle using noise + filter via 2 detuned saws
+  tone(180, 0.14, 'sawtooth', 0.04);
+  window.setTimeout(() => tone(185, 0.1, 'sawtooth', 0.025), 10);
 }
 
 export function specialSound(): void {
-  sequence([[523, 0.08], [659, 0.1]], 'triangle');
+  // Warm bell-like tone with overtone
+  sequence([[659, 0.14], [880, 0.18]], 'sine');
 }
 
 export function penaltySound(): void {
-  sequence([[300, 0.1], [200, 0.16]], 'sawtooth');
+  // Low drop
+  const ac = audio();
+  if (!ac) return;
+  const osc = ac.createOscillator();
+  const g = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(220, ac.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(80, ac.currentTime + 0.22);
+  g.gain.setValueAtTime(0, ac.currentTime);
+  g.gain.linearRampToValueAtTime(0.12, ac.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.25);
+  osc.connect(g).connect(ac.destination);
+  osc.start();
+  osc.stop(ac.currentTime + 0.28);
 }
 
 export function winSound(): void {
-  sequence([[523, 0.12], [659, 0.12], [784, 0.12], [1047, 0.22]], 'triangle');
+  // C major arpeggio — C5 E5 G5 C6
+  sequence([[523, 0.14], [659, 0.14], [784, 0.14], [1047, 0.28]], 'sine');
 }
 
 export function loseSound(): void {
-  sequence([[392, 0.16], [311, 0.16], [233, 0.3]], 'sine');
+  // Descending minor
+  sequence([[392, 0.18], [349, 0.18], [294, 0.22], [233, 0.32]], 'sine');
 }

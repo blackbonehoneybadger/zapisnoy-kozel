@@ -339,7 +339,28 @@ function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () =
   );
 }
 
+function CountUp({ from, to, duration = 0.8, delay = 0 }: { from: number; to: number; duration?: number; delay?: number }) {
+  const [display, setDisplay] = useState(from);
+  useEffect(() => {
+    let start: number;
+    let raf: number;
+    const startTime = performance.now() + delay * 1000;
+    const tick = (now: number) => {
+      if (now < startTime) { raf = requestAnimationFrame(tick); return; }
+      if (!start) start = now;
+      const progress = Math.min((now - start) / (duration * 1000), 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [from, to, duration, delay]);
+  return <>{display}</>;
+}
+
 function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void }) {
+  const results = state.roundResults!;
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -350,11 +371,48 @@ function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void 
       <motion.div
         initial={{ scale: 0.85, y: 30 }}
         animate={{ scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 24 }}
         className="glass-strong w-full max-w-sm rounded-3xl p-6"
       >
-        <h2 className="mb-1 text-center font-display text-2xl gold-text">Раунд завершён</h2>
-        <p className="mb-4 text-center text-xs text-white/50">Очки добавлены в таблицу</p>
-        <ScoreBoard state={state} results={state.roundResults} />
+        <p className="mb-1 text-center text-[11px] uppercase tracking-[0.3em] text-gold-500/60">
+          Раунд {state.roundNumber}
+        </p>
+        <h2 className="mb-4 text-center font-display text-2xl gold-text">Раунд завершён</h2>
+        <div className="glass rounded-2xl p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-display text-lg gold-text">Счёт</h3>
+            <span className="text-[11px] text-white/50">Лимит {state.settings.scoreLimit}</span>
+          </div>
+          <div className="space-y-1.5">
+            {results.map((r, i) => (
+              <motion.div
+                key={r.playerId}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + i * 0.12 }}
+                className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
+                  r.busted ? 'bg-wine-700/20' : 'bg-white/[0.03]'
+                }`}
+              >
+                <span className={`text-sm ${r.busted ? 'text-wine-400 line-through' : 'text-white/85'}`}>
+                  {r.name}
+                </span>
+                <span className="flex items-center gap-2">
+                  {r.gained > 0 && (
+                    <span className="text-[11px] text-wine-400">
+                      +<CountUp from={0} to={r.gained} delay={0.25 + i * 0.12} />
+                    </span>
+                  )}
+                  {r.reset && <span className="text-[11px] text-emerald-300">обнулён</span>}
+                  {r.busted && <span className="text-[11px] text-wine-400">улетел</span>}
+                  <span className="font-display text-lg text-gold-300">
+                    <CountUp from={r.total - r.gained} to={r.total} delay={0.4 + i * 0.12} />
+                  </span>
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
         <div className="mt-5">
           <PremiumButton full onClick={onNext}>
             Следующий раунд
