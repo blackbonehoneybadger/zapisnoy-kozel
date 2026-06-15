@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { haptics } from '../game/haptics';
 
 type Variant = 'gold' | 'ghost' | 'danger';
 
@@ -35,7 +36,11 @@ export function PremiumButton({
     <motion.button
       whileHover={disabled ? undefined : { scale: 1.02 }}
       whileTap={disabled ? undefined : { scale: 0.97 }}
-      onClick={onClick}
+      onClick={() => {
+        if (disabled) return;
+        haptics.tap();
+        onClick?.();
+      }}
       disabled={disabled}
       className={`${base} ${variants[variant]} ${full ? 'w-full' : ''} ${className}`}
     >

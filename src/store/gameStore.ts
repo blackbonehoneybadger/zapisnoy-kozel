@@ -19,6 +19,7 @@ import {
   specialSound,
   winSound,
 } from '../game/sound';
+import { haptics } from '../game/haptics';
 
 interface GameStore {
   game: GameState | null;
@@ -45,9 +46,11 @@ function playEventSound(state: GameState): void {
   switch (evt.type) {
     case 'play':
       playCardSound();
+      haptics.play();
       break;
     case 'queen':
       specialSound();
+      haptics.special();
       break;
     case 'six':
     case 'seven':
@@ -55,17 +58,25 @@ function playEventSound(state: GameState): void {
     case 'ace':
     case 'nine':
       specialSound();
+      haptics.special();
       break;
     case 'draw':
-      if ((evt.amount ?? 1) > 1) penaltySound();
-      else drawCardSound();
+      if ((evt.amount ?? 1) > 1) {
+        penaltySound();
+        haptics.penalty();
+      } else {
+        drawCardSound();
+        haptics.draw();
+      }
       break;
     case 'busted':
       loseSound();
+      haptics.lose();
       break;
     case 'reset':
     case 'roundWin':
       winSound();
+      haptics.win();
       break;
   }
 }
@@ -85,8 +96,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         players: next.players.length,
         flewAway: human?.busted ?? false,
       });
-      if (won) winSound();
-      else loseSound();
+      if (won) {
+        winSound();
+        haptics.win();
+      } else {
+        loseSound();
+        haptics.lose();
+      }
       set({ game: next, recorded: true });
       clearBotTimer();
       return;

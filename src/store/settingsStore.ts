@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { GameSettings } from '../game/types';
 import { setSoundEnabled } from '../game/sound';
+import { setHapticsEnabled } from '../game/haptics';
 
 export const DEFAULT_SETTINGS: GameSettings = {
   scoreLimit: 101,
@@ -24,13 +25,17 @@ export const useSettingsStore = create<SettingsState>()(
         set((s) => {
           const next = { ...s, ...patch };
           setSoundEnabled(next.soundEnabled);
+          setHapticsEnabled(next.soundEnabled);
           return next;
         }),
     }),
     {
       name: 'kozel-settings-v1',
       onRehydrateStorage: () => (state) => {
-        if (state) setSoundEnabled(state.soundEnabled);
+        if (state) {
+          setSoundEnabled(state.soundEnabled);
+          setHapticsEnabled(state.soundEnabled);
+        }
       },
     },
   ),
