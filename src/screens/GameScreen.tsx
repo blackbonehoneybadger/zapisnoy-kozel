@@ -62,7 +62,7 @@ export function GameScreen({ onExit }: Props) {
   };
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col px-3 pt-3 safe-top">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden px-3 pt-3 safe-top">
       {/* верхняя панель */}
       <div className="mb-2 flex items-center justify-between px-1">
         <button
@@ -92,7 +92,7 @@ export function GameScreen({ onExit }: Props) {
       <GameTable state={game} />
 
       {/* статус хода */}
-      <div className="relative mt-3 flex min-h-[2.5rem] items-center justify-center px-2">
+      <div className="relative mt-2 flex min-h-[2.25rem] shrink-0 items-center justify-center px-2">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${current.id}-${yourTurn}`}
@@ -113,7 +113,7 @@ export function GameScreen({ onExit }: Props) {
       </div>
 
       {/* рука игрока */}
-      <div className="relative mt-1">
+      <div className="relative mt-1 shrink-0">
         <AnimatePresence>
           {yourTurn && (
             <motion.div
@@ -134,7 +134,7 @@ export function GameScreen({ onExit }: Props) {
       </div>
 
       {/* действия */}
-      <div className="mb-1 mt-1 flex items-center justify-center gap-3 px-3 safe-bottom">
+      <div className="mt-2 flex shrink-0 items-center justify-center gap-3 px-3 pb-1 safe-bottom">
         <PremiumButton
           variant="ghost"
           disabled={!yourTurn}

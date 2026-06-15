@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import type { GameState } from '../game/types';
+import type { GameState, Player } from '../game/types';
 import { SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../game/deck';
 import { topCard } from '../game/rules';
 import { Card } from './Card';
@@ -9,7 +9,22 @@ interface Props {
   state: GameState;
 }
 
-/** Карточный стол: соперники сверху, колода и сброс в центре. */
+/** Кресло соперника за столом — по краям, как за реальным столом. */
+function seatClass(i: number, count: number): string {
+  if (count <= 2) {
+    return ['left-6 top-4', 'right-6 top-4'][i] ?? 'left-1/2 top-4 -translate-x-1/2';
+  }
+  // три соперника: слева, по центру сверху, справа
+  return (
+    [
+      'left-1 top-[42%] -translate-y-1/2',
+      'left-1/2 top-3 -translate-x-1/2',
+      'right-1 top-[42%] -translate-y-1/2',
+    ][i] ?? 'left-1/2 top-3 -translate-x-1/2'
+  );
+}
+
+/** Карточный стол: соперники по краям, колода и сброс в центре. */
 export function GameTable({ state }: Props) {
   const bots = state.players.filter((p) => p.isBot);
   const top = topCard(state);
@@ -22,44 +37,42 @@ export function GameTable({ state }: Props) {
   else if (d.aceSkip) demandBadge = 'Пропуск';
   else if (d.nineSuit) demandBadge = `9 · ${SUIT_SYMBOL[d.nineSuit]}`;
 
+  const isActive = (p: Player) =>
+    state.players[state.currentPlayerIndex].id === p.id && state.phase === 'playing';
+
   return (
-    <div className="relative flex-1 overflow-hidden rounded-[2rem] bg-felt-radial border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]">
+    <div className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] bg-felt-radial border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]">
       {/* зерно сукна */}
       <div className="pointer-events-none absolute inset-0 grain opacity-[0.06] mix-blend-soft-light" />
       {/* мягкий центральный свет стола */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_55%_at_50%_38%,rgba(255,255,255,0.05),transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(68%_52%_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
       {/* виньетка по краям */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_45%,transparent_60%,rgba(0,0,0,0.4)_100%)]" />
       {/* тонкая шампань-окантовка */}
       <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-gold-500/15" />
       <div className="pointer-events-none absolute inset-[14px] rounded-[1.4rem] border border-gold-700/10" />
 
-      {/* соперники */}
-      <div className="relative flex justify-around px-4 pt-5">
-        {bots.map((p) => (
-          <PlayerAvatar
-            key={p.id}
-            player={p}
-            active={state.players[state.currentPlayerIndex].id === p.id && state.phase === 'playing'}
-            compact={bots.length > 2}
-          />
-        ))}
-      </div>
+      {/* соперники по краям стола */}
+      {bots.map((p, i) => (
+        <div key={p.id} className={`absolute z-10 ${seatClass(i, bots.length)}`}>
+          <PlayerAvatar player={p} active={isActive(p)} compact />
+        </div>
+      ))}
 
       {/* центр: колода + сброс */}
-      <div className="relative mt-2 flex items-center justify-center gap-7 py-6">
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-6">
         {/* колода */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1.5">
           <div className="relative">
             <Card faceDown className="absolute -left-1 -top-1 rotate-[-6deg]" />
             <Card faceDown className="absolute left-0.5 top-0.5 rotate-[4deg]" />
             <Card faceDown />
           </div>
-          <span className="text-[11px] text-white/50">Колода · {state.deck.length}</span>
+          <span className="text-[10px] tracking-wide text-white/45">Колода · {state.deck.length}</span>
         </div>
 
         {/* сброс */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1.5">
           <div className="relative">
             <AnimatePresence mode="popLayout">
               <motion.div
@@ -81,18 +94,18 @@ export function GameTable({ state }: Props) {
               </motion.span>
             )}
           </div>
-          <span className="text-[11px] text-white/50">Сброс</span>
+          <span className="text-[10px] tracking-wide text-white/45">Сброс</span>
         </div>
       </div>
 
-      {/* индикатор активной масти */}
-      <div className="relative flex items-center justify-center pb-4">
-        <div className="glass flex items-center gap-2 rounded-full px-4 py-1.5">
-          <span className="text-[11px] uppercase tracking-widest text-white/50">Масть</span>
-          <span className={`text-lg ${red ? 'text-[#d98a93]' : 'text-white'}`}>
+      {/* индикатор активной масти — у нижней кромки стола */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+        <div className="glass flex items-center gap-2 rounded-full px-3.5 py-1">
+          <span className="text-[10px] uppercase tracking-widest text-white/45">Масть</span>
+          <span className={`text-base ${red ? 'text-[#d98a93]' : 'text-white'}`}>
             {SUIT_SYMBOL[activeSuit]}
           </span>
-          <span className="text-[12px] text-white/70">{SUIT_LABEL[activeSuit]}</span>
+          <span className="text-[11px] text-white/65">{SUIT_LABEL[activeSuit]}</span>
         </div>
       </div>
     </div>

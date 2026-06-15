@@ -36,7 +36,7 @@ export function PlayerHand({ cards, isPlayable, onPlay, yourTurn }: Props) {
   }, [cards.length]);
 
   return (
-    <div className="relative flex h-44 items-end justify-center">
+    <div className="relative flex h-[10.5rem] items-end justify-center">
       <AnimatePresence initial={false}>
         {cards.map((card, i) => {
           const angle = -spread / 2 + step * i;
