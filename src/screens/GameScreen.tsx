@@ -263,9 +263,12 @@ function getTakeLabel(state: GameState, canPlayAny: boolean): {
     return { button: 'Пропустить', prompt: canPlayAny ? 'Побейте тузом или пропустите' : 'Туз — пропуск хода' };
   }
   if (d.nineSuit) {
+    if (state.drewThisTurn) {
+      return { button: 'Пропустить', prompt: 'Накрыть нечем — ход переходит' };
+    }
     return {
       button: 'Взять 1',
-      prompt: canPlayAny ? `Накройте мастью ${SUIT_SYMBOL[d.nineSuit]} или переведите 9` : 'Нечем накрыть — берите карту',
+      prompt: canPlayAny ? `Накройте мастью ${SUIT_SYMBOL[d.nineSuit]} или переведите 9` : 'Нечем накрыть — тяните карту',
     };
   }
   if (state.drewThisTurn) return { button: 'Пропустить', prompt: 'Сыграйте взятую карту или пропустите' };

@@ -224,7 +224,7 @@ export function applySpecialCardEffect(
 
   if (card.rank === '9') {
     state.demand.nineSuit = card.suit;
-    log(state, `${playerName} кладёт 9 — её надо накрыть мастью ${SUIT_LABEL[card.suit]} или перевести.`, 'special');
+    log(state, `${playerName} кладёт 9${suitGlyph(card.suit)} — сразу накройте мастью ${SUIT_LABEL[card.suit]} или другой 9.`, 'special');
     state.lastEvent = { type: 'nine', playerId: '', suit: card.suit, ts: Date.now() };
     return;
   }
@@ -337,6 +337,11 @@ export function applyMove(prev: GameState, action: MoveAction): GameState {
     return state;
   }
 
+  // Девятка требует немедленного накрытия тем же игроком — ход НЕ передаётся.
+  if (state.demand.nineSuit !== null) {
+    return state;
+  }
+
   nextTurn(state);
   return state;
 }
@@ -364,11 +369,20 @@ function handleTake(state: GameState, idx: number, player: Player): void {
     return;
   }
 
-  // 3. Активная девятка — берём 1 карту и теряем ход.
+  // 3. Девятка: тот же игрок не смог накрыть — тянет 1 карту.
   if (d.nineSuit) {
-    drawCards(state, idx, 1);
-    log(state, `${player.name} не накрыл девятку — берёт 1 и пропускает.`, 'penalty');
-    state.lastEvent = { type: 'draw', playerId: player.id, amount: 1, ts: Date.now() };
+    if (!state.drewThisTurn) {
+      const [drawn] = drawCards(state, idx, 1);
+      state.drewThisTurn = true;
+      state.lastEvent = { type: 'draw', playerId: player.id, amount: 1, ts: Date.now() };
+      if (drawn && canPlayCard(state, drawn)) {
+        log(state, `${player.name} тянет карту — может накрыть!`, 'info');
+        return; // ход остаётся у этого игрока
+      }
+      log(state, `${player.name} не смог накрыть девятку — тянет 1 и пасует.`, 'penalty');
+    } else {
+      log(state, `${player.name} пасует: накрыть нечем.`, 'info');
+    }
     state.demand = { ...EMPTY_DEMAND };
     nextTurn(state);
     return;
