@@ -5,9 +5,10 @@ import { GameScreen } from './screens/GameScreen';
 import { RulesScreen } from './screens/RulesScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { OnlineScreen } from './screens/OnlineScreen';
 import { useGameStore } from './store/gameStore';
 
-export type Screen = 'home' | 'game' | 'rules' | 'stats' | 'settings';
+export type Screen = 'home' | 'game' | 'rules' | 'stats' | 'settings' | 'online';
 
 const transition = {
   initial: { opacity: 0, scale: 0.98, y: 12 },
@@ -47,6 +48,7 @@ export default function App() {
             {screen === 'rules' && <RulesScreen onBack={() => setScreen('home')} />}
             {screen === 'stats' && <StatsScreen onBack={() => setScreen('home')} />}
             {screen === 'settings' && <SettingsScreen onBack={() => setScreen('home')} />}
+            {screen === 'online' && <OnlineScreen onBack={() => setScreen('home')} />}
           </motion.div>
         </AnimatePresence>
       </div>

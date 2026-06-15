@@ -82,7 +82,26 @@ export function HomeScreen({ navigate, onPlay }: Props) {
       <div className="w-full max-w-sm">
         <motion.div custom={0} variants={item} initial="hidden" animate="show">
           <PremiumButton full variant="gold" onClick={onPlay}>
-            Играть
+            Играть с ботами
+          </PremiumButton>
+        </motion.div>
+
+        <motion.div custom={1} variants={item} initial="hidden" animate="show" className="mt-3">
+          <PremiumButton
+            full
+            variant="ghost"
+            onClick={() => {
+              haptics.tap();
+              navigate('online');
+            }}
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                <path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            }
+          >
+            Играть онлайн
           </PremiumButton>
         </motion.div>
 
@@ -90,7 +109,7 @@ export function HomeScreen({ navigate, onPlay }: Props) {
           {secondary.map((b, i) => (
             <motion.button
               key={b.screen}
-              custom={i + 1}
+              custom={i + 2}
               variants={item}
               initial="hidden"
               animate="show"

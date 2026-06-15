@@ -7,6 +7,8 @@ import { PlayerAvatar } from './PlayerAvatar';
 
 interface Props {
   state: GameState;
+  /** Кресло зрителя: соперники — все остальные. По умолчанию игрок «you». */
+  youSeat?: number;
 }
 
 /** Кресло соперника за столом — по краям, как за реальным столом. */
@@ -25,8 +27,12 @@ function seatClass(i: number, count: number): string {
 }
 
 /** Карточный стол: соперники по краям, колода и сброс в центре. */
-export function GameTable({ state }: Props) {
-  const bots = state.players.filter((p) => p.isBot);
+export function GameTable({ state, youSeat }: Props) {
+  const mySeat =
+    youSeat ?? Math.max(0, state.players.findIndex((p) => p.id === 'you'));
+  const opponents = state.players
+    .map((player, index) => ({ player, index }))
+    .filter((p) => p.index !== mySeat);
   const top = topCard(state);
   const activeSuit = state.activeSuit;
   const red = SUIT_IS_RED[activeSuit];
@@ -53,9 +59,9 @@ export function GameTable({ state }: Props) {
       <div className="pointer-events-none absolute inset-[14px] rounded-[1.4rem] border border-gold-700/10" />
 
       {/* соперники по краям стола */}
-      {bots.map((p, i) => (
-        <div key={p.id} className={`absolute z-10 ${seatClass(i, bots.length)}`}>
-          <PlayerAvatar player={p} active={isActive(p)} compact />
+      {opponents.map(({ player }, i) => (
+        <div key={player.id} className={`absolute z-10 ${seatClass(i, opponents.length)}`}>
+          <PlayerAvatar player={player} active={isActive(player)} compact />
         </div>
       ))}
 

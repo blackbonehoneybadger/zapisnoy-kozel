@@ -29,7 +29,7 @@ export function PlayerAvatar({ player, active, compact }: Props) {
           <GoatEmblem size={compact ? 26 : 30} />
         ) : (
           <span className={`font-display ${active ? 'text-ink-900' : 'gold-text'} text-xl`}>
-            Я
+            {(player.name.trim()[0] ?? 'И').toUpperCase()}
           </span>
         )}
         {active && (
