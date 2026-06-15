@@ -36,18 +36,18 @@ export function ScoreBoard({ state, results }: Props) {
           <div
             key={r.id}
             className={`flex items-center justify-between rounded-xl px-3 py-2 ${
-              r.busted ? 'bg-red-900/20' : 'bg-white/[0.03]'
+              r.busted ? 'bg-wine-700/20' : 'bg-white/[0.03]'
             }`}
           >
-            <span className={`text-sm ${r.busted ? 'text-red-300 line-through' : 'text-white/85'}`}>
+            <span className={`text-sm ${r.busted ? 'text-wine-400 line-through' : 'text-white/85'}`}>
               {r.name}
             </span>
             <span className="flex items-center gap-2">
               {r.gained !== null && r.gained > 0 && (
-                <span className="text-[11px] text-rose-300">+{r.gained}</span>
+                <span className="text-[11px] text-wine-400">+{r.gained}</span>
               )}
               {r.reset && <span className="text-[11px] text-emerald-300">обнулён</span>}
-              {r.busted && <span className="text-[11px] text-red-400">улетел</span>}
+              {r.busted && <span className="text-[11px] text-wine-400">улетел</span>}
               <span className="font-display text-lg text-gold-300">{r.score}</span>
             </span>
           </div>

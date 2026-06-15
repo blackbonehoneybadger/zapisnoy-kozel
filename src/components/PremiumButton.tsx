@@ -15,12 +15,13 @@ interface Props {
 }
 
 const base =
-  'relative inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 font-semibold tracking-wide transition-colors select-none disabled:opacity-40 disabled:cursor-not-allowed';
+  'relative inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-[0.95rem] font-medium tracking-wide transition-all duration-300 select-none disabled:opacity-40 disabled:cursor-not-allowed';
 
 const variants: Record<Variant, string> = {
-  gold: 'text-ink-900 bg-gold-sheen shadow-gold hover:brightness-105',
-  ghost: 'text-gold-400 glass hover:bg-white/[0.07]',
-  danger: 'text-red-200 bg-red-900/40 border border-red-500/30 hover:bg-red-900/60',
+  gold: 'text-ink-900 bg-gold-sheen shadow-gold hover:shadow-glow',
+  ghost:
+    'text-gold-200 bg-white/[0.03] border border-white/[0.08] hover:border-gold-500/30 hover:bg-white/[0.05]',
+  danger: 'text-wine-400 bg-wine-700/25 border border-wine-500/25 hover:bg-wine-700/40',
 };
 
 export function PremiumButton({
@@ -34,8 +35,8 @@ export function PremiumButton({
 }: Props) {
   return (
     <motion.button
-      whileHover={disabled ? undefined : { scale: 1.02 }}
-      whileTap={disabled ? undefined : { scale: 0.97 }}
+      whileHover={disabled ? undefined : { scale: 1.015 }}
+      whileTap={disabled ? undefined : { scale: 0.975 }}
       onClick={() => {
         if (disabled) return;
         haptics.tap();
@@ -45,9 +46,12 @@ export function PremiumButton({
       className={`${base} ${variants[variant]} ${full ? 'w-full' : ''} ${className}`}
     >
       {variant === 'gold' && (
-        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-          <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-20deg] bg-white/30 blur-md animate-shimmer" />
-        </span>
+        <>
+          <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+            <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-20deg] bg-white/35 blur-md animate-shimmer" />
+          </span>
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl bg-gradient-to-b from-white/30 to-transparent" />
+        </>
       )}
       {icon}
       <span className="relative">{children}</span>

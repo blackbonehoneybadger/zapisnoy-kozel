@@ -68,20 +68,24 @@ export function GameScreen({ onExit }: Props) {
         <button
           onClick={handleBack}
           aria-label="Выйти в меню"
-          className="glass grid h-10 w-10 place-items-center rounded-xl text-white/70 active:scale-95"
+          className="glass grid h-10 w-10 place-items-center rounded-xl text-white/70 transition active:scale-95 hover:text-white"
         >
-          ←
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
         <div className="text-center">
-          <div className="font-display text-sm gold-text">Раунд {game.roundNumber}</div>
-          <div className="text-[11px] text-white/40">Записной Козёл</div>
+          <div className="font-display text-sm tracking-wide gold-text">Раунд {game.roundNumber}</div>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-white/35">Записной Козёл</div>
         </div>
         <button
           onClick={() => setShowScore(true)}
           aria-label="Показать счёт и события"
-          className="glass grid h-10 w-10 place-items-center rounded-xl text-gold-400 active:scale-95"
+          className="glass grid h-10 w-10 place-items-center rounded-xl text-gold-400 transition active:scale-95 hover:text-gold-300"
         >
-          ▦
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
         </button>
       </div>
 
@@ -296,7 +300,7 @@ function SuitChooser({ onChoose, onCancel }: { onChoose: (s: Suit) => void; onCa
               onClick={() => onChoose(s)}
               className="glass flex flex-col items-center gap-1 rounded-2xl py-4"
             >
-              <span className={`text-3xl ${SUIT_IS_RED[s] ? 'text-rose-400' : 'text-white'}`}>
+              <span className={`text-3xl ${SUIT_IS_RED[s] ? 'text-[#d98a93]' : 'text-white'}`}>
                 {SUIT_SYMBOL[s]}
               </span>
               <span className="text-xs text-white/60">{SUIT_LABEL[s]}</span>
@@ -452,7 +456,7 @@ function Confetti() {
 
 function logColor(kind: string): string {
   if (kind === 'special') return 'text-gold-300/90';
-  if (kind === 'penalty') return 'text-rose-300/90';
+  if (kind === 'penalty') return 'text-wine-400/90';
   if (kind === 'win') return 'text-emerald-300/90';
   return 'text-white/55';
 }

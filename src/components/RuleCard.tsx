@@ -11,7 +11,7 @@ interface Props {
 
 const accents = {
   gold: 'text-gold-300 border-gold-500/30',
-  red: 'text-rose-300 border-rose-500/30',
+  red: 'text-wine-400 border-wine-500/30',
   emerald: 'text-emerald-300 border-emerald-500/30',
 };
 

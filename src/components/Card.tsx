@@ -14,7 +14,7 @@ interface Props {
 }
 
 const sizes = {
-  normal: 'w-[4.5rem] h-[6.4rem] text-base',
+  normal: 'w-[4.6rem] h-[6.5rem] text-base',
   small: 'w-12 h-[4.3rem] text-xs',
 };
 
@@ -32,64 +32,84 @@ export function Card({
 
   if (faceDown || !card) {
     return (
-      <div className={`${dim} ${className} rounded-xl relative overflow-hidden shadow-card`}>
-        <div className="absolute inset-0 bg-gradient-to-br from-felt-700 to-felt-900" />
-        <div className="absolute inset-[3px] rounded-lg border border-gold-600/40" />
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(45deg, rgba(231,193,104,0.25) 0 6px, transparent 6px 12px)',
-          }}
-        />
+      <div className={`${dim} ${className} relative overflow-hidden rounded-[0.85rem] shadow-card`}>
+        {/* обсидиановая рубашка */}
+        <div className="absolute inset-0 bg-[linear-gradient(150deg,#15181c_0%,#0c0e11_55%,#090a0c_100%)]" />
+        {/* мягкое центральное свечение */}
+        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(205,176,119,0.14),transparent_70%)]" />
+        {/* двойная шампань-рамка */}
+        <div className="absolute inset-[3px] rounded-[0.6rem] border border-gold-600/35" />
+        <div className="absolute inset-[6px] rounded-[0.45rem] border border-gold-700/25" />
+        {/* эмблема-герб */}
         <div className="absolute inset-0 grid place-items-center">
-          <span className="text-gold-400/80 text-lg font-display">К</span>
+          <svg width={small ? 18 : 26} height={small ? 18 : 26} viewBox="0 0 24 24" aria-hidden>
+            <path
+              d="M12 2l2.4 5.6L20 8.2l-4 4.1 1 6L12 15.4 7 18.3l1-6-4-4.1 5.6-.6L12 2z"
+              fill="none"
+              stroke="url(#cardGold)"
+              strokeWidth="1.1"
+              strokeLinejoin="round"
+            />
+            <defs>
+              <linearGradient id="cardGold" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#f1e3c0" />
+                <stop offset="1" stopColor="#9c7c4a" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
+        {/* верхний блик */}
+        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/[0.06] to-transparent" />
       </div>
     );
   }
 
   const red = SUIT_IS_RED[card.suit];
   const symbol = SUIT_SYMBOL[card.suit];
-  const color = red ? 'text-rose-600' : 'text-graphite-900';
+  const color = red ? 'text-[#b8313f]' : 'text-[#1a1d22]';
 
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      whileHover={playable ? { y: -10, scale: 1.04 } : undefined}
+      whileHover={playable ? { y: -12, scale: 1.05 } : undefined}
       whileTap={playable ? { scale: 0.97 } : undefined}
       animate={selected ? { y: -16 } : { y: 0 }}
       transition={{ type: 'spring', stiffness: 320, damping: 22 }}
       disabled={!onClick}
-      className={`${dim} ${className} relative rounded-xl bg-gradient-to-b from-[#fffdf6] to-[#f3ead4]
-        shadow-card overflow-hidden ${onClick ? 'cursor-pointer' : 'cursor-default'}
-        ${dimmed ? 'opacity-45 saturate-50' : ''}
-        ${playable ? 'ring-1 ring-gold-400/70' : ''}
+      className={`${dim} ${className} group relative overflow-hidden rounded-[0.85rem]
+        bg-[linear-gradient(180deg,#fffefb_0%,#fbf6ea_60%,#f1e8d4_100%)]
+        shadow-card ${onClick ? 'cursor-pointer' : 'cursor-default'}
+        ${dimmed ? 'opacity-40 saturate-[0.6]' : ''}
+        ${playable ? 'ring-1 ring-gold-400/60' : ''}
         ${selected ? 'ring-2 ring-gold-400 shadow-glow' : ''}`}
     >
-      <span className="pointer-events-none absolute inset-[2.5px] rounded-lg border border-gold-600/50" />
+      {/* тонкая внутренняя рамка */}
+      <span className="pointer-events-none absolute inset-[2.5px] rounded-[0.65rem] border border-gold-600/30" />
+      {/* верхний глянец */}
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/70 to-transparent" />
+      {/* мягкое свечение при доступности */}
       {playable && (
-        <span className="pointer-events-none absolute inset-0 rounded-xl shadow-[0_0_18px_rgba(231,193,104,0.45)]" />
+        <span className="pointer-events-none absolute inset-0 rounded-[0.85rem] shadow-[0_0_20px_rgba(205,176,119,0.4)]" />
       )}
 
-      <span className={`absolute top-1 left-1.5 flex flex-col items-center leading-none ${color}`}>
-        <span className="font-bold">{card.rank}</span>
+      <span className={`absolute left-1.5 top-1 flex flex-col items-center leading-none ${color}`}>
+        <span className="font-semibold tracking-tight">{card.rank}</span>
         <span className={small ? 'text-[10px]' : 'text-sm'}>{symbol}</span>
       </span>
 
       <span
         className={`absolute inset-0 grid place-items-center ${color} ${
-          small ? 'text-2xl' : 'text-4xl'
-        } opacity-90`}
+          small ? 'text-2xl' : 'text-[2.6rem]'
+        } opacity-90 drop-shadow-[0_1px_0_rgba(0,0,0,0.06)]`}
       >
         {symbol}
       </span>
 
       <span
-        className={`absolute bottom-1 right-1.5 flex flex-col items-center leading-none rotate-180 ${color}`}
+        className={`absolute bottom-1 right-1.5 flex rotate-180 flex-col items-center leading-none ${color}`}
       >
-        <span className="font-bold">{card.rank}</span>
+        <span className="font-semibold tracking-tight">{card.rank}</span>
         <span className={small ? 'text-[10px]' : 'text-sm'}>{symbol}</span>
       </span>
     </motion.button>

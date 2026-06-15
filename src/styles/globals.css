@@ -18,11 +18,13 @@ body,
 
 body {
   margin: 0;
-  background: #070a09;
-  color: #f4f1e9;
+  background: #08090b;
+  color: #f3efe6;
   font-family: 'Inter', system-ui, sans-serif;
+  font-feature-settings: 'ss01', 'cv01', 'cv11';
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -30,18 +32,24 @@ body {
 }
 
 @layer components {
+  /* Тонкое матовое стекло — сдержанное, «дорогое» */
   .glass {
-    @apply bg-white/[0.04] backdrop-blur-xl border border-white/10;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    @apply bg-white/[0.035] backdrop-blur-xl border border-white/[0.07];
+    box-shadow:
+      0 10px 44px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .glass-strong {
-    @apply bg-white/[0.06] backdrop-blur-2xl border border-white/10;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    @apply bg-white/[0.05] backdrop-blur-2xl border border-white/[0.09];
+    box-shadow:
+      0 24px 70px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
   }
 
+  /* Шампань-текст: благородный, без неонового золота */
   .gold-text {
-    background: linear-gradient(135deg, #f7e3a1 0%, #e7c168 40%, #a07e2f 100%);
+    background: linear-gradient(135deg, #f4e7c6 0%, #ddc188 45%, #b1905a 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -50,27 +58,37 @@ body {
   .gold-border {
     border: 1px solid transparent;
     background:
-      linear-gradient(#0b0f0d, #0b0f0d) padding-box,
-      linear-gradient(135deg, #f4d780, #a07e2f) border-box;
+      linear-gradient(#0c0e11, #0c0e11) padding-box,
+      linear-gradient(135deg, rgba(228, 207, 156, 0.7), rgba(125, 99, 62, 0.5)) border-box;
   }
 
   .hairline {
-    @apply border-t border-white/10;
+    @apply border-t border-white/[0.07];
   }
 }
 
-/* Тонкая золотая полоска-разделитель */
+@layer utilities {
+  /* Плёночное зерно — придаёт «печатную» дороговизну */
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Тонкая шампань-полоска-разделитель */
 .divider-gold {
   height: 1px;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(231, 193, 104, 0.5),
+    rgba(205, 176, 119, 0.5),
     transparent
   );
 }
 
-/* Скрываем скроллбары там, где это уместно */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -79,7 +97,6 @@ body {
   scrollbar-width: none;
 }
 
-/* Безопасные зоны iOS */
 .safe-top {
   padding-top: max(1rem, env(safe-area-inset-top));
 }

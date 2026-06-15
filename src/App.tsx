@@ -54,23 +54,26 @@ export default function App() {
   );
 }
 
-/** Глубокий тёмный фон с золотым свечением и мягкими «бликами стола». */
+/** Кинематографичный фон: обсидиан, дрейфующая «аврора», зерно и виньетка. */
 function PremiumBackground() {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-0">
-      <div className="absolute inset-0 bg-[#070a09]" />
-      <div className="absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-felt-700/30 blur-[120px]" />
-      <div className="absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-gold-600/10 blur-[120px]" />
-      <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-felt-600/20 blur-[120px]" />
-      <div
-        className="absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.8) 1px, transparent 0)',
-          backgroundSize: '26px 26px',
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+    <div className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
+      {/* базовый обсидиан с тёплым центром */}
+      <div className="absolute inset-0 bg-[radial-gradient(140%_120%_at_50%_-10%,#10130f_0%,#0a0b0c_45%,#08090b_100%)]" />
+
+      {/* мягкие цветовые блики — медленно дрейфуют */}
+      <div className="absolute -top-40 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-felt-700/25 blur-[130px] animate-drift" />
+      <div className="absolute top-1/3 -right-28 h-80 w-80 rounded-full bg-gold-600/[0.08] blur-[120px] animate-drift" style={{ animationDelay: '-9s' }} />
+      <div className="absolute -bottom-40 -left-24 h-[26rem] w-[26rem] rounded-full bg-felt-600/15 blur-[130px] animate-drift" style={{ animationDelay: '-16s' }} />
+
+      {/* тончайшая шампань-дымка сверху */}
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-gold-500/[0.06] to-transparent" />
+
+      {/* плёночное зерно */}
+      <div className="absolute inset-0 grain opacity-[0.05] mix-blend-soft-light" />
+
+      {/* виньетка для глубины */}
+      <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_40%,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
     </div>
   );
 }

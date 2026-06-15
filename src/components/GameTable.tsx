@@ -23,17 +23,16 @@ export function GameTable({ state }: Props) {
   else if (d.nineSuit) demandBadge = `9 · ${SUIT_SYMBOL[d.nineSuit]}`;
 
   return (
-    <div className="relative flex-1 overflow-hidden rounded-[2rem] bg-felt-radial border border-gold-700/30 shadow-[inset_0_2px_30px_rgba(0,0,0,0.5)]">
-      {/* фактура сукна */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.07]"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.6) 1px, transparent 0)',
-          backgroundSize: '22px 22px',
-        }}
-      />
+    <div className="relative flex-1 overflow-hidden rounded-[2rem] bg-felt-radial border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]">
+      {/* зерно сукна */}
+      <div className="pointer-events-none absolute inset-0 grain opacity-[0.06] mix-blend-soft-light" />
+      {/* мягкий центральный свет стола */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_55%_at_50%_38%,rgba(255,255,255,0.05),transparent_70%)]" />
+      {/* виньетка по краям */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_45%,transparent_60%,rgba(0,0,0,0.4)_100%)]" />
+      {/* тонкая шампань-окантовка */}
       <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-gold-500/15" />
+      <div className="pointer-events-none absolute inset-[14px] rounded-[1.4rem] border border-gold-700/10" />
 
       {/* соперники */}
       <div className="relative flex justify-around px-4 pt-5">
@@ -76,7 +75,7 @@ export function GameTable({ state }: Props) {
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -right-3 -top-3 grid h-8 min-w-8 place-items-center rounded-full bg-red-600 px-2 text-xs font-bold text-white shadow-lg border border-red-300/40"
+                className="absolute -right-3 -top-3 grid h-8 min-w-8 place-items-center rounded-full bg-wine-600 px-2 text-xs font-bold text-white shadow-lg border border-wine-400/40"
               >
                 {demandBadge}
               </motion.span>
@@ -90,7 +89,7 @@ export function GameTable({ state }: Props) {
       <div className="relative flex items-center justify-center pb-4">
         <div className="glass flex items-center gap-2 rounded-full px-4 py-1.5">
           <span className="text-[11px] uppercase tracking-widest text-white/50">Масть</span>
-          <span className={`text-lg ${red ? 'text-rose-400' : 'text-white'}`}>
+          <span className={`text-lg ${red ? 'text-[#d98a93]' : 'text-white'}`}>
             {SUIT_SYMBOL[activeSuit]}
           </span>
           <span className="text-[12px] text-white/70">{SUIT_LABEL[activeSuit]}</span>

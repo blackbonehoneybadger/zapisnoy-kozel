@@ -76,7 +76,7 @@ export function SettingsScreen({ onBack }: Props) {
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={resetStats}
-            className="w-full rounded-2xl border border-red-500/30 bg-red-900/30 px-6 py-4 font-semibold text-red-200"
+            className="w-full rounded-2xl border border-wine-500/30 bg-wine-700/25 px-6 py-4 font-medium text-wine-400 transition-colors hover:bg-wine-700/40"
           >
             Сбросить статистику
           </motion.button>
