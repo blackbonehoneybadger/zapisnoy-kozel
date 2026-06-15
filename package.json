@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "cap:build": "CAP_BUILD=1 npm run build && cap sync android",
+    "cap:open": "cap open android",
+    "icons": "node scripts/gen-icons.mjs && capacitor-assets generate --android"
   },
   "dependencies": {
     "framer-motion": "^11.3.19",
@@ -17,6 +20,10 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
