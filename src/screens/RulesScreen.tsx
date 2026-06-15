@@ -16,43 +16,43 @@ export function RulesScreen({ onBack }: Props) {
         <RuleCard title="Цель игры" index={0}>
           Колода из 36 карт (6–туз, четыре масти). Каждому раздаётся по 6 карт, одна
           кладётся в сброс. Цель — первым избавиться от всех карт. Карту можно класть,
-          если совпадает <b>масть</b> или <b>значение</b>, а также если это <b>дама</b> —
+          если совпадает <strong className="text-white/90 font-medium">масть</strong> или <strong className="text-white/90 font-medium">значение</strong>, а также если это <strong className="text-white/90 font-medium">дама</strong> —
           она меняет масть. Нет хода — берёте карту из колоды.
         </RuleCard>
 
         <h2 className="px-1 pt-2 font-display text-xl gold-text">Спец-карты</h2>
 
         <RuleCard title="Шестёрка" badge="6" accent="red" index={1}>
-          Следующий игрок берёт <b>2 карты</b>. Можно перевести другой шестёркой — тогда
-          следующий берёт уже 4, затем 6 и так далее. Переводится <b>только шестёркой</b>.
+          Следующий игрок берёт <strong className="text-white/90 font-medium">2 карты</strong>. Можно перевести другой шестёркой — тогда
+          следующий берёт уже 4, затем 6 и так далее. Переводится <strong className="text-white/90 font-medium">только шестёркой</strong>.
         </RuleCard>
 
         <RuleCard title="Семёрка" badge="7" accent="red" index={2}>
-          Следующий игрок <b>по-любому берёт 1 карту</b>. Семёрка <b>не переводится</b> —
+          Следующий игрок <strong className="text-white/90 font-medium">по-любому берёт 1 карту</strong>. Семёрка <strong className="text-white/90 font-medium">не переводится</strong> —
           даже если у соперника есть семёрка, он всё равно берёт.
         </RuleCard>
 
         <RuleCard title="Туз" badge="A" accent="gold" index={3}>
-          Следующий игрок <b>пропускает ход</b>. Туз можно перевести другим тузом — тогда
+          Следующий игрок <strong className="text-white/90 font-medium">пропускает ход</strong>. Туз можно перевести другим тузом — тогда
           пропуск переходит дальше по кругу.
         </RuleCard>
 
         <RuleCard title="Дама" badge="Q" accent="gold" index={4}>
-          Кладётся в любой момент и <b>выбирает новую масть</b>. Даму можно перевести другой
+          Кладётся в любой момент и <strong className="text-white/90 font-medium">выбирает новую масть</strong>. Даму можно перевести другой
           дамой, которая снова выберет масть.
         </RuleCard>
 
         <RuleCard title="Девятка" badge="9" accent="gold" index={5}>
-          Девятку нужно <b>накрыть картой той же масти</b>. Можно перевести другой девяткой.
+          Девятку нужно <strong className="text-white/90 font-medium">накрыть картой той же масти</strong>. Можно перевести другой девяткой.
           Если накрыть нечем — берёте карту и пропускаете.
         </RuleCard>
 
         <RuleCard title="Пиковый король" badge="K♠" accent="red" index={6}>
-          Следующий игрок берёт <b>4 карты</b>. Пиковый король <b>не переводится</b>.
+          Следующий игрок берёт <strong className="text-white/90 font-medium">4 карты</strong>. Пиковый король <strong className="text-white/90 font-medium">не переводится</strong>.
         </RuleCard>
 
-        <RuleCard title="Что переводится" accent="emerald" index={7}>
-          Переводятся: <b>6, туз, дама, 9</b>. Не переводятся: <b>7</b> и <b>пиковый король</b>.
+        <RuleCard title="Что переводится" accent="gold" index={7}>
+          Переводятся: <strong className="text-white/90 font-medium">6, туз, дама, 9</strong>. Не переводятся: <strong className="text-white/90 font-medium">7</strong> и <strong className="text-white/90 font-medium">пиковый король</strong>.
         </RuleCard>
 
         <h2 className="px-1 pt-2 font-display text-xl gold-text">Счёт и лимит</h2>
@@ -74,8 +74,8 @@ export function RulesScreen({ onBack }: Props) {
         </RuleCard>
 
         <RuleCard title="Лимит и «вылет»" accent="red" index={9}>
-          По умолчанию лимит <b>101</b>. Перебрал лимит — <b>«улетел»</b> и выбываешь. Набрал
-          <b> ровно лимит</b> — счёт <b>обнуляется до 0</b>. Лимит меняется в настройках.
+          По умолчанию лимит <strong className="text-white/90 font-medium">101</strong>. Перебрал лимит — <strong className="text-white/90 font-medium">«улетел»</strong> и выбываешь. Набрал
+          <strong className="text-white/90 font-medium"> ровно лимит</strong> — счёт <strong className="text-white/90 font-medium">обнуляется до 0</strong>. Лимит меняется в настройках.
         </RuleCard>
       </div>
     </div>
@@ -92,8 +92,11 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
       <button
         onClick={onBack}
         className="glass grid h-10 w-10 place-items-center rounded-xl text-white/70 active:scale-95"
+        aria-label="Назад"
       >
-        ←
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
       </button>
       <h1 className="font-display text-3xl gold-text">{title}</h1>
     </motion.div>

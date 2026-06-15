@@ -12,7 +12,7 @@ export function StatsScreen({ onBack }: Props) {
 
   const cards = [
     { label: 'Победы', value: stats.wins, accent: 'text-emerald-300' },
-    { label: 'Поражения', value: stats.losses, accent: 'text-rose-300' },
+    { label: 'Поражения', value: stats.losses, accent: 'text-wine-400' },
     { label: 'Сыграно партий', value: stats.gamesPlayed, accent: 'text-white/90' },
     { label: 'Процент побед', value: `${winRate}%`, accent: 'text-gold-300' },
     {
@@ -20,7 +20,7 @@ export function StatsScreen({ onBack }: Props) {
       value: stats.bestScore === null ? '—' : stats.bestScore,
       accent: 'text-gold-300',
     },
-    { label: 'Сколько раз «улетел»', value: stats.timesFlewAway, accent: 'text-rose-300' },
+    { label: 'Сколько раз «улетел»', value: stats.timesFlewAway, accent: 'text-wine-400' },
   ];
 
   return (
@@ -29,8 +29,11 @@ export function StatsScreen({ onBack }: Props) {
         <button
           onClick={onBack}
           className="glass grid h-10 w-10 place-items-center rounded-xl text-white/70 active:scale-95"
+          aria-label="Назад"
         >
-          ←
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
         <h1 className="font-display text-3xl gold-text">Статистика</h1>
       </div>
@@ -67,8 +70,8 @@ export function StatsScreen({ onBack }: Props) {
             >
               <div className="flex items-center gap-3">
                 <span
-                  className={`grid h-9 w-9 place-items-center rounded-lg text-sm font-bold ${
-                    h.won ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
+                  className={`grid h-9 w-9 place-items-center rounded-lg text-sm font-medium ${
+                    h.won ? 'bg-emerald-500/15 text-emerald-300' : 'bg-wine-700/20 text-wine-400'
                   }`}
                 >
                   {h.won ? 'W' : 'L'}
@@ -76,7 +79,7 @@ export function StatsScreen({ onBack }: Props) {
                 <div>
                   <div className="text-sm text-white/85">
                     {h.won ? 'Победа' : 'Поражение'}
-                    {h.flewAway && <span className="ml-2 text-[11px] text-rose-400">улетел</span>}
+                    {h.flewAway && <span className="ml-2 text-[11px] text-wine-400">улетел</span>}
                   </div>
                   <div className="text-[11px] text-white/40">
                     {new Date(h.date).toLocaleDateString('ru-RU')} · {h.players} игрока · {h.rounds}{' '}

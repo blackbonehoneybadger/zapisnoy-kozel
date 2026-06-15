@@ -23,8 +23,11 @@ export function SettingsScreen({ onBack }: Props) {
         <button
           onClick={onBack}
           className="glass grid h-10 w-10 place-items-center rounded-xl text-white/70 active:scale-95"
+          aria-label="Назад"
         >
-          ←
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
         <h1 className="font-display text-3xl gold-text">Настройки</h1>
       </div>
@@ -98,7 +101,7 @@ function Section({
   return (
     <div className="glass rounded-2xl p-4">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-white/85">{title}</h3>
+        <h3 className="text-sm font-medium text-white/85">{title}</h3>
         {hint && <p className="mt-0.5 text-[11px] text-white/40">{hint}</p>}
       </div>
       {children}
