@@ -23,6 +23,7 @@ export function GameScreen({ onExit }: Props) {
 
   const [queenCard, setQueenCard] = useState<CardType | null>(null);
   const [showScore, setShowScore] = useState(false);
+  const [confirmExit, setConfirmExit] = useState(false);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
 
   // Тост на яркие события (спец-карты, штрафы, победы).
@@ -55,12 +56,18 @@ export function GameScreen({ onExit }: Props) {
     setQueenCard(null);
   };
 
+  const handleBack = () => {
+    if (game.phase === 'playing') setConfirmExit(true);
+    else onExit();
+  };
+
   return (
     <div className="relative flex min-h-[100dvh] flex-col px-3 pt-3 safe-top">
       {/* верхняя панель */}
       <div className="mb-2 flex items-center justify-between px-1">
         <button
-          onClick={onExit}
+          onClick={handleBack}
+          aria-label="Выйти в меню"
           className="glass grid h-10 w-10 place-items-center rounded-xl text-white/70 active:scale-95"
         >
           ←
@@ -71,6 +78,7 @@ export function GameScreen({ onExit }: Props) {
         </div>
         <button
           onClick={() => setShowScore(true)}
+          aria-label="Показать счёт и события"
           className="glass grid h-10 w-10 place-items-center rounded-xl text-gold-400 active:scale-95"
         >
           ▦
@@ -101,7 +109,18 @@ export function GameScreen({ onExit }: Props) {
       </div>
 
       {/* рука игрока */}
-      <div className="mt-1">
+      <div className="relative mt-1">
+        <AnimatePresence>
+          {yourTurn && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0.35, 0.7, 0.35] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+              className="pointer-events-none absolute inset-x-8 bottom-0 h-24 rounded-full bg-gold-500/25 blur-2xl"
+            />
+          )}
+        </AnimatePresence>
         <PlayerHand
           cards={human.hand}
           isPlayable={isPlayable}
@@ -162,6 +181,40 @@ export function GameScreen({ onExit }: Props) {
               </div>
             </div>
           </Sheet>
+        )}
+      </AnimatePresence>
+
+      {/* подтверждение выхода */}
+      <AnimatePresence>
+        {confirmExit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 grid place-items-center bg-black/70 backdrop-blur-sm px-6"
+            onClick={() => setConfirmExit(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-strong w-full max-w-xs rounded-3xl p-6 text-center"
+            >
+              <h3 className="font-display text-xl gold-text">Выйти в меню?</h3>
+              <p className="mb-5 mt-1 text-xs text-white/50">
+                Текущая партия не сохранится.
+              </p>
+              <div className="space-y-3">
+                <PremiumButton full variant="danger" onClick={onExit}>
+                  Выйти
+                </PremiumButton>
+                <PremiumButton full variant="ghost" onClick={() => setConfirmExit(false)}>
+                  Продолжить игру
+                </PremiumButton>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

@@ -10,10 +10,21 @@ interface Props {
 }
 
 /** Карты игрока веером снизу экрана. */
+// Размеры карты (px) — должны соответствовать Card normal size (w-[4.5rem]).
+const CARD_W = 72;
+const MAX_FAN_W = 340; // веер не шире этого, чтобы влезал на узких экранах
+
 export function PlayerHand({ cards, isPlayable, onPlay, yourTurn }: Props) {
   const n = cards.length;
-  const spread = Math.min(7, n * 1.6); // суммарный угол веера
+  const spread = Math.min(8, n * 1.6); // суммарный угол веера
   const step = n > 1 ? spread / (n - 1) : 0;
+
+  // Перекрытие подбираем так, чтобы веер всегда помещался по ширине.
+  let overlap = -14;
+  if (n > 1) {
+    const fit = (MAX_FAN_W - CARD_W) / (n - 1) - CARD_W;
+    overlap = Math.max(-56, Math.min(-10, fit));
+  }
 
   return (
     <div className="relative flex h-44 items-end justify-center">
@@ -21,7 +32,6 @@ export function PlayerHand({ cards, isPlayable, onPlay, yourTurn }: Props) {
         {cards.map((card, i) => {
           const angle = -spread / 2 + step * i;
           const playable = yourTurn && isPlayable(card);
-          const overlap = n > 7 ? -22 : -14;
           return (
             <motion.div
               key={card.id}
