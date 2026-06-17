@@ -29,13 +29,16 @@ interface OnlineStore {
   game: GameState | null;
   youSeat: number;
   busy: boolean;
+  walletAddress: string | null;
+  serverWallet: string | null;
+  betRequired: boolean;
 
   connect: () => void;
   register: (name: string, password: string) => void;
   login: (name: string, password: string) => void;
   logout: () => void;
   refreshLobby: () => void;
-  createTable: (name: string, maxPlayers: 2 | 3 | 4, password?: string) => void;
+  createTable: (name: string, maxPlayers: 2 | 3 | 4, password?: string, betLamports?: number) => void;
   joinTable: (tableId: string, password?: string) => void;
   leaveTable: () => void;
   startGame: () => void;
@@ -43,6 +46,8 @@ interface OnlineStore {
   take: () => void;
   nextRound: () => void;
   clearNotice: () => void;
+  registerWallet: (address: string) => void;
+  payBet: (tableId: string, signature: string) => void;
 }
 
 let socket: WebSocket | null = null;
@@ -93,7 +98,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         });
         break;
       case 'table:left':
-        set({ table: null, game: null, view: 'lobby' });
+        set({ table: null, game: null, view: 'lobby', serverWallet: null, betRequired: false });
         sendMsg({ t: 'lobby:subscribe' });
         break;
       case 'game':
@@ -101,6 +106,24 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         break;
       case 'error':
         set({ notice: msg.message, busy: false });
+        break;
+      case 'wallet:required':
+        set({ serverWallet: msg.serverWallet, betRequired: true });
+        break;
+      case 'wallet:paid': {
+        const t = get().table;
+        if (t) {
+          const seats = t.seats.map((s, i) =>
+            i === msg.seatIndex ? { ...s, paid: true } : s,
+          );
+          set({ table: { ...t, seats } });
+        }
+        break;
+      }
+      case 'wallet:payout':
+        set({
+          notice: `🏆 ${msg.winnerName} выиграл ${(msg.lamports / 1e9).toFixed(3)} SOL!`,
+        });
         break;
     }
   }
@@ -116,6 +139,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     game: null,
     youSeat: 0,
     busy: false,
+    walletAddress: null,
+    serverWallet: null,
+    betRequired: false,
 
     connect: () => {
       if (socket && socket.readyState <= WebSocket.OPEN) return;
@@ -193,9 +219,15 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     },
 
     refreshLobby: () => sendMsg({ t: 'lobby:subscribe' }),
-    createTable: (name, maxPlayers, password) => {
+    createTable: (name, maxPlayers, password, betLamports) => {
       set({ busy: true });
-      sendMsg({ t: 'table:create', name, maxPlayers, password: password || undefined });
+      sendMsg({
+        t: 'table:create',
+        name,
+        maxPlayers,
+        password: password || undefined,
+        betLamports: betLamports || undefined,
+      });
     },
     joinTable: (tableId, password) => {
       set({ busy: true });
@@ -208,5 +240,12 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     take: () => sendMsg({ t: 'game:move', move: { type: 'take' } }),
     nextRound: () => sendMsg({ t: 'game:next' }),
     clearNotice: () => set({ notice: null }),
+    registerWallet: (address: string) => {
+      set({ walletAddress: address });
+      sendMsg({ t: 'wallet:register', walletAddress: address });
+    },
+    payBet: (tableId: string, signature: string) => {
+      sendMsg({ t: 'wallet:pay', tableId, signature });
+    },
   };
 });

@@ -7,6 +7,8 @@ export interface SeatAssignment {
   userId: string | null;
   name: string;
   isBot: boolean;
+  walletAddress?: string;
+  paid?: boolean;
 }
 
 /**

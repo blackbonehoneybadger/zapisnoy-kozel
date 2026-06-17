@@ -9,6 +9,7 @@ import type { ClientMessage, ServerMessage } from './protocol';
 import { register, login, verifyToken, accountById, tokenFor } from './accounts';
 import * as lobby from './lobby';
 import { redactFor } from './match';
+import { SERVER_WALLET, sendSol, verifyPayment } from './solana.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
@@ -63,6 +64,42 @@ function pushGame(table: lobby.Table): void {
     if (!seat.userId) continue;
     sendToUser(seat.userId, { t: 'game', state: redactFor(table.game, i), youSeat: i });
   }
+  // Автоматическая выплата победителю при завершении игры
+  if (table.game.phase === 'gameOver' && table.betLamports && table.betLamports > 0) {
+    void handlePayout(table);
+  }
+}
+
+async function handlePayout(table: lobby.Table): Promise<void> {
+  const game = table.game;
+  if (!game) return;
+  const candidates = table.seats
+    .map((seat, i) => ({ seat, player: game.players[i], seatIndex: i }))
+    .filter(({ player, seat }) => !player.busted && seat.userId && !seat.isBot && seat.walletAddress);
+  if (candidates.length === 0) return;
+  candidates.sort((a, b) => a.player.score - b.player.score);
+  const winner = candidates[0];
+  if (!winner.seat.walletAddress) return;
+
+  const humans = table.seats.filter((s) => s.userId && !s.isBot);
+  const pot = (table.betLamports ?? 0) * humans.length;
+
+  try {
+    const sig = await sendSol(winner.seat.walletAddress, pot);
+    for (const s of table.seats) {
+      if (s.userId) {
+        sendToUser(s.userId, {
+          t: 'wallet:payout',
+          winnerName: winner.player.name,
+          txSignature: sig,
+          lamports: pot,
+        });
+      }
+    }
+    for (const s of table.seats) s.paid = false;
+  } catch (e) {
+    console.error('Ошибка выплаты Solana:', e);
+  }
 }
 
 // Гоняет ходы ботов с «живой» задержкой, пока очередь не дойдёт до человека.
@@ -83,7 +120,7 @@ function pumpBots(tableId: string): void {
 }
 
 // ─── Обработка сообщений ───────────────────────────────────────────
-function handle(conn: Conn, msg: ClientMessage): void {
+async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
   // Аутентификация
   if (msg.t === 'register' || msg.t === 'login') {
     const res = msg.t === 'register' ? register(msg.name, msg.password) : login(msg.name, msg.password);
@@ -134,7 +171,14 @@ function handle(conn: Conn, msg: ClientMessage): void {
       break;
 
     case 'table:create': {
-      const res = lobby.createTable(user, msg.name, msg.maxPlayers, msg.password);
+      const res = lobby.createTable(
+        user,
+        msg.name,
+        msg.maxPlayers,
+        msg.password,
+        msg.betLamports,
+        msg.betLamports && msg.betLamports > 0 ? SERVER_WALLET : undefined,
+      );
       if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
       conn.inLobby = false;
       pushTable(res.table);
@@ -163,6 +207,12 @@ function handle(conn: Conn, msg: ClientMessage): void {
     }
 
     case 'table:start': {
+      const startTable = lobby.tableOf(user.id);
+      if (startTable && startTable.betLamports && startTable.betLamports > 0) {
+        if (!lobby.allPaid(startTable)) {
+          return send(conn.ws, { t: 'error', message: 'Не все игроки оплатили ставку' });
+        }
+      }
       const res = lobby.startGame(user.id);
       if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
       pushTable(res.table);
@@ -185,6 +235,45 @@ function handle(conn: Conn, msg: ClientMessage): void {
       if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
       pushGame(res.table);
       pumpBots(res.table.id);
+      break;
+    }
+
+    case 'wallet:register': {
+      lobby.registerWallet(user.id, msg.walletAddress);
+      // Сообщаем игроку реквизиты для оплаты, если стол с ставкой
+      const walletTable = lobby.tableOf(user.id);
+      if (walletTable?.betLamports && walletTable.betLamports > 0) {
+        send(conn.ws, {
+          t: 'wallet:required',
+          serverWallet: SERVER_WALLET,
+          lamports: walletTable.betLamports,
+        });
+      }
+      break;
+    }
+
+    case 'wallet:pay': {
+      const payTable = lobby.tableOf(user.id);
+      if (!payTable || !payTable.betLamports) break;
+      const paySeat = payTable.seats.find((s) => s.userId === user.id);
+      if (!paySeat?.walletAddress) {
+        send(conn.ws, { t: 'error', message: 'Сначала зарегистрируйте кошелёк' });
+        break;
+      }
+      const valid = await verifyPayment(msg.signature, paySeat.walletAddress, payTable.betLamports);
+      if (!valid) {
+        send(conn.ws, { t: 'error', message: 'Транзакция не подтверждена' });
+        break;
+      }
+      const paid = lobby.markPaid(user.id);
+      if (paid) {
+        pushTable(paid.table);
+        for (const s of paid.table.seats) {
+          if (s.userId) {
+            sendToUser(s.userId, { t: 'wallet:paid', seatIndex: paid.seatIndex });
+          }
+        }
+      }
       break;
     }
   }
@@ -214,12 +303,10 @@ wss.on('connection', (ws) => {
     } catch {
       return send(ws, { t: 'error', message: 'Некорректное сообщение' });
     }
-    try {
-      handle(conn, msg);
-    } catch (e) {
+    handle(conn, msg).catch((e) => {
       console.error('Ошибка обработки:', e);
       send(ws, { t: 'error', message: 'Внутренняя ошибка сервера' });
-    }
+    });
   });
 
   ws.on('close', () => {

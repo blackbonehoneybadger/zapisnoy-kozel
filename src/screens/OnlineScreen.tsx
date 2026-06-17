@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GoatEmblem } from '../components/GoatEmblem';
 import { PremiumButton } from '../components/PremiumButton';
+import { WalletButton } from '../components/WalletButton';
 import { OnlineGameScreen } from './OnlineGameScreen';
 import { useOnlineStore } from '../net/onlineStore';
+import { useWalletStore } from '../solana/walletStore';
 import type { LobbyTable } from '../net/protocol';
 
 interface Props {
@@ -197,9 +199,10 @@ function LobbyView({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex min-h-[100dvh] flex-col px-6 py-8 safe-top safe-bottom">
       <Header title="Столы" onBack={onBack} />
-      <p className="-mt-3 mb-4 text-xs text-white/40">
-        {user ? `Вы вошли как ${user.name}` : ''}
-      </p>
+      <div className="-mt-2 mb-4 flex items-center justify-between">
+        <p className="text-xs text-white/40">{user ? `Вы вошли как ${user.name}` : ''}</p>
+        <WalletButton />
+      </div>
 
       <div className="flex-1 space-y-2.5 overflow-y-auto no-scrollbar">
         {lobby.length === 0 && (
@@ -232,12 +235,17 @@ function LobbyView({ onBack }: { onBack: () => void }) {
                 )}
                 {tbl.name}
               </span>
-              <span className="text-[11px] text-white/40">
+              <span className="flex items-center gap-2 text-[11px] text-white/40">
                 {tbl.status === 'playing'
                   ? 'Партия идёт'
                   : tbl.players >= tbl.maxPlayers
                     ? 'Стол заполнен'
                     : `${tbl.players} в столе · ждут ещё ${tbl.maxPlayers - tbl.players}`}
+                {!!tbl.betLamports && tbl.betLamports > 0 && (
+                  <span className="font-medium text-gold-400">
+                    ⬙ {(tbl.betLamports / 1e9).toFixed(3)} SOL
+                  </span>
+                )}
               </span>
             </span>
             <span className="ml-3 shrink-0 rounded-full bg-white/[0.05] px-3 py-1 text-xs text-gold-300">
@@ -263,12 +271,21 @@ function LobbyView({ onBack }: { onBack: () => void }) {
   );
 }
 
+const SOL_PRESETS = [0.01, 0.05, 0.1, 0.5];
+
 function CreateTableModal({ onClose }: { onClose: () => void }) {
   const createTable = useOnlineStore((s) => s.createTable);
   const [name, setName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState<2 | 3 | 4>(4);
   const [usePassword, setUsePassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [useBet, setUseBet] = useState(false);
+  const [solAmount, setSolAmount] = useState(0.01);
+
+  const handleCreate = () => {
+    const betLamports = useBet ? Math.round(solAmount * 1e9) : undefined;
+    createTable(name, maxPlayers, usePassword ? password : undefined, betLamports);
+  };
 
   return (
     <Modal onClose={onClose} title="Новый стол">
@@ -292,6 +309,64 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         </div>
+
+        {/* Ставка SOL */}
+        <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+          <span className="flex items-center gap-2 text-sm text-white/80">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <defs>
+                <linearGradient id="solG2" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#9945ff" />
+                  <stop offset="1" stopColor="#14f195" />
+                </linearGradient>
+              </defs>
+              <path d="M6.5 15.5h9.3l-2.3 2.5H6.5l2.3-2.5zm0-4.5h11l-2.3 2.5H6.5L8.8 11zm2.3-4.5h9.3L15.8 9H6.5l2.3-2.5z" fill="url(#solG2)" />
+            </svg>
+            Ставка SOL
+          </span>
+          <button
+            onClick={() => setUseBet((v) => !v)}
+            className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#9945ff]/70' : 'bg-white/15'}`}
+          >
+            <motion.span
+              animate={{ x: useBet ? 22 : 2 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+              className="absolute top-1 h-4 w-4 rounded-full bg-white"
+            />
+          </button>
+        </label>
+
+        <AnimatePresence>
+          {useBet && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <span className="mb-1.5 block text-[11px] uppercase tracking-widest text-white/40">Размер ставки (SOL)</span>
+              <div className="flex gap-2">
+                {SOL_PRESETS.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setSolAmount(v)}
+                    className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium transition-colors ${
+                      solAmount === v
+                        ? 'border-[#9945ff]/50 bg-[#9945ff]/10 text-[#c084fc]'
+                        : 'border-white/[0.08] bg-white/[0.03] text-white/55'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-white/30">
+                Банк: {(solAmount * maxPlayers).toFixed(3)} SOL — победителю автоматически
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
           <span className="text-sm text-white/80">Закрыть паролем</span>
           <button
@@ -312,7 +387,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
       <div className="mt-5">
         <PremiumButton
           full
-          onClick={() => createTable(name, maxPlayers, usePassword ? password : undefined)}
+          onClick={handleCreate}
           disabled={usePassword && password.length < 1}
         >
           Создать
@@ -348,12 +423,38 @@ function JoinPasswordModal({ table, onClose }: { table: LobbyTable; onClose: () 
 function WaitingRoom() {
   const table = useOnlineStore((s) => s.table);
   const user = useOnlineStore((s) => s.user);
+  const serverWallet = useOnlineStore((s) => s.serverWallet);
+  const betRequired = useOnlineStore((s) => s.betRequired);
+  const registerWallet = useOnlineStore((s) => s.registerWallet);
   const startGame = useOnlineStore((s) => s.startGame);
   const leaveTable = useOnlineStore((s) => s.leaveTable);
+  const payBet = useOnlineStore((s) => s.payBet);
+
+  const walletAddress = useWalletStore((s) => s.address);
+  const sendBet = useWalletStore((s) => s.sendBet);
+
+  const [paying, setPaying] = useState(false);
 
   if (!table) return null;
   const isHost = table.hostId === user?.id;
   const humanCount = table.seats.filter((s) => s.userId).length;
+  const mySeat = table.seats.find((s) => s.userId === user?.id);
+  const myPaid = mySeat?.paid ?? false;
+  const hasBet = !!table.betLamports && table.betLamports > 0;
+
+  const handlePay = async () => {
+    if (!walletAddress || !serverWallet || !table.betLamports) return;
+    setPaying(true);
+    try {
+      if (!mySeat?.walletAddress) registerWallet(walletAddress);
+      const sig = await sendBet(serverWallet, table.betLamports);
+      payBet(table.id, sig);
+    } catch (e) {
+      console.error('Ошибка оплаты:', e);
+    } finally {
+      setPaying(false);
+    }
+  };
 
   return (
     <div className="flex min-h-[100dvh] flex-col px-6 py-8 safe-top safe-bottom">
@@ -366,6 +467,11 @@ function WaitingRoom() {
           </svg>
         )}
         Комната ожидания · {humanCount}/{table.maxPlayers}
+        {hasBet && (
+          <span className="ml-1 font-medium text-gold-400">
+            · ⬙ {(table.betLamports! / 1e9).toFixed(3)} SOL
+          </span>
+        )}
       </p>
 
       <div className="flex-1 space-y-2.5">
@@ -383,14 +489,39 @@ function WaitingRoom() {
                 <span className="text-white/25 text-lg">+</span>
               )}
             </div>
-            <span className="flex flex-col">
+            <span className="flex flex-col flex-1">
               <span className={`text-sm ${seat.userId ? 'text-white/85' : 'text-white/35'}`}>
                 {seat.userId ? seat.name : 'Свободное место'}
               </span>
               {seat.userId === table.hostId && <span className="text-[11px] text-gold-500/70">Хозяин стола</span>}
             </span>
+            {hasBet && seat.userId && !seat.isBot && (
+              <span className={`text-[11px] font-medium ${seat.paid ? 'text-emerald-400' : 'text-white/30'}`}>
+                {seat.paid ? '✓ оплачено' : '⏳ не оплачено'}
+              </span>
+            )}
           </div>
         ))}
+
+        {hasBet && !myPaid && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-[#9945ff]/25 bg-[#9945ff]/5 px-4 py-3"
+          >
+            <p className="mb-2 text-xs text-white/60">
+              Для участия переведите {(table.betLamports! / 1e9).toFixed(3)} SOL на кошелёк сервера.
+            </p>
+            {walletAddress ? (
+              <PremiumButton full onClick={handlePay} disabled={paying}>
+                {paying ? 'Подтвердите в кошельке…' : `Оплатить ${(table.betLamports! / 1e9).toFixed(3)} SOL`}
+              </PremiumButton>
+            ) : (
+              <WalletButton />
+            )}
+          </motion.div>
+        )}
+
         <p className="px-1 pt-2 text-[11px] leading-relaxed text-white/30">
           Свободные места при старте займут боты. Хозяин стола начинает партию.
         </p>
@@ -398,7 +529,7 @@ function WaitingRoom() {
 
       <div className="space-y-3 pt-4">
         {isHost ? (
-          <PremiumButton full onClick={startGame}>
+          <PremiumButton full onClick={startGame} disabled={hasBet && !betRequired && !myPaid}>
             Начать партию
           </PremiumButton>
         ) : (

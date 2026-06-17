@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 // При сборке под Android (Capacitor) service worker не нужен и может мешать
 // работе в WebView — ассеты и так упакованы локально. PWA включаем только
@@ -53,7 +54,7 @@ const pwaPlugin = VitePWA({
 export default defineConfig({
   // Относительные пути — нужно для корректной загрузки ассетов из WebView Capacitor.
   base: isCapacitor ? './' : '/',
-  plugins: [react(), ...(isCapacitor ? [] : [pwaPlugin])],
+  plugins: [nodePolyfills(), react(), ...(isCapacitor ? [] : [pwaPlugin])],
   server: {
     host: true,
     port: 5173,
@@ -65,6 +66,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom'],
           'motion': ['framer-motion'],
           'state': ['zustand'],
+          'solana': ['@solana/web3.js'],
         },
       },
     },

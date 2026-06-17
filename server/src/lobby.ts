@@ -27,6 +27,8 @@ interface Table {
   passwordHash?: string;
   seats: SeatAssignment[];
   game: GameState | null;
+  betLamports?: number;
+  serverWallet?: string;
 }
 
 const tables = new Map<string, Table>();
@@ -67,6 +69,7 @@ export function lobbyList(): LobbyTable[] {
     maxPlayers: t.maxPlayers,
     hasPassword: Boolean(t.passwordHash),
     status: t.status,
+    betLamports: t.betLamports,
   }));
 }
 
@@ -79,6 +82,8 @@ export function toTableView(table: Table): TableView {
     maxPlayers: table.maxPlayers,
     hasPassword: Boolean(table.passwordHash),
     status: table.status,
+    betLamports: table.betLamports,
+    serverWallet: table.serverWallet,
   };
 }
 
@@ -93,6 +98,8 @@ export function createTable(
   name: string,
   maxPlayers: 2 | 3 | 4,
   password?: string,
+  betLamports?: number,
+  serverWallet?: string,
 ): MutationResult {
   if (tableOf(user.id)) return { ok: false, error: 'Вы уже за столом' };
   const safeMax = ([2, 3, 4].includes(maxPlayers) ? maxPlayers : 4) as 2 | 3 | 4;
@@ -108,10 +115,34 @@ export function createTable(
     seats,
     game: null,
     ...(password ? hashPw(password) : {}),
+    ...(betLamports && betLamports > 0 ? { betLamports, serverWallet } : {}),
   };
   tables.set(table.id, table);
   userTable.set(user.id, table.id);
   return { ok: true, table };
+}
+
+export function registerWallet(userId: string, walletAddress: string): void {
+  const table = tableOf(userId);
+  if (!table) return;
+  const seat = table.seats.find((s) => s.userId === userId);
+  if (seat) seat.walletAddress = walletAddress;
+}
+
+export function markPaid(userId: string): { seatIndex: number; table: Table } | undefined {
+  const table = tableOf(userId);
+  if (!table) return undefined;
+  const seatIndex = table.seats.findIndex((s) => s.userId === userId);
+  if (seatIndex === -1) return undefined;
+  table.seats[seatIndex].paid = true;
+  return { seatIndex, table };
+}
+
+export function allPaid(table: Table): boolean {
+  if (!table.betLamports || table.betLamports === 0) return true;
+  return table.seats
+    .filter((s) => s.userId && !s.isBot)
+    .every((s) => s.paid === true);
 }
 
 export function joinTable(
@@ -170,6 +201,10 @@ export function startGame(userId: string): MutationResult {
   table.seats = seats;
   table.game = createMatch(seats, DEFAULT_SETTINGS);
   table.status = 'playing';
+  // Reset paid flags for next game
+  for (const s of table.seats) {
+    if (s.userId) s.paid = false;
+  }
   return { ok: true, table };
 }
 
