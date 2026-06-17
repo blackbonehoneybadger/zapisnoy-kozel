@@ -56,12 +56,21 @@ export default function App() {
   );
 }
 
-/** Кинематографичный фон: обсидиан, дрейфующая «аврора», зерно и виньетка. */
+/** Кинематографичный фон: AI-текстура (если сгенерирована) + обсидиан + аврора + зерно. */
 function PremiumBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
-      {/* базовый обсидиан с тёплым центром */}
-      <div className="absolute inset-0 bg-[radial-gradient(140%_120%_at_50%_-10%,#10130f_0%,#0a0b0c_45%,#08090b_100%)]" />
+      {/* AI-сгенерированный фон (public/art/app-bg.*). CSS-фоллбэк — обсидиан */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: "url('/art/app-bg.jpg'), url('/art/app-bg.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+      {/* базовый обсидиан с тёплым центром (фоллбэк + усиление) */}
+      <div className="absolute inset-0 bg-[radial-gradient(140%_120%_at_50%_-10%,#10130f_0%,#0a0b0c_45%,#08090b_100%)] opacity-70" />
 
       {/* мягкие цветовые блики — медленно дрейфуют */}
       <div className="absolute -top-40 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-felt-700/25 blur-[130px] animate-drift" />

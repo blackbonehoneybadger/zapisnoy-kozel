@@ -47,7 +47,16 @@ export function GameTable({ state, youSeat }: Props) {
     state.players[state.currentPlayerIndex].id === p.id && state.phase === 'playing';
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] bg-felt-radial border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]">
+    <div
+      className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]"
+      style={{
+        backgroundImage: "url('/art/table-felt.jpg'), url('/art/table-felt.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* CSS-фоллбэк изумрудного сукна — поверх AI как darkening overlay */}
+      <div className="pointer-events-none absolute inset-0 bg-felt-radial opacity-50" />
       {/* зерно сукна */}
       <div className="pointer-events-none absolute inset-0 grain opacity-[0.06] mix-blend-soft-light" />
       {/* мягкий центральный свет стола */}

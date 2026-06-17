@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "cap:build": "CAP_BUILD=1 npm run build && cap sync android",
     "cap:open": "cap open android",
-    "icons": "node scripts/gen-icons.mjs && capacitor-assets generate --android"
+    "icons": "node scripts/gen-icons.mjs && capacitor-assets generate --android",
+    "gen-art": "tsx scripts/gen-art.mts"
   },
   "dependencies": {
     "framer-motion": "^11.3.19",
@@ -24,6 +25,7 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@google/generative-ai": "^0.24.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

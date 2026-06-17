@@ -33,14 +33,26 @@ export function Card({
   if (faceDown || !card) {
     return (
       <div className={`${dim} ${className} relative overflow-hidden rounded-[0.85rem] shadow-card`}>
-        {/* обсидиановая рубашка */}
-        <div className="absolute inset-0 bg-[linear-gradient(150deg,#15181c_0%,#0c0e11_55%,#090a0c_100%)]" />
+        {/* AI-рубашка (public/art/card-back.*). Фоллбэк — обсидиан */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "url('/art/card-back.jpg'), url('/art/card-back.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+        {/* обсидиан-фоллбэк */}
+        <div
+          className="absolute inset-0 bg-[linear-gradient(150deg,#15181c_0%,#0c0e11_55%,#090a0c_100%)]"
+          style={{ mixBlendMode: 'multiply' }}
+        />
         {/* мягкое центральное свечение */}
         <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(205,176,119,0.14),transparent_70%)]" />
         {/* двойная шампань-рамка */}
         <div className="absolute inset-[3px] rounded-[0.6rem] border border-gold-600/35" />
         <div className="absolute inset-[6px] rounded-[0.45rem] border border-gold-700/25" />
-        {/* эмблема-герб */}
+        {/* эмблема-герб поверх AI-текстуры */}
         <div className="absolute inset-0 grid place-items-center">
           <svg width={small ? 18 : 26} height={small ? 18 : 26} viewBox="0 0 24 24" aria-hidden>
             <path
