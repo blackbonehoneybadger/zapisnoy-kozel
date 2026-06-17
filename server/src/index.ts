@@ -1,7 +1,7 @@
 // Онлайн-сервер «Записной Козёл»: WebSocket, вход через кошелёк Solana,
 // лобби, столы, авторитетная игра, ставки и выплаты. Запуск: npm run start.
 import { createServer } from 'node:http';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -33,6 +33,20 @@ const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
 
 const PORT = Number(process.env.PORT ?? 8080);
+
+// Использованные подписи платежей — защита от повторного зачёта одной транзакции.
+const USED_SIGS_PATH = resolve(here, '..', 'data', 'used_sigs.json');
+const usedSigs = new Set<string>(
+  existsSync(USED_SIGS_PATH) ? (JSON.parse(readFileSync(USED_SIGS_PATH, 'utf8')) as string[]) : [],
+);
+function markSigUsed(sig: string): void {
+  usedSigs.add(sig);
+  try {
+    writeFileSync(USED_SIGS_PATH, JSON.stringify([...usedSigs]));
+  } catch (e) {
+    console.error('Не удалось сохранить использованные подписи:', e);
+  }
+}
 
 // Текст, который кошелёк подписывает для входа. Должен совпадать с клиентом.
 function authMessage(nonce: string): string {
@@ -140,6 +154,8 @@ function pushGame(table: lobby.Table): void {
 async function handlePayout(table: lobby.Table): Promise<void> {
   const game = table.game;
   if (!game) return;
+  // Защита от двойной выплаты: pushGame может сработать повторно в gameOver.
+  if (table.paidOut) return;
   const candidates = table.seats
     .map((seat, i) => ({ seat, player: game.players[i], seatIndex: i }))
     .filter(({ player, seat }) => !player.busted && seat.userId && !seat.isBot && seat.walletAddress);
@@ -153,6 +169,8 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   const commission = Math.floor(pot * PLATFORM_FEE);
   const winnerGets = pot - commission;
 
+  // Ставим флаг ДО await — чтобы параллельный вызов сразу вышел выше.
+  table.paidOut = true;
   try {
     const sig = await sendSol(winner.seat.walletAddress, winnerGets);
     // Опционально уводим комиссию на отдельный кошелёк площадки.
@@ -175,6 +193,7 @@ async function handlePayout(table: lobby.Table): Promise<void> {
     for (const s of table.seats) s.paid = false;
   } catch (e) {
     console.error('Ошибка выплаты Solana:', e);
+    table.paidOut = false; // выплата не прошла — разрешаем повтор
   }
 }
 
@@ -395,9 +414,12 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     }
 
     case 'friend:add': {
-      addFriend(user.id, msg.userId);
-      pushFriends(user.id);
-      pushPresence();
+      // Принимаем только похожее на адрес Solana (base58, 32–44 символа).
+      if (typeof msg.userId === 'string' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(msg.userId)) {
+        addFriend(user.id, msg.userId);
+        pushFriends(user.id);
+        pushPresence();
+      }
       break;
     }
 
@@ -429,11 +451,23 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
         send(conn.ws, { t: 'error', message: 'Сначала зарегистрируйте кошелёк' });
         break;
       }
-      const valid = await verifyPayment(msg.signature, paySeat.walletAddress, payTable.betLamports);
+      // Анти-реплей: одну подпись нельзя зачесть дважды.
+      if (typeof msg.signature !== 'string' || usedSigs.has(msg.signature)) {
+        send(conn.ws, { t: 'error', message: 'Эта транзакция уже использована' });
+        break;
+      }
+      // Проверяем, что деньги реально пришли на кошелёк сервера в нужном объёме.
+      const valid = await verifyPayment(
+        msg.signature,
+        paySeat.walletAddress,
+        SERVER_WALLET,
+        payTable.betLamports,
+      );
       if (!valid) {
         send(conn.ws, { t: 'error', message: 'Транзакция не подтверждена' });
         break;
       }
+      markSigUsed(msg.signature);
       const paid = lobby.markPaid(user.id);
       if (paid) {
         pushTable(paid.table);

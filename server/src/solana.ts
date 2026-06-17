@@ -91,6 +91,7 @@ export async function sendSol(toAddress: string, lamports: number): Promise<stri
 export async function verifyPayment(
   signature: string,
   expectedFrom: string,
+  expectedTo: string,
   expectedLamports: number,
 ): Promise<boolean> {
   try {
@@ -102,13 +103,17 @@ export async function verifyPayment(
 
     const accounts = tx.transaction.message.staticAccountKeys ?? [];
     const fromIdx = accounts.findIndex((k) => k.toString() === expectedFrom);
-    if (fromIdx === -1) return false;
+    const toIdx = accounts.findIndex((k) => k.toString() === expectedTo);
+    // Обязательно: и плательщик, и получатель (кошелёк сервера) присутствуют.
+    if (fromIdx === -1 || toIdx === -1) return false;
 
-    const preBalance = tx.meta?.preBalances?.[fromIdx] ?? 0;
-    const postBalance = tx.meta?.postBalances?.[fromIdx] ?? 0;
-    const spent = preBalance - postBalance;
+    const pre = tx.meta?.preBalances ?? [];
+    const post = tx.meta?.postBalances ?? [];
+    const spent = (pre[fromIdx] ?? 0) - (post[fromIdx] ?? 0);
+    const received = (post[toIdx] ?? 0) - (pre[toIdx] ?? 0);
 
-    return spent >= expectedLamports; // допускаем сетевую комиссию
+    // Деньги действительно ушли от игрока И пришли на кошелёк сервера.
+    return spent >= expectedLamports && received >= expectedLamports;
   } catch {
     return false;
   }

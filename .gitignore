@@ -8,3 +8,9 @@ dist-ssr
 *.log
 npm-debug.log*
 .claude/worktrees/
+
+# Секреты и состояние сервера — НИКОГДА не коммитить
+.env
+.env.*
+server/data/
+server/.env

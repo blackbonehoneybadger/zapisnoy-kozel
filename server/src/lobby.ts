@@ -29,6 +29,20 @@ interface Table {
   game: GameState | null;
   betLamports?: number;
   serverWallet?: string;
+  /** Защита от двойной выплаты: банк уже отправлен победителю. */
+  paidOut?: boolean;
+}
+
+// Здравый предел ставки (1000 SOL), чтобы исключить абсурдные/переполненные значения.
+const MAX_BET_LAMPORTS = 1000 * 1_000_000_000;
+
+/** Нормализует ставку от клиента: целое, положительное, в пределах лимита. */
+function sanitizeBet(betLamports?: number): number | undefined {
+  if (betLamports === undefined) return undefined;
+  if (!Number.isFinite(betLamports) || betLamports <= 0) return undefined;
+  const bet = Math.floor(betLamports);
+  if (bet > MAX_BET_LAMPORTS) return undefined;
+  return bet;
 }
 
 const tables = new Map<string, Table>();
@@ -104,6 +118,7 @@ export function createTable(
   if (tableOf(user.id)) return { ok: false, error: 'Вы уже за столом' };
   const safeMax = ([2, 3, 4].includes(maxPlayers) ? maxPlayers : 4) as 2 | 3 | 4;
   const cleanName = (name || '').trim() || `Стол ${user.name}`;
+  const bet = sanitizeBet(betLamports);
   const seats: SeatAssignment[] = Array.from({ length: safeMax }, emptySeat);
   // id пользователя = адрес кошелька, поэтому сразу годится для выплат.
   seats[0] = { userId: user.id, name: user.name, isBot: false, walletAddress: user.id };
@@ -116,7 +131,7 @@ export function createTable(
     seats,
     game: null,
     ...(password ? hashPw(password) : {}),
-    ...(betLamports && betLamports > 0 ? { betLamports, serverWallet } : {}),
+    ...(bet ? { betLamports: bet, serverWallet } : {}),
   };
   tables.set(table.id, table);
   userTable.set(user.id, table.id);
@@ -202,6 +217,7 @@ export function startGame(userId: string): MutationResult {
   table.seats = seats;
   table.game = createMatch(seats, DEFAULT_SETTINGS);
   table.status = 'playing';
+  table.paidOut = false; // новая партия — разрешаем новую выплату
   // Reset paid flags for next game
   for (const s of table.seats) {
     if (s.userId) s.paid = false;
