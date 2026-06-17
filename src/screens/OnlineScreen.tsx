@@ -427,7 +427,6 @@ function WaitingRoom() {
   const table = useOnlineStore((s) => s.table);
   const user = useOnlineStore((s) => s.user);
   const serverWallet = useOnlineStore((s) => s.serverWallet);
-  const betRequired = useOnlineStore((s) => s.betRequired);
   const registerWallet = useOnlineStore((s) => s.registerWallet);
   const startGame = useOnlineStore((s) => s.startGame);
   const leaveTable = useOnlineStore((s) => s.leaveTable);
