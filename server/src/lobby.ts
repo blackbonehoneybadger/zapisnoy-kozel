@@ -31,6 +31,8 @@ interface Table {
   serverWallet?: string;
   /** Защита от двойной выплаты: банк уже отправлен победителю. */
   paidOut?: boolean;
+  /** Итоговый банк, зафиксированный при старте (lamports). Не меняется при уходе игроков. */
+  potLamports?: number;
 }
 
 // Здравый предел ставки (1000 SOL), чтобы исключить абсурдные/переполненные значения.
@@ -98,6 +100,7 @@ export function toTableView(table: Table): TableView {
     status: table.status,
     betLamports: table.betLamports,
     serverWallet: table.serverWallet,
+    potLamports: table.potLamports,
   };
 }
 
@@ -184,7 +187,21 @@ export function leaveTable(userId: string): Table | undefined {
   if (!table) return undefined;
   userTable.delete(userId);
   const idx = table.seats.findIndex((s) => s.userId === userId);
-  if (idx !== -1) table.seats[idx] = emptySeat();
+
+  // Ставочная партия в процессе: заменяем ушедшего ботом, игра идёт дальше.
+  const inBetGame = idx !== -1 && table.status === 'playing' && !!table.betLamports && table.betLamports > 0;
+  if (idx !== -1) {
+    if (inBetGame) {
+      const botCount = table.seats.filter((s) => s.isBot).length;
+      table.seats[idx] = {
+        userId: null,
+        name: BOT_NAMES[botCount % BOT_NAMES.length] ?? `Бот-${idx + 1}`,
+        isBot: true,
+      };
+    } else {
+      table.seats[idx] = emptySeat();
+    }
+  }
 
   const humans = table.seats.filter((s) => s.userId);
   if (humans.length === 0) {
@@ -193,8 +210,14 @@ export function leaveTable(userId: string): Table | undefined {
   }
   // Если ушёл хост — передаём роль первому оставшемуся человеку.
   if (table.hostId === userId) table.hostId = humans[0].userId as string;
-  // Если партия шла, а человек вышел — завершаем стол в ожидание.
-  if (table.status === 'playing') {
+
+  if (inBetGame) {
+    // Если после замены не осталось людей — стол не нужен (выплатить некому).
+    if (!table.seats.some((s) => s.userId && !s.isBot)) {
+      tables.delete(table.id);
+    }
+  } else if (table.status === 'playing') {
+    // Без ставки: прерываем игру.
     table.status = 'waiting';
     table.game = null;
     table.seats = table.seats.map((s) => (s.isBot ? emptySeat() : s));
@@ -218,6 +241,10 @@ export function startGame(userId: string): MutationResult {
   table.game = createMatch(seats, DEFAULT_SETTINGS);
   table.status = 'playing';
   table.paidOut = false; // новая партия — разрешаем новую выплату
+  // Фиксируем банк до того, как кто-то успеет выйти.
+  if (table.betLamports) {
+    table.potLamports = table.betLamports * seats.filter((s) => s.userId && !s.isBot).length;
+  }
   // Reset paid flags for next game
   for (const s of table.seats) {
     if (s.userId) s.paid = false;

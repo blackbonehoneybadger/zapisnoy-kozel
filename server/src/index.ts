@@ -165,7 +165,8 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   if (!winner.seat.walletAddress) return;
 
   const humans = table.seats.filter((s) => s.userId && !s.isBot);
-  const pot = (table.betLamports ?? 0) * humans.length;
+  // potLamports зафиксирован при старте — не уменьшается, если кто-то вышел.
+  const pot = table.potLamports ?? (table.betLamports ?? 0) * humans.length;
   const commission = Math.floor(pot * PLATFORM_FEE);
   const winnerGets = pot - commission;
 
@@ -340,7 +341,10 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       send(conn.ws, { t: 'table:left' });
       if (table) {
         pushTable(table);
-        if (table.game) pushGame(table);
+        if (table.game) {
+          pushGame(table);
+          pumpBots(table.id); // бот мог занять ход ушедшего игрока
+        }
       }
       pushLobby();
       pushPresence();
@@ -521,7 +525,10 @@ wss.on('connection', (ws) => {
         const table = lobby.leaveTable(conn.userId);
         if (table) {
           pushTable(table);
-          if (table.game) pushGame(table);
+          if (table.game) {
+            pushGame(table);
+            pumpBots(table.id); // бот мог занять ход отключившегося
+          }
         }
         pushLobby();
       }

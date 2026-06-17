@@ -42,6 +42,8 @@ export interface TableView {
   status: 'waiting' | 'playing';
   betLamports?: number;
   serverWallet?: string;
+  /** Фактический банк партии (lamports), зафиксированный при старте. */
+  potLamports?: number;
 }
 
 export type ClientMessage =
