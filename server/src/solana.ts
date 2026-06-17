@@ -6,36 +6,68 @@ import {
   Transaction,
   clusterApiUrl,
 } from '@solana/web3.js';
+import { verify as edVerify } from 'node:crypto';
 
-const NETWORK = (process.env.SOLANA_NETWORK ?? 'devnet') as 'devnet' | 'mainnet-beta';
-export const connection = new Connection(clusterApiUrl(NETWORK), 'confirmed');
+// По умолчанию — mainnet (реальные SOL). Для тестов: SOLANA_NETWORK=devnet.
+const NETWORK = (process.env.SOLANA_NETWORK ?? 'mainnet-beta') as 'devnet' | 'mainnet-beta';
+const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl(NETWORK);
+export const connection = new Connection(RPC_URL, 'confirmed');
 
-// Load or generate server keypair
+// Комиссия площадки с банка партии (доля). По умолчанию 5%.
+export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE ?? '0.05');
+// Куда уводить комиссию. Если не задан — остаётся на горячем кошельке сервера.
+export const PLATFORM_WALLET = process.env.PLATFORM_WALLET || '';
+
+// Серверный «горячий» кошелёк: собирает ставки, платит выигрыши.
 let serverKeypair: Keypair;
 const privKeyEnv = process.env.SOLANA_PRIVATE_KEY;
 
 if (privKeyEnv) {
   try {
-    if (privKeyEnv.startsWith('[')) {
-      // JSON array format: [1,2,3,...64 bytes]
+    if (privKeyEnv.trim().startsWith('[')) {
       serverKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(privKeyEnv) as number[]));
     } else {
-      // Base64 format
       serverKeypair = Keypair.fromSecretKey(Buffer.from(privKeyEnv, 'base64'));
     }
-  } catch {
-    serverKeypair = Keypair.generate();
-    console.log(`⚠  SOLANA_PRIVATE_KEY недействителен, сгенерирован новый ключ`);
+  } catch (e) {
+    throw new Error(`SOLANA_PRIVATE_KEY задан, но недействителен: ${(e as Error).message}`);
   }
+} else if (NETWORK === 'mainnet-beta') {
+  // На mainnet нельзя играть с временным кошельком без баланса — падаем явно.
+  throw new Error(
+    'SOLANA_PRIVATE_KEY обязателен на mainnet-beta (горячий кошелёк для выплат). Задайте переменную окружения.',
+  );
 } else {
   serverKeypair = Keypair.generate();
   console.log(
-    `💡 SOLANA_PRIVATE_KEY не задан. Сгенерирован временный кошелёк: ${serverKeypair.publicKey.toBase58()}`,
+    `💡 SOLANA_PRIVATE_KEY не задан (devnet). Временный кошелёк: ${serverKeypair.publicKey.toBase58()}`,
   );
-  console.log(`   Установите SOLANA_PRIVATE_KEY для сохранения средств между перезапусками.`);
 }
 
 export const SERVER_WALLET = serverKeypair.publicKey.toBase58();
+console.log(`◎ Solana: сеть ${NETWORK}, кошелёк сервера ${SERVER_WALLET}, комиссия ${PLATFORM_FEE * 100}%`);
+
+/** Проверка подписи сообщения ed25519 (доказательство владения кошельком). */
+export function verifySignature(address: string, message: string, signatureB64: string): boolean {
+  try {
+    const pubkeyBytes = new PublicKey(address).toBytes(); // 32 байта
+    const sig = Buffer.from(signatureB64, 'base64');
+    if (sig.length !== 64) return false;
+    // Оборачиваем сырой ed25519-ключ в SPKI DER для node:crypto.
+    const der = Buffer.concat([
+      Buffer.from('302a300506032b6570032100', 'hex'),
+      Buffer.from(pubkeyBytes),
+    ]);
+    const keyObject = {
+      key: der,
+      format: 'der' as const,
+      type: 'spki' as const,
+    };
+    return edVerify(null, Buffer.from(message, 'utf8'), keyObject, sig);
+  } catch {
+    return false;
+  }
+}
 
 export async function sendSol(toAddress: string, lamports: number): Promise<string> {
   const to = new PublicKey(toAddress);
@@ -68,7 +100,6 @@ export async function verifyPayment(
     });
     if (!tx || tx.meta?.err) return false;
 
-    // Check that fromAddress is in accountKeys and lamports match roughly
     const accounts = tx.transaction.message.staticAccountKeys ?? [];
     const fromIdx = accounts.findIndex((k) => k.toString() === expectedFrom);
     if (fromIdx === -1) return false;
@@ -77,7 +108,7 @@ export async function verifyPayment(
     const postBalance = tx.meta?.postBalances?.[fromIdx] ?? 0;
     const spent = preBalance - postBalance;
 
-    return spent >= expectedLamports; // allow for fees
+    return spent >= expectedLamports; // допускаем сетевую комиссию
   } catch {
     return false;
   }

@@ -1,7 +1,7 @@
-// Аккаунты: регистрация, вход, токены. Без внешних зависимостей —
-// хеширование scrypt и подпись токенов HMAC из встроенного node:crypto.
-// Пользователи хранятся в JSON-файле рядом с сервером.
-import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypto';
+// Аккаунты привязаны к адресу кошелька Solana — без логина/пароля.
+// Личность доказывается подписью сообщения (см. solana.ts verifySignature).
+// Токен сессии подписывается HMAC. Хранение — JSON-файл рядом с сервером.
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -9,16 +9,15 @@ import { dirname, resolve } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = resolve(here, '..', 'data', 'accounts.json');
 
-// Секрет для подписи токенов. В проде задаётся через переменную окружения.
 const SECRET = process.env.AUTH_SECRET ?? 'zapisnoy-kozel-dev-secret-change-me';
 
 export interface Account {
-  id: string;
+  /** Адрес кошелька (base58) — он же id пользователя. */
+  address: string;
   name: string;
-  nameLower: string;
-  salt: string;
-  hash: string;
   createdAt: number;
+  /** Избранные игроки (адреса) для быстрых приглашений. */
+  friends: string[];
 }
 
 let accounts: Account[] = [];
@@ -43,8 +42,10 @@ function persist(): void {
 
 load();
 
-function hashPassword(password: string, salt: string): string {
-  return scryptSync(password, salt, 64).toString('hex');
+/** Короткое имя по умолчанию из адреса: 7xKf…9aBc. */
+export function shortAddress(address: string): string {
+  if (address.length <= 9) return address;
+  return `${address.slice(0, 4)}…${address.slice(-4)}`;
 }
 
 function makeToken(id: string): string {
@@ -62,55 +63,56 @@ export function verifyToken(token: string): string | null {
   if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   const decoded = Buffer.from(payload, 'base64url').toString('utf8');
   const id = decoded.split('.')[0];
-  return accounts.some((a) => a.id === id) ? id : null;
+  return accounts.some((a) => a.address === id) ? id : null;
 }
 
 export function accountById(id: string): Account | undefined {
-  return accounts.find((a) => a.id === id);
+  return accounts.find((a) => a.address === id);
 }
 
-export interface AuthResult {
-  ok: boolean;
-  message?: string;
-  account?: Account;
-  token?: string;
+/** Находит аккаунт по кошельку или создаёт новый. */
+export function upsertByWallet(address: string): Account {
+  let account = accounts.find((a) => a.address === address);
+  if (!account) {
+    account = {
+      address,
+      name: shortAddress(address),
+      createdAt: Date.now(),
+      friends: [],
+    };
+    accounts.push(account);
+    persist();
+  }
+  return account;
 }
 
-export function register(name: string, password: string): AuthResult {
-  const trimmed = name.trim();
-  if (trimmed.length < 2 || trimmed.length > 20) {
-    return { ok: false, message: 'Имя: от 2 до 20 символов' };
-  }
-  if (password.length < 4) {
-    return { ok: false, message: 'Пароль: минимум 4 символа' };
-  }
-  if (accounts.some((a) => a.nameLower === trimmed.toLowerCase())) {
-    return { ok: false, message: 'Это имя уже занято' };
-  }
-  const salt = randomBytes(16).toString('hex');
-  const account: Account = {
-    id: randomBytes(9).toString('base64url'),
-    name: trimmed,
-    nameLower: trimmed.toLowerCase(),
-    salt,
-    hash: hashPassword(password, salt),
-    createdAt: Date.now(),
-  };
-  accounts.push(account);
+export function setName(address: string, name: string): Account | undefined {
+  const account = accountById(address);
+  if (!account) return undefined;
+  const clean = name.trim().slice(0, 20);
+  account.name = clean || shortAddress(address);
   persist();
-  return { ok: true, account, token: makeToken(account.id) };
+  return account;
 }
 
-export function login(name: string, password: string): AuthResult {
-  const account = accounts.find((a) => a.nameLower === name.trim().toLowerCase());
-  if (!account) return { ok: false, message: 'Неверное имя или пароль' };
-  const candidate = hashPassword(password, account.salt);
-  const a = Buffer.from(candidate);
-  const b = Buffer.from(account.hash);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    return { ok: false, message: 'Неверное имя или пароль' };
+export function addFriend(address: string, friend: string): void {
+  const account = accountById(address);
+  if (!account || friend === address) return;
+  if (!account.friends.includes(friend)) {
+    account.friends.push(friend);
+    persist();
   }
-  return { ok: true, account, token: makeToken(account.id) };
+}
+
+export function removeFriend(address: string, friend: string): void {
+  const account = accountById(address);
+  if (!account) return;
+  account.friends = account.friends.filter((f) => f !== friend);
+  persist();
+}
+
+export function friendsOf(address: string): string[] {
+  return accountById(address)?.friends ?? [];
 }
 
 export function tokenFor(id: string): string {

@@ -1,14 +1,16 @@
-// Сетевое хранилище: WebSocket-соединение с онлайн-сервером, авторизация,
-// лобби, стол и партия. UI читает это состояние и вызывает действия.
+// Сетевое хранилище: WebSocket-соединение с онлайн-сервером, вход через
+// кошелёк Solana, лобби, присутствие, друзья, приглашения, стол и партия.
 import { create } from 'zustand';
 import type { GameState, MoveAction, Suit } from '../game/types';
 import type {
   ClientMessage,
   LobbyTable,
+  OnlineUser,
   PublicUser,
   ServerMessage,
   TableView,
 } from './protocol';
+import { useWalletStore } from '../solana/walletStore';
 
 // Адрес сервера задаётся на сборке: VITE_SERVER_URL=wss://your-host
 const SERVER_URL: string =
@@ -16,7 +18,19 @@ const SERVER_URL: string =
 
 const TOKEN_KEY = 'kozel.token';
 
+// Текст входа — должен побайтово совпадать с сервером (server/src/index.ts).
+function authMessage(nonce: string): string {
+  return `Записной Козёл — вход\nNonce: ${nonce}`;
+}
+
 export type OnlineView = 'auth' | 'lobby' | 'table' | 'game';
+
+export interface Invite {
+  tableId: string;
+  tableName: string;
+  fromName: string;
+  betLamports?: number;
+}
 
 interface OnlineStore {
   status: 'idle' | 'connecting' | 'connected';
@@ -25,6 +39,9 @@ interface OnlineStore {
   authError: string | null;
   notice: string | null;
   lobby: LobbyTable[];
+  online: OnlineUser[];
+  friends: OnlineUser[];
+  invites: Invite[];
   table: TableView | null;
   game: GameState | null;
   youSeat: number;
@@ -34,9 +51,9 @@ interface OnlineStore {
   betRequired: boolean;
 
   connect: () => void;
-  register: (name: string, password: string) => void;
-  login: (name: string, password: string) => void;
+  connectWallet: () => Promise<void>;
   logout: () => void;
+  setName: (name: string) => void;
   refreshLobby: () => void;
   createTable: (name: string, maxPlayers: 2 | 3 | 4, password?: string, betLamports?: number) => void;
   joinTable: (tableId: string, password?: string) => void;
@@ -48,10 +65,16 @@ interface OnlineStore {
   clearNotice: () => void;
   registerWallet: (address: string) => void;
   payBet: (tableId: string, signature: string) => void;
+  invitePlayer: (toUserId: string) => void;
+  inviteAll: () => void;
+  addFriend: (userId: string) => void;
+  removeFriend: (userId: string) => void;
+  acceptInvite: (invite: Invite) => void;
+  dismissInvite: (tableId: string) => void;
 }
 
 let socket: WebSocket | null = null;
-// Запрос на вход/регистрацию, отложенный до установки соединения.
+// Сообщение, отложенное до установки соединения.
 let pendingAuth: ClientMessage | null = null;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -62,7 +85,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     }
   }
 
-  // Отправить запрос авторизации сейчас, либо подключиться и отправить по готовности.
+  // Отправить сейчас, либо подключиться и отправить по готовности.
   function authOrQueue(msg: ClientMessage): void {
     set({ busy: true, authError: null });
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -73,8 +96,22 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     get().connect();
   }
 
+  async function handleChallenge(nonce: string): Promise<void> {
+    const address = get().walletAddress;
+    if (!address) return;
+    try {
+      const sig = await useWalletStore.getState().signMessage(authMessage(nonce));
+      sendMsg({ t: 'auth:verify', walletAddress: address, signature: sig });
+    } catch {
+      set({ busy: false, authError: 'Вход отменён в кошельке' });
+    }
+  }
+
   function onMessage(msg: ServerMessage): void {
     switch (msg.t) {
+      case 'auth:challenge':
+        void handleChallenge(msg.nonce);
+        break;
       case 'auth:ok':
         localStorage.setItem(TOKEN_KEY, msg.token);
         set({ user: msg.user, authError: null, busy: false });
@@ -89,6 +126,25 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         break;
       case 'lobby':
         set({ lobby: msg.tables });
+        break;
+      case 'presence':
+        set({ online: msg.users });
+        break;
+      case 'friends':
+        set({ friends: msg.friends });
+        break;
+      case 'invite':
+        set((s) => ({
+          invites: [
+            ...s.invites.filter((i) => i.tableId !== msg.tableId),
+            {
+              tableId: msg.tableId,
+              tableName: msg.tableName,
+              fromName: msg.fromName,
+              betLamports: msg.betLamports,
+            },
+          ],
+        }));
         break;
       case 'table':
         set({
@@ -113,18 +169,18 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       case 'wallet:paid': {
         const t = get().table;
         if (t) {
-          const seats = t.seats.map((s, i) =>
-            i === msg.seatIndex ? { ...s, paid: true } : s,
-          );
+          const seats = t.seats.map((s, i) => (i === msg.seatIndex ? { ...s, paid: true } : s));
           set({ table: { ...t, seats } });
         }
         break;
       }
-      case 'wallet:payout':
+      case 'wallet:payout': {
+        const fee = msg.commission > 0 ? ` (−${(msg.commission / 1e9).toFixed(3)} комиссия)` : '';
         set({
-          notice: `🏆 ${msg.winnerName} выиграл ${(msg.lamports / 1e9).toFixed(3)} SOL!`,
+          notice: `🏆 ${msg.winnerName} выиграл ${(msg.lamports / 1e9).toFixed(3)} SOL${fee}!`,
         });
         break;
+      }
     }
   }
 
@@ -135,6 +191,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     authError: null,
     notice: null,
     lobby: [],
+    online: [],
+    friends: [],
+    invites: [],
     table: null,
     game: null,
     youSeat: 0,
@@ -147,7 +206,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       if (socket && socket.readyState <= WebSocket.OPEN) return;
       set({ status: 'connecting' });
       if (connectTimer) clearTimeout(connectTimer);
-      // Если за 8 секунд не подключились — сервер недоступен, разблокируем UI.
       connectTimer = setTimeout(() => {
         if (get().status !== 'connected') {
           try {
@@ -175,7 +233,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       socket.onopen = () => {
         if (connectTimer) clearTimeout(connectTimer);
         set({ status: 'connected' });
-        // Сначала пробуем восстановить сессию по токену, иначе шлём отложенный вход.
+        // Тихо восстанавливаем сессию по токену, иначе шлём отложенное.
         const token = localStorage.getItem(TOKEN_KEY);
         if (token) sendMsg({ t: 'auth', token });
         if (pendingAuth) {
@@ -193,7 +251,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       socket.onclose = () => {
         if (connectTimer) clearTimeout(connectTimer);
         set({ status: 'idle' });
-        // Соединение упало во время ожидания авторизации — сообщаем и не висим.
         if (get().busy && pendingAuth) {
           pendingAuth = null;
           set({ busy: false, authError: 'Соединение с сервером прервано.' });
@@ -206,18 +263,37 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       };
     },
 
-    register: (name, password) => {
-      authOrQueue({ t: 'register', name, password });
+    connectWallet: async () => {
+      set({ busy: true, authError: null });
+      const wallet = useWalletStore.getState();
+      await wallet.connect();
+      const address = useWalletStore.getState().address;
+      if (!address) {
+        set({ busy: false, authError: useWalletStore.getState().error ?? 'Кошелёк не подключён' });
+        return;
+      }
+      set({ walletAddress: address });
+      authOrQueue({ t: 'auth:nonce', walletAddress: address });
     },
-    login: (name, password) => {
-      authOrQueue({ t: 'login', name, password });
-    },
+
     logout: () => {
       localStorage.removeItem(TOKEN_KEY);
       sendMsg({ t: 'table:leave' });
-      set({ user: null, table: null, game: null, view: 'auth', lobby: [] });
+      useWalletStore.getState().disconnect();
+      set({
+        user: null,
+        table: null,
+        game: null,
+        view: 'auth',
+        lobby: [],
+        online: [],
+        friends: [],
+        invites: [],
+        walletAddress: null,
+      });
     },
 
+    setName: (name) => sendMsg({ t: 'profile:setName', name }),
     refreshLobby: () => sendMsg({ t: 'lobby:subscribe' }),
     createTable: (name, maxPlayers, password, betLamports) => {
       set({ busy: true });
@@ -247,5 +323,24 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     payBet: (tableId: string, signature: string) => {
       sendMsg({ t: 'wallet:pay', tableId, signature });
     },
+    invitePlayer: (toUserId: string) => {
+      const t = get().table;
+      if (t) sendMsg({ t: 'invite:send', tableId: t.id, toUserId });
+    },
+    inviteAll: () => {
+      const t = get().table;
+      if (t) {
+        sendMsg({ t: 'invite:all', tableId: t.id });
+        set({ notice: 'Приглашения разосланы всем в сети' });
+      }
+    },
+    addFriend: (userId: string) => sendMsg({ t: 'friend:add', userId }),
+    removeFriend: (userId: string) => sendMsg({ t: 'friend:remove', userId }),
+    acceptInvite: (invite: Invite) => {
+      set((s) => ({ invites: s.invites.filter((i) => i.tableId !== invite.tableId), busy: true }));
+      sendMsg({ t: 'table:join', tableId: invite.tableId });
+    },
+    dismissInvite: (tableId: string) =>
+      set((s) => ({ invites: s.invites.filter((i) => i.tableId !== tableId) })),
   };
 });

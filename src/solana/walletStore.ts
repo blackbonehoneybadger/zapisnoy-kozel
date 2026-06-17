@@ -11,6 +11,8 @@ interface WalletStore {
   disconnect: () => void;
   refreshBalance: () => Promise<void>;
   sendBet: (toAddress: string, lamports: number) => Promise<string>;
+  /** Подписать произвольное сообщение (для входа). Возвращает подпись в base64. */
+  signMessage: (message: string) => Promise<string>;
 }
 
 export const useWalletStore = create<WalletStore>((set, get) => ({
@@ -80,5 +82,16 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     await get().refreshBalance();
 
     return signature;
+  },
+
+  signMessage: async (message: string): Promise<string> => {
+    const provider = getProvider();
+    const { address } = get();
+    if (!provider || !address) throw new Error('Кошелёк не подключён');
+    const encoded = new TextEncoder().encode(message);
+    const { signature } = await provider.signMessage(encoded, 'utf8');
+    let bin = '';
+    signature.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin);
   },
 }));

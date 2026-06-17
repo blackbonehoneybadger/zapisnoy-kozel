@@ -105,7 +105,8 @@ export function createTable(
   const safeMax = ([2, 3, 4].includes(maxPlayers) ? maxPlayers : 4) as 2 | 3 | 4;
   const cleanName = (name || '').trim() || `Стол ${user.name}`;
   const seats: SeatAssignment[] = Array.from({ length: safeMax }, emptySeat);
-  seats[0] = { userId: user.id, name: user.name, isBot: false };
+  // id пользователя = адрес кошелька, поэтому сразу годится для выплат.
+  seats[0] = { userId: user.id, name: user.name, isBot: false, walletAddress: user.id };
   const table: Table = {
     id: randomBytes(6).toString('base64url'),
     name: cleanName.slice(0, 30),
@@ -157,7 +158,7 @@ export function joinTable(
   if (!checkPw(table, password)) return { ok: false, error: 'Неверный пароль' };
   const freeIndex = table.seats.findIndex((s) => !s.userId);
   if (freeIndex === -1) return { ok: false, error: 'Свободных мест нет' };
-  table.seats[freeIndex] = { userId: user.id, name: user.name, isBot: false };
+  table.seats[freeIndex] = { userId: user.id, name: user.name, isBot: false, walletAddress: user.id };
   userTable.set(user.id, table.id);
   return { ok: true, table };
 }
