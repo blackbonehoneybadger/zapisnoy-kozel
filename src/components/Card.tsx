@@ -48,7 +48,7 @@ export function Card({
           style={{ mixBlendMode: 'multiply' }}
         />
         {/* мягкое центральное свечение */}
-        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(205,176,119,0.14),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(153,69,255,0.18),transparent_70%)]" />
         {/* двойная шампань-рамка */}
         <div className="absolute inset-[3px] rounded-[0.6rem] border border-gold-600/35" />
         <div className="absolute inset-[6px] rounded-[0.45rem] border border-gold-700/25" />
@@ -64,8 +64,8 @@ export function Card({
             />
             <defs>
               <linearGradient id="cardGold" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="#f1e3c0" />
-                <stop offset="1" stopColor="#9c7c4a" />
+                <stop offset="0" stopColor="#c4a5ff" />
+                <stop offset="1" stopColor="#19d68a" />
               </linearGradient>
             </defs>
           </svg>
@@ -107,7 +107,7 @@ export function Card({
           initial={{ opacity: 0.4 }}
           whileHover={{ opacity: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-          style={{ boxShadow: '0 0 28px rgba(205,176,119,0.55), 0 0 8px rgba(205,176,119,0.3)' }}
+          style={{ boxShadow: '0 0 28px rgba(153,69,255,0.55), 0 0 8px rgba(25,214,138,0.35)' }}
         />
       )}
 

@@ -56,7 +56,7 @@ function OpponentFan({ player, active }: { player: Player; active: boolean }) {
                   backgroundPosition: 'center',
                 }}
               >
-                <div className="absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_40%,rgba(205,176,119,0.12),transparent)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_40%,rgba(153,69,255,0.16),transparent)]" />
                 <div className="absolute inset-[2px] rounded-[0.3rem] border border-gold-600/25" />
               </div>
             </div>
