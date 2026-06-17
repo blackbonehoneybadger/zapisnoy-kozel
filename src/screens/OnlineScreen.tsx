@@ -363,6 +363,9 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
               <p className="mt-2 text-[11px] text-white/30">
                 Банк: {(solAmount * maxPlayers).toFixed(3)} SOL — победителю автоматически
               </p>
+              <p className="mt-1 text-[11px] text-white/35">
+                💡 Ставка работает только если все {maxPlayers} места заняты живыми игроками
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -441,6 +444,8 @@ function WaitingRoom() {
   const mySeat = table.seats.find((s) => s.userId === user?.id);
   const myPaid = mySeat?.paid ?? false;
   const hasBet = !!table.betLamports && table.betLamports > 0;
+  const emptySeats = table.seats.filter((s) => !s.userId).length;
+  const needsHumans = hasBet && emptySeats > 0;
 
   const handlePay = async () => {
     if (!walletAddress || !serverWallet || !table.betLamports) return;
@@ -503,6 +508,19 @@ function WaitingRoom() {
           </div>
         ))}
 
+        {needsHumans && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-wine-600/25 bg-wine-600/5 px-4 py-3"
+          >
+            <p className="text-xs text-wine-400/80">
+              ⚠ Ставка SOL — только среди людей.{' '}
+              Свободных мест: {emptySeats}. Пригласите игроков.
+            </p>
+          </motion.div>
+        )}
+
         {hasBet && !myPaid && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -523,13 +541,15 @@ function WaitingRoom() {
         )}
 
         <p className="px-1 pt-2 text-[11px] leading-relaxed text-white/30">
-          Свободные места при старте займут боты. Хозяин стола начинает партию.
+          {hasBet
+            ? 'Ставки только среди живых игроков — все места должны быть заняты.'
+            : 'Свободные места при старте займут боты. Хозяин стола начинает партию.'}
         </p>
       </div>
 
       <div className="space-y-3 pt-4">
         {isHost ? (
-          <PremiumButton full onClick={startGame} disabled={hasBet && !betRequired && !myPaid}>
+          <PremiumButton full onClick={startGame} disabled={needsHumans || (hasBet && !myPaid)}>
             Начать партию
           </PremiumButton>
         ) : (

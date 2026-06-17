@@ -209,6 +209,10 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     case 'table:start': {
       const startTable = lobby.tableOf(user.id);
       if (startTable && startTable.betLamports && startTable.betLamports > 0) {
+        const emptySeats = startTable.seats.filter((s) => !s.userId).length;
+        if (emptySeats > 0) {
+          return send(conn.ws, { t: 'error', message: 'Ставка SOL — только игра людей: заполните все места' });
+        }
         if (!lobby.allPaid(startTable)) {
           return send(conn.ws, { t: 'error', message: 'Не все игроки оплатили ставку' });
         }
