@@ -212,6 +212,22 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   } catch (e) {
     console.error('Ошибка выплаты Solana:', e);
     table.paidOut = false; // выплата не прошла — разрешаем повтор
+    // Важно: после gameOver ходов больше нет, поэтому pushGame сам не
+    // повторит выплату. Планируем повтор здесь, иначе банк застрянет.
+    const attempts = (table.payoutAttempts ?? 0) + 1;
+    table.payoutAttempts = attempts;
+    if (attempts <= 6) {
+      const delay = Math.min(5000 * attempts, 30_000);
+      console.warn(`Повтор выплаты по столу ${table.id} через ${delay} мс (попытка ${attempts}).`);
+      setTimeout(() => {
+        const t = lobby.getTable(table.id);
+        if (t && !t.paidOut) void handlePayout(t);
+      }, delay);
+    } else {
+      console.error(
+        `Выплата по столу ${table.id} не удалась после ${attempts} попыток — требуется ручная проверка горячего кошелька.`,
+      );
+    }
   }
 }
 
