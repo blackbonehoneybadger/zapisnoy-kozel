@@ -50,6 +50,17 @@ jobs:
           # например wss://kozel.example.com. Без него работает только офлайн.
           VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
 
+      - name: Restore release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/zapisnoy.keystore
+          else
+            echo "::error::Добавьте GitHub Secret ANDROID_KEYSTORE_BASE64 — base64 от файла android/app/zapisnoy.keystore"
+            exit 1
+          fi
+
       - name: Sync Capacitor
         run: npx cap sync android
 
