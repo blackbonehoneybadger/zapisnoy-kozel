@@ -688,8 +688,11 @@ function WaitingRoom() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-[#9945ff]/25 bg-[#9945ff]/5 px-4 py-3"
           >
-            <p className="mb-2 text-xs text-white/60">
+            <p className="mb-1.5 text-xs text-white/60">
               Для участия переведите {(table.betLamports! / 1e9).toFixed(3)} SOL в банк партии.
+            </p>
+            <p className="mb-2.5 text-[11px] leading-relaxed text-wine-400/80">
+              ⚠ После оплаты ставка не возвращается. Выход — потеря ставки.
             </p>
             {walletAddress ? (
               <PremiumButton full onClick={handlePay} disabled={paying}>
@@ -715,7 +718,7 @@ function WaitingRoom() {
 
         <p className="px-1 pt-2 text-[11px] leading-relaxed text-white/30">
           {hasBet
-            ? '⚡ Ставки только среди живых игроков. Выход во время игры — потеря ставки: она уходит победителю.'
+            ? '⚡ Ставки только среди живых игроков. После оплаты возврата нет: выход — потеря ставки, банк уходит победителю.'
             : 'Свободные места при старте займут боты. Хозяин стола начинает партию.'}
         </p>
       </div>
