@@ -155,6 +155,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
           table: msg.table,
           busy: false,
           view: msg.table.status === 'playing' ? 'game' : 'table',
+          serverWallet: msg.table.serverWallet ?? null,
         });
         break;
       case 'table:left':

@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('local.properties')
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "com.zapisnoy.kozel"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,12 +24,10 @@ android {
     }
     signingConfigs {
         release {
-            // Постоянный ключ подписи: будущие версии ставятся поверх установленной
-            // без удаления. Ключ самоподписанный, только для прямой установки APK.
             storeFile file('zapisnoy.keystore')
-            storePassword 'zapisnoy-kozel'
-            keyAlias 'zapisnoy'
-            keyPassword 'zapisnoy-kozel'
+            storePassword keystoreProps['signing.storePassword'] ?: 'zapisnoy-kozel'
+            keyAlias keystoreProps['signing.keyAlias'] ?: 'zapisnoy'
+            keyPassword keystoreProps['signing.keyPassword'] ?: 'zapisnoy-kozel'
         }
     }
     buildTypes {
