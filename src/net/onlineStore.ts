@@ -77,6 +77,10 @@ let socket: WebSocket | null = null;
 // Сообщение, отложенное до установки соединения.
 let pendingAuth: ClientMessage | null = null;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
+// Авто-переподключение: пользователь вышел сам — не переподключаемся.
+let intentionalClose = false;
+let reconnectAttempts = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useOnlineStore = create<OnlineStore>((set, get) => {
   function sendMsg(msg: ClientMessage): void {
@@ -204,6 +208,11 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
 
     connect: () => {
       if (socket && socket.readyState <= WebSocket.OPEN) return;
+      intentionalClose = false;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       set({ status: 'connecting' });
       if (connectTimer) clearTimeout(connectTimer);
       connectTimer = setTimeout(() => {
@@ -232,6 +241,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
 
       socket.onopen = () => {
         if (connectTimer) clearTimeout(connectTimer);
+        reconnectAttempts = 0; // успешно — сбрасываем счётчик попыток
         set({ status: 'connected' });
         // Тихо восстанавливаем сессию по токену, иначе шлём отложенное.
         const token = localStorage.getItem(TOKEN_KEY);
@@ -254,6 +264,14 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         if (get().busy && pendingAuth) {
           pendingAuth = null;
           set({ busy: false, authError: 'Соединение с сервером прервано.' });
+        }
+        // Авто-переподключение, если пользователь вошёл и не вышел сам.
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!intentionalClose && token) {
+          const delay = Math.min(1000 * 2 ** reconnectAttempts, 16000);
+          reconnectAttempts++;
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => get().connect(), delay);
         }
       };
       socket.onerror = () => {
@@ -278,6 +296,12 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
 
     logout: () => {
       localStorage.removeItem(TOKEN_KEY);
+      intentionalClose = true; // явный выход — не переподключаемся
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      reconnectAttempts = 0;
       sendMsg({ t: 'table:leave' });
       useWalletStore.getState().disconnect();
       set({

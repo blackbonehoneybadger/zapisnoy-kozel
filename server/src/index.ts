@@ -58,6 +58,23 @@ interface Conn {
   userId?: string;
   name?: string;
   inLobby: boolean;
+  /** Метки времени последних сообщений — для ограничения частоты (anti-flood). */
+  msgTimes: number[];
+}
+
+// Anti-flood: не более RATE_MAX сообщений за RATE_WINDOW мс с одного сокета.
+const RATE_WINDOW = 10_000;
+const RATE_MAX = 60;
+// Защита от гигантских payload (DoS памяти): максимум 16 КБ на сообщение.
+const MAX_MSG_BYTES = 16 * 1024;
+
+/** Проверяет лимит частоты. true — можно обрабатывать, false — превышен. */
+function allowMessage(conn: Conn): boolean {
+  const now = Date.now();
+  conn.msgTimes = conn.msgTimes.filter((t) => now - t < RATE_WINDOW);
+  if (conn.msgTimes.length >= RATE_MAX) return false;
+  conn.msgTimes.push(now);
+  return true;
 }
 
 const conns = new Map<WebSocket, Conn>();
@@ -500,10 +517,21 @@ const http = createServer((req, res) => {
 const wss = new WebSocketServer({ server: http });
 
 wss.on('connection', (ws) => {
-  const conn: Conn = { ws, inLobby: false };
+  const conn: Conn = { ws, inLobby: false, msgTimes: [] };
   conns.set(ws, conn);
 
   ws.on('message', (raw) => {
+    // Лимит размера: отсекаем гигантские payload до парсинга.
+    const size = (raw as Buffer).length ?? 0;
+    if (size > MAX_MSG_BYTES) {
+      return send(ws, { t: 'error', message: 'Сообщение слишком большое' });
+    }
+    // Anti-flood: при превышении частоты — закрываем сокет.
+    if (!allowMessage(conn)) {
+      send(ws, { t: 'error', message: 'Слишком много запросов. Подождите.' });
+      try { ws.close(1008, 'rate limit'); } catch { /* уже закрыт */ }
+      return;
+    }
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw.toString());
