@@ -43,6 +43,9 @@ export function OnlineScreen({ onBack }: Props) {
       {/* входящие приглашения — поверх любого экрана */}
       <InviteToasts />
 
+      {/* индикатор связи с сервером */}
+      <ConnectionBanner />
+
       {/* всплывающее уведомление */}
       <AnimatePresence>
         {notice && (
@@ -59,6 +62,34 @@ export function OnlineScreen({ onBack }: Props) {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/** Тонкий индикатор связи: показывается, когда вошедший игрок потерял сервер. */
+function ConnectionBanner() {
+  const status = useOnlineStore((s) => s.status);
+  const user = useOnlineStore((s) => s.user);
+  const view = useOnlineStore((s) => s.view);
+  const show = !!user && view !== 'auth' && status !== 'connected';
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          className="pointer-events-none fixed bottom-5 left-1/2 z-50 -translate-x-1/2 safe-bottom"
+        >
+          <div className="glass-strong flex items-center gap-2.5 rounded-full px-4 py-2 text-[12px] text-white/80">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#9945ff] opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#9945ff]" />
+            </span>
+            Переподключение к серверу…
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
