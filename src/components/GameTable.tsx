@@ -31,8 +31,23 @@ function OpponentFan({ player, active }: { player: Player; active: boolean }) {
 
   return (
     <div className={`flex flex-col items-center gap-1 ${player.busted ? 'opacity-35' : ''}`}>
-      {/* веер рубашек */}
-      <div className="relative" style={{ width: '4.4rem', height: '3.6rem' }}>
+      {/* пульсирующий шестиугольный ореол активного соперника */}
+      <div className="relative flex items-center justify-center" style={{ width: '4.4rem', height: '3.6rem' }}>
+        {active && (
+          <>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -inset-2 -z-10 hex-clip animate-halo"
+              style={{ background: 'radial-gradient(60% 60% at 50% 45%, rgba(153,69,255,0.5), rgba(25,214,138,0.18) 55%, transparent 72%)' }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -inset-[3px] -z-10 hex-clip"
+              style={{ background: 'linear-gradient(135deg, rgba(196,165,255,0.6), rgba(25,214,138,0.35))' }}
+            />
+            <span aria-hidden className="pointer-events-none absolute -inset-[1px] -z-10 hex-clip bg-ink-900/85" />
+          </>
+        )}
         {Array.from({ length: show }).map((_, i) => {
           const angle = -spread / 2 + step * i;
           return (
@@ -98,6 +113,9 @@ export function GameTable({ state, youSeat }: Props) {
   const isActive = (p: Player) =>
     state.players[state.currentPlayerIndex].id === p.id && state.phase === 'playing';
 
+  const you = state.players[mySeat];
+  const yourTurn = !!you && state.players[state.currentPlayerIndex].id === you.id && state.phase === 'playing';
+
   return (
     <div
       className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]"
@@ -109,10 +127,35 @@ export function GameTable({ state, youSeat }: Props) {
     >
       {/* CSS-фоллбэк изумрудного сукна */}
       <div className="pointer-events-none absolute inset-0 bg-felt-radial opacity-50" />
+      {/* деликатные «схемные» светящиеся линии на сукне */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(60deg, transparent 0 26px, rgba(196,165,255,0.5) 26px 27px), repeating-linear-gradient(-60deg, transparent 0 26px, rgba(25,214,138,0.35) 26px 27px)',
+          maskImage: 'radial-gradient(70% 60% at 50% 50%, #000 0%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(70% 60% at 50% 50%, #000 0%, transparent 75%)',
+        }}
+      />
       {/* зерно и свет */}
       <div className="pointer-events-none absolute inset-0 grain opacity-[0.06] mix-blend-soft-light" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(68%_52%_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_45%,transparent_60%,rgba(0,0,0,0.4)_100%)]" />
+
+      {/* медленно вращающийся неоново-золотой ободок стола */}
+      <div className="pointer-events-none absolute inset-2 rounded-full">
+        <div className="absolute left-1/2 top-1/2 aspect-square h-[135%] max-h-none -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slow opacity-70 blur-[0.5px]" />
+        <div className="absolute left-1/2 top-1/2 aspect-square h-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slower opacity-40" />
+      </div>
+
+      {/* усиленное свечение центра во время хода игрока-человека */}
+      <div
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl transition-opacity duration-700 ${
+          yourTurn ? 'opacity-100 animate-halo' : 'opacity-0'
+        }`}
+        style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.4), rgba(25,214,138,0.14) 55%, transparent 72%)' }}
+      />
+
       {/* шампань-кант */}
       <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-gold-500/12" />
 
@@ -135,13 +178,14 @@ export function GameTable({ state, youSeat }: Props) {
         )}
 
         {/* активная карта + штрафной бейдж */}
-        <div className="relative">
+        <div className="relative" style={{ perspective: 900 }}>
           <AnimatePresence mode="popLayout">
             <motion.div
               key={top.id}
-              initial={{ scale: 0.65, rotate: -14, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+              initial={{ scale: 0.6, rotateY: -120, rotateZ: -14, opacity: 0 }}
+              animate={{ scale: 1, rotateY: 0, rotateZ: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+              style={{ transformStyle: 'preserve-3d' }}
             >
               <Card card={top} />
             </motion.div>

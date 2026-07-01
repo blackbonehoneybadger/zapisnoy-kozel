@@ -83,12 +83,25 @@ export default {
           '0%,100%': { transform: 'translate3d(0,0,0) rotate(0deg)' },
           '50%': { transform: 'translate3d(3%,-2%,0) rotate(4deg)' },
         },
+        // Медленное вращение ободка стола
+        spinSlow: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        // Пульсация свечения активного игрока/центра стола
+        haloPulse: {
+          '0%,100%': { opacity: '0.45', transform: 'scale(1)' },
+          '50%': { opacity: '0.9', transform: 'scale(1.08)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 4.5s linear infinite',
         float: 'float 6s ease-in-out infinite',
         breathe: 'breathe 7s ease-in-out infinite',
         drift: 'drift 26s ease-in-out infinite',
+        'spin-slow': 'spinSlow 52s linear infinite',
+        'spin-slower': 'spinSlow 80s linear infinite reverse',
+        halo: 'haloPulse 3.4s ease-in-out infinite',
       },
     },
   },

@@ -17,14 +17,29 @@ export function PlayerAvatar({ player, active, compact }: Props) {
       className={`flex flex-col items-center gap-1 ${player.busted ? 'opacity-40' : ''}`}
     >
       <div
-        className={`relative grid place-items-center rounded-full ${
+        className={`relative grid place-items-center ${
           compact ? 'h-12 w-12' : 'h-14 w-14'
-        } ${
+        } ${active ? 'hex-clip' : 'rounded-full'} ${
           active
-            ? 'bg-gold-sheen shadow-glow'
-            : 'bg-white/[0.05] border border-white/10'
+            ? 'bg-gold-sheen'
+            : 'bg-white/[0.05] border border-white/10 rounded-full'
         }`}
       >
+        {/* пульсирующее шестиугольное свечение при ходе */}
+        {active && (
+          <>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -inset-2 -z-10 hex-clip animate-halo"
+              style={{ background: 'radial-gradient(60% 60% at 50% 45%, rgba(153,69,255,0.6), rgba(25,214,138,0.2) 55%, transparent 72%)' }}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -inset-[2px] -z-10 hex-clip"
+              style={{ background: 'linear-gradient(135deg, rgba(216,199,255,0.9), rgba(25,214,138,0.5))' }}
+            />
+          </>
+        )}
         {player.isBot ? (
           <GoatEmblem size={compact ? 26 : 30} />
         ) : (
@@ -32,10 +47,7 @@ export function PlayerAvatar({ player, active, compact }: Props) {
             {(player.name.trim()[0] ?? 'И').toUpperCase()}
           </span>
         )}
-        {active && (
-          <span className="absolute -inset-1 rounded-full border border-gold-400/50 animate-pulse" />
-        )}
-        <span className="absolute -bottom-1.5 -right-1.5 grid h-6 min-w-6 place-items-center rounded-full bg-ink-900 px-1 text-xs font-bold text-gold-400 border border-gold-600/40">
+        <span className="absolute -bottom-1.5 -right-1.5 z-10 grid h-6 min-w-6 place-items-center rounded-full bg-ink-900 px-1 text-xs font-bold text-gold-400 border border-gold-600/40">
           {player.hand.length}
         </span>
       </div>

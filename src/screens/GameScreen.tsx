@@ -416,23 +416,51 @@ function GameOverOverlay({
       <div className="absolute inset-0 bg-black/55" />
       {won && <Confetti />}
 
+      {/* пульсирующий ореол за баннером победы */}
+      {won && (
+        <motion.div
+          aria-hidden
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.12, 0.9] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          className="pointer-events-none absolute h-80 w-80 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.55), rgba(25,214,138,0.22) 55%, transparent 72%)' }}
+        />
+      )}
+
       <motion.div
         initial={{ scale: 0.8, y: 30 }}
         animate={{ scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 18 }}
         className="glass-strong relative w-full max-w-sm rounded-3xl p-7 text-center"
       >
-        <motion.div
-          animate={won ? { rotate: [0, -6, 6, 0] } : {}}
-          transition={{ repeat: Infinity, duration: 4 }}
-          className="mx-auto mb-3 grid h-24 w-24 place-items-center rounded-3xl glass"
-        >
-          <GoatEmblem size={64} />
-        </motion.div>
+        <div className="relative mx-auto mb-3 grid h-28 w-28 place-items-center">
+          {/* вращающийся орб-награда за эмблемой (место под сумму SOL в онлайне) */}
+          {won && (
+            <>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-full table-ring animate-spin-slow opacity-80"
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -inset-2 rounded-full blur-xl animate-halo"
+                style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.5), transparent 70%)' }}
+              />
+            </>
+          )}
+          <motion.div
+            animate={won ? { rotate: [0, -6, 6, 0], y: [0, -4, 0] } : {}}
+            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+            className="relative grid h-24 w-24 place-items-center rounded-3xl glass"
+          >
+            <GoatEmblem size={64} />
+          </motion.div>
+        </div>
         <p className="text-xs uppercase tracking-[0.3em] text-gold-500/70">
           {won ? 'Победа' : 'Партия окончена'}
         </p>
-        <h2 className="mt-1 font-display text-3xl">
+        <h2 className="mt-1 font-display text-4xl">
           {won ? <span className="gold-text">Вы выиграли!</span> : <span className="text-white/90">Вы проиграли</span>}
         </h2>
         <p className="mt-2 text-sm text-white/55">
@@ -455,15 +483,19 @@ function GameOverOverlay({
 }
 
 function Confetti() {
+  const palette = ['#c4a5ff', '#9945ff', '#19d68a', '#d8c7ff', '#f5efe0'];
   const pieces = useMemo(
     () =>
-      Array.from({ length: 40 }, (_, i) => ({
+      Array.from({ length: 64 }, (_, i) => ({
         id: i,
         x: Math.random() * 100,
-        delay: Math.random() * 1.2,
-        dur: 2.4 + Math.random() * 2,
+        delay: Math.random() * 1.6,
+        dur: 2.6 + Math.random() * 2.4,
         rot: Math.random() * 360,
-        gold: Math.random() > 0.4,
+        drift: (Math.random() - 0.5) * 60,
+        size: 4 + Math.random() * 5,
+        round: Math.random() > 0.55,
+        color: palette[i % palette.length],
       })),
     [],
   );
@@ -472,13 +504,18 @@ function Confetti() {
       {pieces.map((p) => (
         <motion.span
           key={p.id}
-          initial={{ y: -40, opacity: 0, rotate: p.rot }}
-          animate={{ y: '110vh', opacity: [0, 1, 1, 0], rotate: p.rot + 360 }}
-          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity }}
-          style={{ left: `${p.x}%` }}
-          className={`absolute top-0 h-2.5 w-1.5 rounded-sm ${
-            p.gold ? 'bg-gold-400' : 'bg-white/80'
-          }`}
+          initial={{ y: -40, x: 0, opacity: 0, rotate: p.rot }}
+          animate={{ y: '112vh', x: p.drift, opacity: [0, 1, 1, 0], rotate: p.rot + 540 }}
+          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeIn' }}
+          style={{
+            left: `${p.x}%`,
+            width: p.size,
+            height: p.round ? p.size : p.size * 1.7,
+            backgroundColor: p.color,
+            borderRadius: p.round ? '9999px' : '2px',
+            boxShadow: `0 0 6px ${p.color}88`,
+          }}
+          className="absolute top-0"
         />
       ))}
     </div>

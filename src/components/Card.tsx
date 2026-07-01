@@ -100,14 +100,22 @@ export function Card({
       <span className="pointer-events-none absolute inset-[2.5px] rounded-[0.65rem] border border-gold-600/30" />
       {/* верхний глянец */}
       <span className="pointer-events-none absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/70 to-transparent" />
-      {/* мягкое свечение при доступности */}
+      {/* мягкий премиальный ореол доступной карты — мягко пульсирует, ярче при наведении */}
       {playable && (
         <motion.span
-          className="pointer-events-none absolute inset-0 rounded-[0.85rem]"
-          initial={{ opacity: 0.4 }}
+          className="pointer-events-none absolute -inset-[3px] rounded-[1rem]"
+          initial={{ opacity: 0.55 }}
+          animate={{ opacity: [0.5, 0.85, 0.5] }}
           whileHover={{ opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-          style={{ boxShadow: '0 0 28px rgba(153,69,255,0.55), 0 0 8px rgba(25,214,138,0.35)' }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ boxShadow: '0 0 30px 2px rgba(153,69,255,0.55), 0 0 12px rgba(25,214,138,0.4)' }}
+        />
+      )}
+      {/* внутренняя золотисто-мятная кромка доступной карты */}
+      {playable && (
+        <span
+          className="pointer-events-none absolute inset-0 rounded-[0.85rem]"
+          style={{ boxShadow: 'inset 0 0 0 1.5px rgba(196,165,255,0.7), inset 0 0 14px rgba(25,214,138,0.25)' }}
         />
       )}
 
