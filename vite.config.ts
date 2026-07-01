@@ -12,9 +12,9 @@ const pwaPlugin = VitePWA({
   registerType: 'autoUpdate',
   includeAssets: ['favicon.svg'],
   manifest: {
-    name: 'Записной Козёл',
-    short_name: 'Козёл',
-    description: 'Премиальная карточная игра «Записной Козёл»',
+    name: 'Crazy 8',
+    short_name: 'Crazy 8',
+    description: 'Премиальная карточная игра «Crazy 8»',
     lang: 'ru',
     theme_color: '#08090b',
     background_color: '#08090b',

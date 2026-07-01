@@ -57,9 +57,9 @@ export function HomeScreen({ navigate, onPlay }: Props) {
           transition={{ delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
           className="mt-3 font-display text-[3.4rem] font-semibold leading-[0.92] tracking-tight"
         >
-          <span className="gold-text">Записной</span>
+          <span className="gold-text">Crazy</span>
           <br />
-          <span className="text-[#f3efe6]">Козёл</span>
+          <span className="text-[#f3efe6]">8</span>
         </motion.h1>
 
         <motion.div

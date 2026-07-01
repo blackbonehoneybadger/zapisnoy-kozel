@@ -115,7 +115,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
-          name: Записной Козёл — Android APK
+          name: Crazy 8 — Android APK
           body: |
             📦 Установочный APK для Android (release-сборка, подписана постоянным ключом).
 

@@ -77,7 +77,7 @@ export function GameScreen({ onExit }: Props) {
         </button>
         <div className="text-center">
           <div className="font-display text-sm tracking-wide gold-text">Раунд {game.roundNumber}</div>
-          <div className="text-[10px] uppercase tracking-[0.25em] text-white/35">Записной Козёл</div>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-white/35">Crazy 8</div>
         </div>
         <button
           onClick={() => setShowScore(true)}

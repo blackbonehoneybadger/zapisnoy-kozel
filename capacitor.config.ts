@@ -11,7 +11,7 @@ const serverUrl =
 
 const config: CapacitorConfig = {
   appId: 'com.zapisnoy.kozel',
-  appName: 'Записной Козёл',
+  appName: 'Crazy 8',
   webDir: 'dist',
   backgroundColor: '#08090b',
   android: {
