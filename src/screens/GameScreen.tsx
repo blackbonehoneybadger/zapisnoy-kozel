@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Card as CardType, GameState, Suit } from '../game/types';
 import { canPlayCard, hasPlayableCard } from '../game/rules';
@@ -10,6 +10,7 @@ import { ScoreBoard } from '../components/ScoreBoard';
 import { PremiumButton } from '../components/PremiumButton';
 import { GoatEmblem } from '../components/GoatEmblem';
 import { useGameStore } from '../store/gameStore';
+import { Confetti, Trophy } from '../components/WinFx';
 
 interface Props {
   onExit: () => void;
@@ -482,67 +483,9 @@ function GameOverOverlay({
   );
 }
 
-function Trophy({ size = 60 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden className="drop-shadow-[0_4px_12px_rgba(153,69,255,0.5)]">
-      <defs>
-        <linearGradient id="trophyGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#d8c7ff" />
-          <stop offset="0.5" stopColor="#9945ff" />
-          <stop offset="1" stopColor="#19d68a" />
-        </linearGradient>
-      </defs>
-      <g stroke="url(#trophyGrad)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 4h12v4.5a6 6 0 0 1-12 0V4Z" fill="url(#trophyGrad)" fillOpacity="0.14" />
-        <path d="M6 6H4a2.5 2.5 0 0 0 0 5h2.4" />
-        <path d="M18 6h2a2.5 2.5 0 0 1 0 5h-2.4" />
-        <path d="M12 14.5V18" />
-        <path d="M8.5 21h7" />
-        <path d="M9.5 21c0-1.8 1-2.8 2.5-2.8s2.5 1 2.5 2.8" />
-      </g>
-    </svg>
-  );
-}
 
-function Confetti() {
-  const palette = ['#c4a5ff', '#9945ff', '#19d68a', '#d8c7ff', '#f5efe0'];
-  const pieces = useMemo(
-    () =>
-      Array.from({ length: 64 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        delay: Math.random() * 1.6,
-        dur: 2.6 + Math.random() * 2.4,
-        rot: Math.random() * 360,
-        drift: (Math.random() - 0.5) * 60,
-        size: 4 + Math.random() * 5,
-        round: Math.random() > 0.55,
-        color: palette[i % palette.length],
-      })),
-    [],
-  );
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {pieces.map((p) => (
-        <motion.span
-          key={p.id}
-          initial={{ y: -40, x: 0, opacity: 0, rotate: p.rot }}
-          animate={{ y: '112vh', x: p.drift, opacity: [0, 1, 1, 0], rotate: p.rot + 540 }}
-          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeIn' }}
-          style={{
-            left: `${p.x}%`,
-            width: p.size,
-            height: p.round ? p.size : p.size * 1.7,
-            backgroundColor: p.color,
-            borderRadius: p.round ? '9999px' : '2px',
-            boxShadow: `0 0 6px ${p.color}88`,
-          }}
-          className="absolute top-0"
-        />
-      ))}
-    </div>
-  );
-}
+
+
 
 function logColor(kind: string): string {
   if (kind === 'special') return 'text-gold-300/90';

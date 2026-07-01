@@ -9,6 +9,7 @@ import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
 import { PremiumButton } from '../components/PremiumButton';
 import { GoatEmblem } from '../components/GoatEmblem';
+import { Confetti, Trophy } from '../components/WinFx';
 import {
   drawCardSound,
   loseSound,
@@ -344,14 +345,48 @@ function GameOverOverlay({
     >
       <div className={`absolute inset-0 ${won ? 'bg-felt-radial' : 'bg-ink-900'}`} />
       <div className="absolute inset-0 bg-black/55" />
+      {won && <Confetti />}
+
+      {/* пульсирующий ореол за баннером победы */}
+      {won && (
+        <motion.div
+          aria-hidden
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.12, 0.9] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          className="pointer-events-none absolute h-80 w-80 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.55), rgba(25,214,138,0.22) 55%, transparent 72%)' }}
+        />
+      )}
+
       <motion.div
         initial={{ scale: 0.8, y: 30 }}
         animate={{ scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 18 }}
         className="glass-strong relative w-full max-w-sm rounded-3xl p-7 text-center"
       >
-        <div className="mx-auto mb-3 grid h-24 w-24 place-items-center rounded-3xl glass">
-          <GoatEmblem size={64} />
+        <div className="relative mx-auto mb-3 grid h-28 w-28 place-items-center">
+          {/* вращающийся орб-награда за кубком */}
+          {won && (
+            <>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-full table-ring animate-spin-slow opacity-80"
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -inset-2 rounded-full blur-xl animate-halo"
+                style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.5), transparent 70%)' }}
+              />
+            </>
+          )}
+          <motion.div
+            animate={won ? { rotate: [0, -6, 6, 0], y: [0, -4, 0] } : {}}
+            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+            className="relative grid h-24 w-24 place-items-center rounded-3xl glass"
+          >
+            {won ? <Trophy size={60} /> : <GoatEmblem size={64} />}
+          </motion.div>
         </div>
         <p className="text-xs uppercase tracking-[0.3em] text-gold-500/70">
           {won ? 'Победа' : 'Партия окончена'}

@@ -43,7 +43,7 @@ function OpponentSeat({
       {/* имя */}
       <div
         className={`max-w-[5rem] truncate text-[10px] font-medium tracking-wide ${
-          active ? 'text-gold-300' : 'text-white/55'
+          active ? 'text-gold-300' : 'text-white/70'
         }`}
       >
         {player.name}
@@ -69,7 +69,7 @@ function OpponentSeat({
           style={{
             background: active
               ? 'linear-gradient(135deg, rgba(216,199,255,0.95), rgba(25,214,138,0.6))'
-              : 'linear-gradient(135deg, rgba(196,165,255,0.35), rgba(25,214,138,0.2))',
+              : 'linear-gradient(135deg, rgba(196,165,255,0.6), rgba(25,214,138,0.38))',
           }}
         />
         {/* тёмная сердцевина */}
@@ -79,7 +79,7 @@ function OpponentSeat({
           aria-hidden
           className="pointer-events-none absolute inset-[1.5px] hex-clip"
           style={{
-            background: 'radial-gradient(70% 60% at 50% 38%, rgba(153,69,255,0.28), transparent 70%)',
+            background: 'radial-gradient(70% 60% at 50% 38%, rgba(153,69,255,0.42), transparent 72%)',
           }}
         />
 
@@ -144,16 +144,16 @@ function CrystalToken() {
       animate={{ y: [0, -6, 0], rotate: [-3, 3, -3] }}
       transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       className="pointer-events-none relative grid place-items-center"
-      style={{ width: '3.25rem', height: '3.75rem' }}
+      style={{ width: '4.2rem', height: '4.8rem' }}
     >
       <span
-        className="absolute inset-0 rounded-full blur-xl"
+        className="absolute -inset-2 rounded-full blur-xl"
         style={{
           background:
-            'radial-gradient(circle, rgba(153,69,255,0.6), rgba(25,214,138,0.22) 58%, transparent 72%)',
+            'radial-gradient(circle, rgba(153,69,255,0.7), rgba(25,214,138,0.26) 58%, transparent 74%)',
         }}
       />
-      <svg viewBox="0 0 48 56" width="42" height="50" fill="none" className="relative drop-shadow-[0_4px_10px_rgba(153,69,255,0.5)]">
+      <svg viewBox="0 0 48 56" width="54" height="63" fill="none" className="relative drop-shadow-[0_4px_12px_rgba(153,69,255,0.6)]">
         <defs>
           <linearGradient id="gemFace" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#d8c7ff" />
@@ -278,8 +278,8 @@ export function GameTable({ state, youSeat }: Props) {
 
       {/* овальный неоновый ободок стола */}
       <div className="pointer-events-none absolute inset-2 rounded-full">
-        <div className="absolute left-1/2 top-1/2 aspect-square h-[135%] max-h-none -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slow opacity-70 blur-[0.5px]" />
-        <div className="absolute left-1/2 top-1/2 aspect-square h-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slower opacity-40" />
+        <div className="absolute left-1/2 top-1/2 aspect-square h-[135%] max-h-none -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slow opacity-90 blur-[0.5px]" />
+        <div className="absolute left-1/2 top-1/2 aspect-square h-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slower opacity-60" />
       </div>
 
       {/* усиленное свечение центра во время хода игрока-человека */}
@@ -343,8 +343,13 @@ export function GameTable({ state, youSeat }: Props) {
           <Pile label="Колода">
             {state.deck.length > 0 ? (
               <>
-                <Card faceDown className="absolute -left-1 -top-1 rotate-[-7deg] opacity-70" />
-                <Card faceDown className="absolute left-0.5 top-0.5 rotate-[4deg] opacity-85" />
+                {/* Card сам relative — позиционируем через обёртки, иначе стопка распадается в столбик */}
+                <div className="absolute -left-1 -top-1 rotate-[-7deg] opacity-70">
+                  <Card faceDown />
+                </div>
+                <div className="absolute left-0.5 top-0.5 rotate-[4deg] opacity-85">
+                  <Card faceDown />
+                </div>
                 <Card faceDown />
               </>
             ) : (

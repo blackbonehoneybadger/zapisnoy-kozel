@@ -33,45 +33,19 @@ export function Card({
   if (faceDown || !card) {
     return (
       <div className={`${dim} ${className} relative overflow-hidden rounded-[0.85rem] shadow-card`}>
-        {/* AI-рубашка (public/art/card-back.*). Фоллбэк — обсидиан */}
+        {/* неон-рубашка Solana (public/art/card-back.svg). Фоллбэк — тёмный фиолет */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 bg-[linear-gradient(165deg,#1b0f38_0%,#120827_55%,#0a0518_100%)]"
           style={{
-            backgroundImage: "url('/art/card-back.jpg'), url('/art/card-back.png')",
+            backgroundImage: "url('/art/card-back.svg')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         />
-        {/* обсидиан-фоллбэк */}
-        <div
-          className="absolute inset-0 bg-[linear-gradient(150deg,#15181c_0%,#0c0e11_55%,#090a0c_100%)]"
-          style={{ mixBlendMode: 'multiply' }}
-        />
         {/* мягкое центральное свечение */}
-        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(153,69,255,0.18),transparent_70%)]" />
-        {/* двойная шампань-рамка */}
-        <div className="absolute inset-[3px] rounded-[0.6rem] border border-gold-600/35" />
-        <div className="absolute inset-[6px] rounded-[0.45rem] border border-gold-700/25" />
-        {/* эмблема-герб поверх AI-текстуры */}
-        <div className="absolute inset-0 grid place-items-center">
-          <svg width={small ? 18 : 26} height={small ? 18 : 26} viewBox="0 0 24 24" aria-hidden>
-            <path
-              d="M12 2l2.4 5.6L20 8.2l-4 4.1 1 6L12 15.4 7 18.3l1-6-4-4.1 5.6-.6L12 2z"
-              fill="none"
-              stroke="url(#cardGold)"
-              strokeWidth="1.1"
-              strokeLinejoin="round"
-            />
-            <defs>
-              <linearGradient id="cardGold" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="#c4a5ff" />
-                <stop offset="1" stopColor="#19d68a" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
+        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(153,69,255,0.2),transparent_72%)]" />
         {/* верхний блик */}
-        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/[0.06] to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/[0.07] to-transparent" />
       </div>
     );
   }
