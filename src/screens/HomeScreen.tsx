@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { GoatEmblem } from '../components/GoatEmblem';
+import { Hero3DCard } from '../components/Hero3DCard';
 import { PremiumButton } from '../components/PremiumButton';
 import { haptics } from '../game/haptics';
 import type { Screen } from '../App';
@@ -27,7 +28,11 @@ const secondary: { label: string; screen: Screen; hint: string }[] = [
 export function HomeScreen({ navigate, onPlay }: Props) {
   return (
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-between px-7 py-12 safe-top safe-bottom">
-      <div className="flex flex-1 flex-col items-center justify-center text-center">
+      <div className="relative flex w-full flex-1 flex-col items-center justify-center text-center">
+        {/* парящие 3D-карты за заголовком (Three.js, лениво) */}
+        <Hero3DCard className="absolute inset-0 z-0" />
+
+        <div className="relative z-10 flex flex-col items-center">
         {/* эмблема в обрамлении */}
         <motion.div
           initial={{ scale: 0.7, opacity: 0 }}
@@ -77,6 +82,7 @@ export function HomeScreen({ navigate, onPlay }: Props) {
         >
           Избавься от карт первым. Шестёрки, тузы и пиковый король решают исход.
         </motion.p>
+        </div>
       </div>
 
       <div className="w-full max-w-sm">

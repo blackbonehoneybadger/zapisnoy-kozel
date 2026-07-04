@@ -252,11 +252,12 @@ function LobbyView({ onBack }: { onBack: () => void }) {
             Создайте первый!
           </div>
         )}
-        {lobby.map((tbl) => (
+        {lobby.map((tbl, i) => (
           <motion.button
             key={tbl.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay: Math.min(i * 0.06, 0.5), ease: [0.22, 1, 0.36, 1] }}
             onClick={() => {
               if (tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers) return;
               if (tbl.hasPassword) setJoinTarget(tbl);

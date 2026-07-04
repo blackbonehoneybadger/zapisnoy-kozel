@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
+import { useScrollReveal, useScrubParallax } from '../fx/useScrollReveal';
 import { RuleCard } from '../components/RuleCard';
 import { Card } from '../components/Card';
 import { CARD_POINTS } from '../game/scoring';
@@ -49,8 +51,12 @@ const FLOW: { icon: string; title: string; text: string }[] = [
 ];
 
 export function RulesScreen({ onBack }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useScrollReveal(rootRef);
+  useScrubParallax(rootRef);
+
   return (
-    <div className="min-h-[100dvh] px-5 pt-4 safe-top safe-bottom">
+    <div ref={rootRef} className="min-h-[100dvh] px-5 pt-4 safe-top safe-bottom">
       <Header title="Как играть" onBack={onBack} />
 
       {/* ─── Иллюстрированная инструкция: как играть на SOL ─── */}
@@ -59,9 +65,9 @@ export function RulesScreen({ onBack }: Props) {
         animate={{ opacity: 1, y: 0 }}
         className="glass-strong relative overflow-hidden rounded-3xl p-5"
       >
-        {/* фирменное свечение Solana */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gold-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl" />
+        {/* фирменное свечение Solana — scrub-параллакс при прокрутке */}
+        <div data-parallax="26" className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gold-500/20 blur-3xl" />
+        <div data-parallax="-20" className="pointer-events-none absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl" />
 
         <div className="relative">
           <span className="text-[11px] uppercase tracking-[0.3em] text-gold-400/80">
@@ -181,12 +187,7 @@ function FlowStep({
   last: boolean;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.1 + index * 0.07 }}
-      className="flex gap-3.5"
-    >
+    <div data-reveal className="flex gap-3.5">
       <div className="flex flex-col items-center">
         <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-sheen text-lg shadow-glow">
           <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]">{icon}</span>
@@ -202,7 +203,7 @@ function FlowStep({
         </div>
         <p className="mt-1 text-sm leading-relaxed text-white/60">{text}</p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

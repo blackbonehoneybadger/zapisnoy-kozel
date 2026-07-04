@@ -1,30 +1,41 @@
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
 import { useStatsStore } from '../store/statsStore';
+import { useScrollReveal } from '../fx/useScrollReveal';
+import { CountUpOnView } from '../components/CountUpOnView';
 import { PremiumButton } from '../components/PremiumButton';
 
 interface Props {
   onBack: () => void;
 }
 
+interface StatCard {
+  label: string;
+  accent: string;
+  num?: number;
+  suffix?: string;
+  text?: string;
+}
+
 export function StatsScreen({ onBack }: Props) {
   const stats = useStatsStore();
   const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
 
-  const cards = [
-    { label: 'Победы', value: stats.wins, accent: 'text-emerald-300' },
-    { label: 'Поражения', value: stats.losses, accent: 'text-wine-400' },
-    { label: 'Сыграно партий', value: stats.gamesPlayed, accent: 'text-white/90' },
-    { label: 'Процент побед', value: `${winRate}%`, accent: 'text-gold-300' },
-    {
-      label: 'Лучший результат',
-      value: stats.bestScore === null ? '—' : stats.bestScore,
-      accent: 'text-gold-300',
-    },
-    { label: 'Сколько раз «улетел»', value: stats.timesFlewAway, accent: 'text-wine-400' },
+  const rootRef = useRef<HTMLDivElement>(null);
+  useScrollReveal(rootRef);
+
+  const cards: StatCard[] = [
+    { label: 'Победы', num: stats.wins, accent: 'text-emerald-300' },
+    { label: 'Поражения', num: stats.losses, accent: 'text-wine-400' },
+    { label: 'Сыграно партий', num: stats.gamesPlayed, accent: 'text-white/90' },
+    { label: 'Процент побед', num: winRate, suffix: '%', accent: 'text-gold-300' },
+    stats.bestScore === null
+      ? { label: 'Лучший результат', text: '—', accent: 'text-gold-300' }
+      : { label: 'Лучший результат', num: stats.bestScore, accent: 'text-gold-300' },
+    { label: 'Сколько раз «улетел»', num: stats.timesFlewAway, accent: 'text-wine-400' },
   ];
 
   return (
-    <div className="min-h-[100dvh] px-5 pt-4 safe-top safe-bottom">
+    <div ref={rootRef} className="min-h-[100dvh] px-5 pt-4 safe-top safe-bottom">
       <div className="mb-4 flex items-center gap-3">
         <button
           onClick={onBack}
@@ -39,17 +50,13 @@ export function StatsScreen({ onBack }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {cards.map((c, i) => (
-          <motion.div
-            key={c.label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="glass rounded-2xl p-4"
-          >
-            <div className={`font-display text-3xl ${c.accent}`}>{c.value}</div>
+        {cards.map((c) => (
+          <div key={c.label} data-reveal className="glass rounded-2xl p-4">
+            <div className={`font-display text-3xl ${c.accent}`}>
+              {c.num !== undefined ? <CountUpOnView value={c.num} suffix={c.suffix} /> : c.text}
+            </div>
             <div className="mt-1 text-xs text-white/50">{c.label}</div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
@@ -60,12 +67,10 @@ export function StatsScreen({ onBack }: Props) {
         </div>
       ) : (
         <div className="space-y-2">
-          {stats.history.map((h, i) => (
-            <motion.div
+          {stats.history.map((h) => (
+            <div
               key={h.id}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.03 }}
+              data-reveal
               className="glass flex items-center justify-between rounded-xl px-4 py-3"
             >
               <div className="flex items-center gap-3">
@@ -91,7 +96,7 @@ export function StatsScreen({ onBack }: Props) {
                 <div className="font-display text-lg text-gold-300">{h.finalScore}</div>
                 <div className="text-[11px] text-white/40">очков</div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
