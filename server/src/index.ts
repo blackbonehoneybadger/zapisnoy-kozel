@@ -39,13 +39,20 @@ const USED_SIGS_PATH = resolve(here, '..', 'data', 'used_sigs.json');
 const usedSigs = new Set<string>(
   existsSync(USED_SIGS_PATH) ? (JSON.parse(readFileSync(USED_SIGS_PATH, 'utf8')) as string[]) : [],
 );
-function markSigUsed(sig: string): void {
-  usedSigs.add(sig);
+function persistSigs(): void {
   try {
     writeFileSync(USED_SIGS_PATH, JSON.stringify([...usedSigs]));
   } catch (e) {
     console.error('Не удалось сохранить использованные подписи:', e);
   }
+}
+function markSigUsed(sig: string): void {
+  usedSigs.add(sig);
+  persistSigs();
+}
+// Снять резерв подписи, если проверка платежа не прошла (валидная попытка ещё возможна).
+function releaseSig(sig: string): void {
+  if (usedSigs.delete(sig)) persistSigs();
 }
 
 // Текст, который кошелёк подписывает для входа. Должен совпадать с клиентом.
@@ -484,27 +491,36 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       const payTable = lobby.tableOf(user.id);
       if (!payTable || !payTable.betLamports) break;
       const paySeat = payTable.seats.find((s) => s.userId === user.id);
-      if (!paySeat?.walletAddress) {
-        send(conn.ws, { t: 'error', message: 'Сначала зарегистрируйте кошелёк' });
+      if (!paySeat) break;
+      // Платёж ДОЛЖЕН идти с кошелька, которым игрок вошёл (user.id доказан
+      // подписью при auth). Иначе можно было бы засчитать себе чужую входящую
+      // транзакцию на кошелёк сервера — бесплатная ставка + блок честного платежа.
+      const payer = user.id;
+      if (typeof msg.signature !== 'string') {
+        send(conn.ws, { t: 'error', message: 'Некорректная транзакция' });
         break;
       }
-      // Анти-реплей: одну подпись нельзя зачесть дважды.
-      if (typeof msg.signature !== 'string' || usedSigs.has(msg.signature)) {
+      // Анти-реплей: резервируем подпись СИНХРОННО до await, иначе два
+      // параллельных сообщения проскочат проверку has() оба (TOCTOU).
+      if (usedSigs.has(msg.signature)) {
         send(conn.ws, { t: 'error', message: 'Эта транзакция уже использована' });
         break;
       }
-      // Проверяем, что деньги реально пришли на кошелёк сервера в нужном объёме.
+      markSigUsed(msg.signature);
+      // Проверяем, что деньги реально пришли на кошелёк сервера в нужном объёме
+      // именно с кошелька вошедшего игрока.
       const valid = await verifyPayment(
         msg.signature,
-        paySeat.walletAddress,
+        payer,
         SERVER_WALLET,
         payTable.betLamports,
       );
       if (!valid) {
+        // Проверка не прошла — снимаем резерв, чтобы валидная попытка была возможна.
+        releaseSig(msg.signature);
         send(conn.ws, { t: 'error', message: 'Транзакция не подтверждена' });
         break;
       }
-      markSigUsed(msg.signature);
       const paid = lobby.markPaid(user.id);
       if (paid) {
         pushTable(paid.table);

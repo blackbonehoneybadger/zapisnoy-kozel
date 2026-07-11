@@ -13,8 +13,13 @@ const NETWORK = (process.env.SOLANA_NETWORK ?? 'mainnet-beta') as 'devnet' | 'ma
 const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl(NETWORK);
 export const connection = new Connection(RPC_URL, 'confirmed');
 
-// Комиссия площадки с банка партии (доля). По умолчанию 5%.
-export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE ?? '0.05');
+// Комиссия площадки с банка партии (доля). По умолчанию 5%. Валидируем: мусор
+// или значение вне [0,1) дал бы NaN/отрицательную выплату → clamp к дефолту.
+function parseFee(raw: string | undefined): number {
+  const f = Number((raw ?? '0.05').trim());
+  return Number.isFinite(f) && f >= 0 && f < 1 ? f : 0.05;
+}
+export const PLATFORM_FEE = parseFee(process.env.PLATFORM_FEE);
 // Куда уводить комиссию. Если не задан — остаётся на горячем кошельке сервера.
 export const PLATFORM_WALLET = process.env.PLATFORM_WALLET || '';
 
@@ -84,7 +89,26 @@ export async function sendSol(toAddress: string, lamports: number): Promise<stri
   );
   tx.sign(serverKeypair);
   const signature = await connection.sendRawTransaction(tx.serialize());
-  await connection.confirmTransaction(signature, 'confirmed');
+  try {
+    await connection.confirmTransaction(signature, 'confirmed');
+  } catch (e) {
+    // confirmTransaction мог отвалиться по таймауту RPC, ХОТЯ транзакция уже
+    // попала в сеть. Слепой повтор отправил бы вторую транзакцию — двойная
+    // выплата. Поэтому перед тем как признать неудачу, проверяем статус on-chain.
+    const st = await connection.getSignatureStatuses([signature]);
+    const info = st.value[0];
+    const landed =
+      !!info &&
+      !info.err &&
+      (info.confirmationStatus === 'confirmed' || info.confirmationStatus === 'finalized');
+    if (!landed) {
+      const err = new Error(`Выплата не подтверждена: ${(e as Error).message}`) as Error & {
+        signature?: string;
+      };
+      err.signature = signature;
+      throw err;
+    }
+  }
   return signature;
 }
 

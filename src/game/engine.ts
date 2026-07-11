@@ -11,7 +11,7 @@ import type {
   RoundResult,
   Suit,
 } from './types';
-import { createDeck, isSpecialStarter, shuffle, SUIT_LABEL } from './deck';
+import { createDeck, isSpecialStarter, shuffle, SUIT_LABEL, SUITS } from './deck';
 import { canPlayCard, EMPTY_DEMAND, isKingOfSpades } from './rules';
 import { applyLimit, calculateScore } from './scoring';
 
@@ -215,7 +215,10 @@ export function applySpecialCardEffect(
   }
 
   if (card.rank === 'Q') {
-    const suit = chosenSuit ?? card.suit;
+    // Масть выбирает игрок, но её нужно валидировать: клиент (или атакующий на
+    // сервере) мог прислать мусор — тогда activeSuit стал бы «BOGUS» и стол
+    // залипал (ни одна карта не совпадает по масти). Кривое значение → масть дамы.
+    const suit = chosenSuit && SUITS.includes(chosenSuit) ? chosenSuit : card.suit;
     state.activeSuit = suit;
     log(state, `${playerName} кладёт даму и выбирает масть: ${SUIT_LABEL[suit]}.`, 'special');
     state.lastEvent = { type: 'queen', playerId: '', suit, ts: Date.now() };

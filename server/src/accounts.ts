@@ -9,7 +9,23 @@ import { dirname, resolve } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = resolve(here, '..', 'data', 'accounts.json');
 
-const SECRET = process.env.AUTH_SECRET ?? 'zapisnoy-kozel-dev-secret-change-me';
+const DEFAULT_SECRET = 'zapisnoy-kozel-dev-secret-change-me';
+const RAW_SECRET = process.env.AUTH_SECRET;
+// На mainnet секрет из исходников недопустим: иначе кто угодно подделает
+// HMAC-токен и войдёт под чужим кошельком (обход подписи). Падаем явно,
+// как и SOLANA_PRIVATE_KEY.
+if (
+  process.env.SOLANA_NETWORK === 'mainnet-beta' &&
+  (!RAW_SECRET || RAW_SECRET === DEFAULT_SECRET)
+) {
+  throw new Error(
+    'AUTH_SECRET обязателен на mainnet-beta (подпись токенов сессии). Задайте длинную случайную строку в переменных окружения.',
+  );
+}
+const SECRET = RAW_SECRET ?? DEFAULT_SECRET;
+
+// Срок жизни токена сессии: 30 дней. Просроченный токен не восстанавливает вход.
+const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export interface Account {
   /** Адрес кошелька (base58) — он же id пользователя. */
@@ -62,7 +78,10 @@ export function verifyToken(token: string): string | null {
   if (sig.length !== expected.length) return null;
   if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   const decoded = Buffer.from(payload, 'base64url').toString('utf8');
-  const id = decoded.split('.')[0];
+  const [id, tsRaw] = decoded.split('.');
+  // Токен протухает: подпись валидна, но старше TTL — вход не восстанавливаем.
+  const ts = Number(tsRaw);
+  if (!Number.isFinite(ts) || Date.now() - ts > TOKEN_TTL_MS) return null;
   return accounts.some((a) => a.address === id) ? id : null;
 }
 
