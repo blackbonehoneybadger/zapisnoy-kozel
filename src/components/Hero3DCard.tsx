@@ -34,7 +34,15 @@ export function Hero3DCard({ className = '' }: { className?: string }) {
     let stop: (() => void) | undefined;
 
     void (async () => {
-      const THREE = await import('three');
+      let THREE: typeof import('three');
+      try {
+        THREE = await import('three');
+      } catch {
+        // Чанк three не загрузился (флаки-сеть / старый SW) — показываем
+        // статичный фоллбэк вместо вечного пустого блока.
+        if (!disposed) setMode('fallback');
+        return;
+      }
       if (disposed || !hostRef.current) return;
       setMode('webgl');
 
