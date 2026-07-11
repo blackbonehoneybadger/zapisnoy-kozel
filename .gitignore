@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.log
+npm-debug.log*
+.claude/worktrees/
+
+# Секреты и состояние сервера — НИКОГДА не коммитить
+.env
+.env.*
+server/data/
+server/.env

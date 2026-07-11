@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "../src/game/types.ts",
+    "../src/game/deck.ts",
+    "../src/game/rules.ts",
+    "../src/game/scoring.ts",
+    "../src/game/engine.ts",
+    "../src/game/bots.ts"
+  ]
+}

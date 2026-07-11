@@ -1,0 +1,133 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - claude/zapisnoy-kozel-game-b217qd
+    paths-ignore:
+      - '**.md'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install required Android SDK packages
+        run: |
+          set -e
+          # Раннер уже содержит Android SDK. Ставим ТОЛЬКО нужное для сборки APK
+          # (без эмулятора и obsolete-пакетов — на них падал сторонний экшен).
+          SDKMANAGER=$(command -v sdkmanager || ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -n1)
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets (Capacitor mode)
+        run: npm run build
+        env:
+          CAP_BUILD: '1'
+          # Адрес онлайн-сервера для APK. Задайте repo variable VITE_SERVER_URL
+          # (Settings → Secrets and variables → Actions → Variables),
+          # например wss://kozel.example.com. Без него работает только офлайн.
+          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
+
+      - name: Restore release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/zapisnoy.keystore
+          else
+            echo "::error::Добавьте GitHub Secret ANDROID_KEYSTORE_BASE64 — base64 от файла android/app/zapisnoy.keystore"
+            exit 1
+          fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+        env:
+          CAP_BUILD: '1'
+          # APK-оболочка грузит живой сайт с Vercel → авто-обновление без
+          # переустановки. Переопределяется repo variable CAP_SERVER_URL при желании.
+          CAP_SERVER_URL: ${{ vars.CAP_SERVER_URL || 'https://zapisnoy-kozel.vercel.app' }}
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build release APK
+        working-directory: android
+        run: >-
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          -PappVersionCode=${{ github.run_number }}
+          -PappVersionName=1.0.${{ github.run_number }}
+
+      - name: Stage APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk "out/zapisnoy-kozel-${{ github.run_number }}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/zapisnoy-kozel-latest.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zapisnoy-kozel-apk
+          path: out/zapisnoy-kozel-${{ github.run_number }}.apk
+          if-no-files-found: error
+
+      - name: Delete old versioned APKs from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_JSON=$(gh api repos/${{ github.repository }}/releases/tags/android-latest 2>/dev/null || echo "")
+          if [ -n "$RELEASE_JSON" ]; then
+            echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name | test("^zapisnoy-kozel-[0-9]+\\.apk$")) | .id' | while read ASSET_ID; do
+              echo "Удаляю старый APK asset $ASSET_ID..."
+              gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$ASSET_ID"
+            done
+          fi
+
+      - name: Publish APK to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Crazy 8 — Android APK
+          body: |
+            📦 Установочный APK для Android (release-сборка, подписана постоянным ключом).
+
+            **Как установить:**
+            1. Скачайте `zapisnoy-kozel-latest.apk` ниже.
+            2. На телефоне разрешите установку из неизвестных источников.
+            3. Откройте файл и нажмите «Установить».
+
+            Обновления ставятся поверх предыдущей версии — удалять старую не нужно.
+
+            Сборка #${{ github.run_number }} · коммит ${{ github.sha }}
+          files: |
+            out/zapisnoy-kozel-latest.apk
+            out/zapisnoy-kozel-${{ github.run_number }}.apk
+          make_latest: true
