@@ -33,11 +33,11 @@ export function Card({
   if (faceDown || !card) {
     return (
       <div className={`${dim} ${className} relative overflow-hidden rounded-[0.85rem] shadow-card`}>
-        {/* неон-рубашка Solana (public/art/card-back.svg). Фоллбэк — тёмный фиолет */}
+        {/* неон-рубашка Solana (webp — арт Higgsfield, svg — фоллбэк) */}
         <div
           className="absolute inset-0 bg-[linear-gradient(165deg,#1b0f38_0%,#120827_55%,#0a0518_100%)]"
           style={{
-            backgroundImage: "url('/art/card-back.svg')",
+            backgroundImage: "url('/art/card-back.webp'), url('/art/card-back.svg')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}

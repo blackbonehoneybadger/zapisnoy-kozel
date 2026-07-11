@@ -1,6 +1,6 @@
 // Парящие 3D-карты (Three.js) за заголовком главного экрана.
 // Three грузится лениво динамическим import — в стартовый чанк не попадает.
-// Текстура — текущая неон-рубашка /art/card-back.svg (медиа сохраняем).
+// Текстура — неон-рубашка /art/card-back.webp (арт Higgsfield).
 // Без WebGL или при prefers-reduced-motion — статичный фоллбэк из <img>.
 // Рендер-цикл останавливается, когда блок вне вьюпорта или вкладка скрыта.
 import { useEffect, useRef, useState } from 'react';
@@ -62,7 +62,7 @@ export function Hero3DCard({ className = '' }: { className?: string }) {
       rim.position.set(-3, -2, 4);
       scene.add(rim);
 
-      const tex = new THREE.TextureLoader().load('/art/card-back.svg');
+      const tex = new THREE.TextureLoader().load('/art/card-back.webp');
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
 
@@ -170,12 +170,12 @@ export function Hero3DCard({ className = '' }: { className?: string }) {
       {mode === 'fallback' && (
         <>
           <img
-            src="/art/card-back.svg"
+            src="/art/card-back.webp"
             alt=""
             className="absolute left-[4%] top-[14%] w-16 rotate-[14deg] rounded-lg opacity-40"
           />
           <img
-            src="/art/card-back.svg"
+            src="/art/card-back.webp"
             alt=""
             className="absolute right-[4%] top-[42%] w-16 rotate-[-16deg] rounded-lg opacity-35"
           />

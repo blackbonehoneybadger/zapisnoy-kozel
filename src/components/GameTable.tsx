@@ -241,7 +241,7 @@ export function GameTable({ state, youSeat }: Props) {
     <div
       className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]"
       style={{
-        backgroundImage: "url('/art/table-felt.svg'), url('/art/table-felt.jpg')",
+        backgroundImage: "url('/art/table-felt.webp'), url('/art/table-felt.svg')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}

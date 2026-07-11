@@ -64,7 +64,7 @@ function PremiumBackground() {
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: "url('/art/app-bg.jpg'), url('/art/app-bg.png')",
+          backgroundImage: "url('/art/app-bg.webp'), url('/art/app-bg.svg')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
