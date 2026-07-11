@@ -27,7 +27,7 @@ const pwaPlugin = VitePWA({
     ],
   },
   workbox: {
-    globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+    globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

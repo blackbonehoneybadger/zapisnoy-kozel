@@ -143,11 +143,13 @@ export function createTable(
   return { ok: true, table };
 }
 
-export function registerWallet(userId: string, walletAddress: string): void {
+export function registerWallet(userId: string, _walletAddress: string): void {
   const table = tableOf(userId);
   if (!table) return;
   const seat = table.seats.find((s) => s.userId === userId);
-  if (seat) seat.walletAddress = walletAddress;
+  // Кошелёк платежа = кошелёк входа (userId доказан подписью при auth). Присланный
+  // клиентом адрес игнорируем намеренно — иначе можно подставить чужой адрес.
+  if (seat) seat.walletAddress = userId;
 }
 
 export function markPaid(userId: string): { seatIndex: number; table: Table } | undefined {

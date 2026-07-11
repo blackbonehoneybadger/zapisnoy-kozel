@@ -264,8 +264,10 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       socket.onclose = () => {
         if (connectTimer) clearTimeout(connectTimer);
         set({ status: 'idle' });
-        if (get().busy && pendingAuth) {
-          pendingAuth = null;
+        // busy сбрасываем ВСЕГДА при обрыве — иначе кнопка входа/действия
+        // залипала навсегда, если сокет умер между challenge и verify.
+        if (get().busy) {
+          if (pendingAuth) pendingAuth = null;
           set({ busy: false, authError: 'Соединение с сервером прервано.' });
         }
         // Авто-переподключение, если пользователь вошёл и не вышел сам.

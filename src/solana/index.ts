@@ -4,7 +4,9 @@ import type { Cluster } from '@solana/web3.js';
 // Значение из env обязательно чистим и валидируем: кривая вставка в Vercel
 // (пробелы/переводы строки) заставляла clusterApiUrl бросать исключение на
 // уровне модуля — всё приложение падало в чёрный экран до первого кадра.
-const rawNetwork = ((import.meta.env.VITE_SOLANA_NETWORK as string | undefined) ?? 'devnet').trim();
+// Дефолт — mainnet-beta, чтобы совпадать с сервером (server/src/solana.ts). Иначе
+// при забытом env клиент слал бы платёж в devnet, а сервер проверял в mainnet.
+const rawNetwork = ((import.meta.env.VITE_SOLANA_NETWORK as string | undefined) ?? 'mainnet-beta').trim();
 const KNOWN_CLUSTERS = ['devnet', 'testnet', 'mainnet-beta'] as const;
 export const SOLANA_NETWORK: Cluster = (
   (KNOWN_CLUSTERS as readonly string[]).includes(rawNetwork) ? rawNetwork : 'devnet'
