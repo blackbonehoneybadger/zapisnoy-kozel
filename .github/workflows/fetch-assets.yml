@@ -1,0 +1,39 @@
+# Одноразовый помощник: скачивает сгенерированные арт-ассеты (Higgsfield CDN)
+# в public/art/gen/ и коммитит в ветку. Нужен потому, что песочница разработки
+# не имеет доступа к CDN. После выбора финальных ассетов workflow удаляется.
+name: Fetch generated art assets
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/zapisnoy-kozel-game-b217qd
+
+      - name: Download assets
+        run: |
+          set -e
+          mkdir -p public/art/gen
+          base="https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc"
+          curl -fsSo public/art/gen/cb1.png   "$base/hf_20260711_211747_d5e13161-436e-4e90-9c74-0a8e6258220a.png"
+          curl -fsSo public/art/gen/cb2.png   "$base/hf_20260711_211747_960ded23-5f92-43a2-baa2-1dd0daa610c5.png"
+          curl -fsSo public/art/gen/felt1.png "$base/hf_20260711_211751_0982745e-9a61-4321-af57-fd880bce4a6b.png"
+          curl -fsSo public/art/gen/felt2.png "$base/hf_20260711_211750_14ecc928-f7f3-4e43-bc64-3e44fa552842.png"
+          curl -fsSo public/art/gen/bg1.png   "$base/hf_20260711_211754_0efa86b8-2da1-4eb3-8baf-0e0fd5baa6e4.png"
+          curl -fsSo public/art/gen/bg2.png   "$base/hf_20260711_211754_cc3ee2cf-f777-44a0-9126-650c2434abac.png"
+          ls -la public/art/gen/
+
+      - name: Commit assets to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/art/gen
+          git commit -m "chore: сгенерированные арт-ассеты Higgsfield (кандидаты)"
+          git push origin claude/zapisnoy-kozel-game-b217qd
