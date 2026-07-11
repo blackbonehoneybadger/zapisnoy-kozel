@@ -10,7 +10,7 @@ const isCapacitor = process.env.CAP_BUILD === '1';
 
 const pwaPlugin = VitePWA({
   registerType: 'autoUpdate',
-  includeAssets: ['favicon.svg'],
+  includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
   manifest: {
     name: 'Crazy 8',
     short_name: 'Crazy 8',
@@ -22,8 +22,8 @@ const pwaPlugin = VitePWA({
     orientation: 'portrait',
     start_url: '/',
     icons: [
-      { src: 'favicon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
-      { src: 'favicon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
     ],
   },
   workbox: {

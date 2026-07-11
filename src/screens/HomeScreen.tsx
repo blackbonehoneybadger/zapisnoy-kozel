@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { GoatEmblem } from '../components/GoatEmblem';
 import { Hero3DCard } from '../components/Hero3DCard';
 import { PremiumButton } from '../components/PremiumButton';
 import { haptics } from '../game/haptics';
@@ -42,8 +41,12 @@ export function HomeScreen({ navigate, onPlay }: Props) {
         >
           <div className="absolute inset-0 -z-10 rounded-full bg-gold-500/20 blur-[40px] animate-breathe" />
           <div className="absolute -inset-3 rounded-[2.4rem] border border-gold-500/15" />
-          <div className="grid h-32 w-32 place-items-center rounded-[2rem] glass-strong">
-            <GoatEmblem size={92} className="animate-float" />
+          <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-[2rem] glass-strong">
+            <img
+              src="/art/logo.webp"
+              alt="Crazy 8"
+              className="h-full w-full animate-float object-cover"
+            />
           </div>
         </motion.div>
 
