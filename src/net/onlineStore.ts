@@ -12,9 +12,11 @@ import type {
 } from './protocol';
 import { useWalletStore } from '../solana/walletStore';
 
-// Адрес сервера задаётся на сборке: VITE_SERVER_URL=wss://your-host
-const SERVER_URL: string =
-  (import.meta.env.VITE_SERVER_URL as string | undefined) ?? 'ws://localhost:8080';
+// Адрес сервера задаётся на сборке: VITE_SERVER_URL=wss://your-host.
+// trim() обязателен: значение из панели Vercel может прийти с \n на конце.
+const SERVER_URL: string = (
+  (import.meta.env.VITE_SERVER_URL as string | undefined) ?? 'ws://localhost:8080'
+).trim();
 
 const TOKEN_KEY = 'kozel.token';
 

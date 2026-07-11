@@ -1,8 +1,14 @@
 import { Connection, PublicKey, Transaction, clusterApiUrl } from '@solana/web3.js';
 import type { Cluster } from '@solana/web3.js';
 
-export const SOLANA_NETWORK: Cluster =
-  ((import.meta.env.VITE_SOLANA_NETWORK as string | undefined) ?? 'devnet') as Cluster;
+// Значение из env обязательно чистим и валидируем: кривая вставка в Vercel
+// (пробелы/переводы строки) заставляла clusterApiUrl бросать исключение на
+// уровне модуля — всё приложение падало в чёрный экран до первого кадра.
+const rawNetwork = ((import.meta.env.VITE_SOLANA_NETWORK as string | undefined) ?? 'devnet').trim();
+const KNOWN_CLUSTERS = ['devnet', 'testnet', 'mainnet-beta'] as const;
+export const SOLANA_NETWORK: Cluster = (
+  (KNOWN_CLUSTERS as readonly string[]).includes(rawNetwork) ? rawNetwork : 'devnet'
+) as Cluster;
 
 export const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), 'confirmed');
 
