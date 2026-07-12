@@ -8,6 +8,15 @@ export interface TakeLabel {
   prompt?: string;
 }
 
+/** Склонение слова «карта» по числу: 1 карту, 2 карты, 5 карт. */
+function cardWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'карту';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'карты';
+  return 'карт';
+}
+
 export function getTakeLabel(state: GameState, canPlayAny: boolean): TakeLabel {
   const d = state.demand;
   if (mustTakeOnly(d)) {
@@ -17,7 +26,9 @@ export function getTakeLabel(state: GameState, canPlayAny: boolean): TakeLabel {
   if (d.drawSource === 'six' && d.drawCount > 0) {
     return {
       button: `Взять ${d.drawCount}`,
-      prompt: canPlayAny ? `Переведите шестёркой или возьмите ${d.drawCount}` : `Берите ${d.drawCount} карт`,
+      prompt: canPlayAny
+        ? `Переведите шестёркой или возьмите ${d.drawCount}`
+        : `Берите ${d.drawCount} ${cardWord(d.drawCount)}`,
     };
   }
   if (d.aceSkip) {
