@@ -355,7 +355,7 @@ function GameOverOverlay({
           animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.12, 0.9] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           className="pointer-events-none absolute h-80 w-80 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.55), rgba(25,214,138,0.22) 55%, transparent 72%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.55), rgba(58,94,66,0.22) 55%, transparent 72%)' }}
         />
       )}
 
@@ -376,7 +376,7 @@ function GameOverOverlay({
               <span
                 aria-hidden
                 className="pointer-events-none absolute -inset-2 rounded-full blur-xl animate-halo"
-                style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.5), transparent 70%)' }}
+                style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.5), transparent 70%)' }}
               />
             </>
           )}

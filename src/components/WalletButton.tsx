@@ -6,7 +6,7 @@ function SolanaIcon({ size = 16 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <defs>
         <linearGradient id="solGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#9945ff" />
+          <stop offset="0" stopColor="#e0a43b" />
           <stop offset="1" stopColor="#14f195" />
         </linearGradient>
       </defs>

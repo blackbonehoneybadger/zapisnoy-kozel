@@ -63,10 +63,10 @@ export function Hero3DCard({ className = '' }: { className?: string }) {
       camera.position.z = 10;
 
       scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-      const key = new THREE.DirectionalLight(0xd8c7ff, 1.6);
+      const key = new THREE.DirectionalLight(0xf2d9a0, 1.6);
       key.position.set(2, 3, 5);
       scene.add(key);
-      const rim = new THREE.PointLight(0x19d68a, 6, 20);
+      const rim = new THREE.PointLight(0x3a5e42, 6, 20);
       rim.position.set(-3, -2, 4);
       scene.add(rim);
 

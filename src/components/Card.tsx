@@ -43,7 +43,7 @@ export function Card({
           }}
         />
         {/* мягкое центральное свечение */}
-        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(153,69,255,0.2),transparent_72%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(224,164,59,0.2),transparent_72%)]" />
         {/* верхний блик */}
         <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/[0.07] to-transparent" />
       </div>
@@ -82,14 +82,14 @@ export function Card({
           animate={{ opacity: [0.5, 0.85, 0.5] }}
           whileHover={{ opacity: 1 }}
           transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ boxShadow: '0 0 30px 2px rgba(153,69,255,0.55), 0 0 12px rgba(25,214,138,0.4)' }}
+          style={{ boxShadow: '0 0 30px 2px rgba(224,164,59,0.55), 0 0 12px rgba(58,94,66,0.4)' }}
         />
       )}
       {/* внутренняя золотисто-мятная кромка доступной карты */}
       {playable && (
         <span
           className="pointer-events-none absolute inset-0 rounded-[0.85rem]"
-          style={{ boxShadow: 'inset 0 0 0 1.5px rgba(196,165,255,0.7), inset 0 0 14px rgba(25,214,138,0.25)' }}
+          style={{ boxShadow: 'inset 0 0 0 1.5px rgba(242,217,160,0.7), inset 0 0 14px rgba(58,94,66,0.25)' }}
         />
       )}
 

@@ -18,7 +18,7 @@ body,
 
 body {
   margin: 0;
-  background: #08090b;
+  background: #16110b;
   color: #f3efe6;
   font-family: 'Inter', system-ui, sans-serif;
   font-feature-settings: 'ss01', 'cv01', 'cv11';
@@ -49,7 +49,7 @@ body {
 
   /* Фирменный градиент-текст Solana: фиолет → мята */
   .gold-text {
-    background: linear-gradient(135deg, #d8c7ff 0%, #9945ff 45%, #19d68a 100%);
+    background: linear-gradient(135deg, #f2d9a0 0%, #e0a43b 45%, #bb5c3c 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -58,8 +58,8 @@ body {
   .gold-border {
     border: 1px solid transparent;
     background:
-      linear-gradient(#0c0e11, #0c0e11) padding-box,
-      linear-gradient(135deg, rgba(153, 69, 255, 0.7), rgba(25, 214, 138, 0.5)) border-box;
+      linear-gradient(#1e1710, #1e1710) padding-box,
+      linear-gradient(135deg, rgba(224, 164, 59, 0.7), rgba(58, 94, 66, 0.5)) border-box;
   }
 
   .hairline {
@@ -87,12 +87,12 @@ body {
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
-      rgba(153, 69, 255, 0.0) 40deg,
-      rgba(196, 165, 255, 0.55) 90deg,
-      rgba(25, 214, 138, 0.35) 150deg,
+      rgba(224, 164, 59, 0.0) 40deg,
+      rgba(236, 186, 84, 0.6) 90deg,
+      rgba(58, 94, 66, 0.4) 150deg,
       transparent 200deg,
       transparent 300deg,
-      rgba(196, 165, 255, 0.4) 350deg,
+      rgba(236, 186, 84, 0.45) 350deg,
       transparent 360deg
     );
     -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
@@ -106,7 +106,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(153, 69, 255, 0.5),
+    rgba(224, 164, 59, 0.5),
     transparent
   );
 }

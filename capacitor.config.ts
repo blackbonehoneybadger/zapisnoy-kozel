@@ -11,11 +11,11 @@ const serverUrl =
 
 const config: CapacitorConfig = {
   appId: 'com.zapisnoy.kozel',
-  appName: 'Crazy 8',
+  appName: 'DOFFA Crazy 8',
   webDir: 'dist',
-  backgroundColor: '#08090b',
+  backgroundColor: '#16110b',
   android: {
-    backgroundColor: '#08090b',
+    backgroundColor: '#16110b',
     allowMixedContent: false,
   },
   ...(serverUrl

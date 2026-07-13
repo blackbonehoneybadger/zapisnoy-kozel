@@ -354,10 +354,11 @@ function handleTake(state: GameState, idx: number, player: Player): void {
 
   // 1. Штрафной набор (6 / 7 / пиковый король).
   if (d.drawCount > 0 && d.drawSource) {
-    const n = d.drawCount;
-    drawCards(state, idx, n);
-    log(state, `${player.name} берёт ${n} ${plural(n)}.`, 'penalty');
-    state.lastEvent = { type: 'draw', playerId: player.id, amount: n, ts: Date.now() };
+    // Колода могла не выдать полный штраф (пустая + один верх сброса) — логируем
+    // и анимируем ФАКТИЧЕСКОЕ число взятых карт, а не запрошенное.
+    const got = drawCards(state, idx, d.drawCount).length;
+    log(state, `${player.name} берёт ${got} ${plural(got)}.`, 'penalty');
+    state.lastEvent = { type: 'draw', playerId: player.id, amount: got, ts: Date.now() };
     state.demand = { ...EMPTY_DEMAND };
     nextTurn(state);
     return;
