@@ -1,4 +1,4 @@
-// Онлайн-сервер «Записной Козёл»: WebSocket, вход через кошелёк Solana,
+// Онлайн-сервер «DOFFA Crazy 8»: WebSocket, вход через кошелёк Solana,
 // лобби, столы, авторитетная игра, ставки и выплаты. Запуск: npm run start.
 import { createServer } from 'node:http';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -57,7 +57,7 @@ function releaseSig(sig: string): void {
 
 // Текст, который кошелёк подписывает для входа. Должен совпадать с клиентом.
 function authMessage(nonce: string): string {
-  return `Записной Козёл — вход\nNonce: ${nonce}`;
+  return `DOFFA Crazy 8 — вход\nNonce: ${nonce}`;
 }
 
 interface Conn {
@@ -543,7 +543,7 @@ const http = createServer((req, res) => {
     return;
   }
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-  res.end('Записной Козёл — онлайн-сервер. Подключение по WebSocket.');
+  res.end('DOFFA Crazy 8 — онлайн-сервер. Подключение по WebSocket.');
 });
 
 const wss = new WebSocketServer({ server: http });
@@ -599,5 +599,5 @@ wss.on('connection', (ws) => {
 });
 
 http.listen(PORT, () => {
-  console.log(`Сервер «Записной Козёл» слушает порт ${PORT}`);
+  console.log(`Сервер «DOFFA Crazy 8» слушает порт ${PORT}`);
 });

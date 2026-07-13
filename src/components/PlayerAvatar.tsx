@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import type { Player } from '../game/types';
-import { GoatEmblem } from './GoatEmblem';
+import { DoffaEmblem } from './DoffaEmblem';
 
 interface Props {
   player: Player;
@@ -41,7 +41,7 @@ export function PlayerAvatar({ player, active, compact }: Props) {
           </>
         )}
         {player.isBot ? (
-          <GoatEmblem size={compact ? 26 : 30} />
+          <DoffaEmblem size={compact ? 26 : 30} />
         ) : (
           <span className={`font-display ${active ? 'text-ink-900' : 'gold-text'} text-xl`}>
             {(player.name.trim()[0] ?? 'И').toUpperCase()}

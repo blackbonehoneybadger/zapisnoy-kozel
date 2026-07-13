@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { GoatEmblem } from '../components/GoatEmblem';
+import { DoffaEmblem } from '../components/DoffaEmblem';
 import { PremiumButton } from '../components/PremiumButton';
 import { WalletButton } from '../components/WalletButton';
 import { OnlineGameScreen } from './OnlineGameScreen';
@@ -134,7 +134,7 @@ function WalletConnectView({ onBack }: { onBack: () => void }) {
           className="relative mb-6 grid h-24 w-24 place-items-center rounded-3xl glass-strong"
         >
           <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gold-sheen opacity-20 blur-xl" />
-          <GoatEmblem size={62} />
+          <DoffaEmblem size={62} />
         </motion.div>
 
         <h2 className="font-display text-3xl gold-text">Играй на SOL</h2>

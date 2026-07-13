@@ -6,9 +6,21 @@ import { RulesScreen } from './screens/RulesScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { OnlineScreen } from './screens/OnlineScreen';
+import { ClaimScreen } from './screens/ClaimScreen';
+import { RewardsScreen } from './screens/RewardsScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
 import { useGameStore } from './store/gameStore';
 
-export type Screen = 'home' | 'game' | 'rules' | 'stats' | 'settings' | 'online';
+export type Screen =
+  | 'home'
+  | 'game'
+  | 'rules'
+  | 'stats'
+  | 'settings'
+  | 'online'
+  | 'claim'
+  | 'rewards'
+  | 'profile';
 
 const transition = {
   initial: { opacity: 0, scale: 0.98, y: 12 },
@@ -31,6 +43,11 @@ export default function App() {
     setScreen('home');
   };
 
+  const claimFromGame = () => {
+    quit();
+    setScreen('claim');
+  };
+
   return (
     <div className="relative mx-auto min-h-[100dvh] max-w-md overflow-hidden">
       <PremiumBackground />
@@ -44,11 +61,16 @@ export default function App() {
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             {screen === 'home' && <HomeScreen navigate={setScreen} onPlay={startGame} />}
-            {screen === 'game' && <GameScreen onExit={exitGame} />}
+            {screen === 'game' && <GameScreen onExit={exitGame} onClaim={claimFromGame} />}
             {screen === 'rules' && <RulesScreen onBack={() => setScreen('home')} />}
             {screen === 'stats' && <StatsScreen onBack={() => setScreen('home')} />}
             {screen === 'settings' && <SettingsScreen onBack={() => setScreen('home')} />}
             {screen === 'online' && <OnlineScreen onBack={() => setScreen('home')} />}
+            {screen === 'claim' && <ClaimScreen onBack={() => setScreen('home')} />}
+            {screen === 'rewards' && <RewardsScreen onBack={() => setScreen('profile')} />}
+            {screen === 'profile' && (
+              <ProfileScreen onBack={() => setScreen('home')} navigate={setScreen} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

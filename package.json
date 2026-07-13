@@ -1,9 +1,9 @@
 {
-  "name": "zapisnoy-kozel",
+  "name": "doffa-crazy8",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Записной Козёл — премиальная карточная игра (PWA)",
+  "description": "DOFFA Crazy 8 — карточная игра экосистемы DOFFA (PWA)",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

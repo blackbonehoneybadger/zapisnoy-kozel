@@ -56,6 +56,6 @@ export const useStatsStore = create<StatsState>()(
           history: [],
         }),
     }),
-    { name: 'kozel-stats-v1' },
+    { name: 'doffa-crazy8-stats-v1' },
   ),
 );

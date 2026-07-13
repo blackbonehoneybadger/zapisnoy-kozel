@@ -20,6 +20,12 @@ interface Props {
   menuLabel?: string;
   /** Показывать кнопку «Играть ещё» (напр. только хосту онлайн-стола). */
   showAgain?: boolean;
+  /**
+   * Куда вести после «Забрать награду» (экран получения DOFFA). Вызывается
+   * с задержкой, чтобы успела проиграться анимация вылета монет. Если не
+   * задан — кнопка работает как раньше, только визуальное подтверждение.
+   */
+  onClaim?: () => void;
 }
 
 /** Летящие монеты-зёрна при получении награды. */
@@ -61,6 +67,7 @@ export function RewardOverlay({
   againLabel = 'Сыграть ещё',
   menuLabel = 'В меню',
   showAgain = true,
+  onClaim,
 }: Props) {
   const [claimed, setClaimed] = useState(false);
   const [bursting, setBursting] = useState(false);
@@ -70,6 +77,7 @@ export function RewardOverlay({
     setBursting(true);
     setClaimed(true);
     setTimeout(() => setBursting(false), 1400);
+    if (onClaim) setTimeout(onClaim, 1200);
   };
 
   return (

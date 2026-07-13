@@ -1,3 +1,5 @@
+// ВАЖНО: миграция localStorage должна идти первым импортом (до App/сторов).
+import './migrateLegacyStorage';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

@@ -11,6 +11,7 @@ import {
 import { decideBotMove } from '../game/bots';
 import { currentSettings } from './settingsStore';
 import { useStatsStore } from './statsStore';
+import { useRewardsStore } from './rewardsStore';
 import {
   drawCardSound,
   loseSound,
@@ -96,6 +97,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         players: next.players.length,
         flewAway: human?.busted ?? false,
       });
+      useRewardsStore.getState().awardGame(won);
       if (won) {
         winSound();
         haptics.win();

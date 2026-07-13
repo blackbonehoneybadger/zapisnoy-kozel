@@ -18,11 +18,11 @@ const SERVER_URL: string = (
   (import.meta.env.VITE_SERVER_URL as string | undefined) ?? 'ws://localhost:8080'
 ).trim();
 
-const TOKEN_KEY = 'kozel.token';
+const TOKEN_KEY = 'doffa-crazy8.token';
 
 // Текст входа — должен побайтово совпадать с сервером (server/src/index.ts).
 function authMessage(nonce: string): string {
-  return `Записной Козёл — вход\nNonce: ${nonce}`;
+  return `DOFFA Crazy 8 — вход\nNonce: ${nonce}`;
 }
 
 export type OnlineView = 'auth' | 'lobby' | 'table' | 'game';

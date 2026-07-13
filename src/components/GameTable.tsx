@@ -3,7 +3,7 @@ import type { GameState, Player } from '../game/types';
 import { SUIT_SYMBOL } from '../game/deck';
 import { topCard } from '../game/rules';
 import { Card } from './Card';
-import { GoatEmblem } from './GoatEmblem';
+import { DoffaEmblem } from './DoffaEmblem';
 
 interface Props {
   state: GameState;
@@ -86,7 +86,7 @@ function OpponentSeat({
         {/* содержимое */}
         <span className="relative grid place-items-center">
           {player.isBot ? (
-            <GoatEmblem size={26} />
+            <DoffaEmblem size={26} />
           ) : (
             <span className={`font-display text-lg ${active ? 'text-gold-300' : 'text-white/80'}`}>
               {(player.name.trim()[0] ?? 'И').toUpperCase()}
@@ -204,7 +204,7 @@ function RewardsOrb() {
           style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.5), transparent 70%)' }}
         />
         <span className="relative grid h-7 w-7 place-items-center rounded-full border border-gold-600/40 bg-ink-900/85">
-          <GoatEmblem size={16} />
+          <DoffaEmblem size={16} />
         </span>
       </div>
       <span className="text-[7px] font-medium uppercase leading-[1.3] tracking-[0.22em] text-white/35">

@@ -1,5 +1,5 @@
-// Генерация исходных PNG для @capacitor/assets из фирменной эмблемы козла.
-// Обсидиановый фон + шампань-металл, как в приложении.
+// Генерация исходных PNG для @capacitor/assets из фирменной эмблемы DOFFA.
+// Тёплый эспрессо-фон + золото рассвета, как в приложении.
 import sharp from 'sharp';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -9,14 +9,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'assets');
 mkdirSync(out, { recursive: true });
 
-const GOAT = `
-  <path d="M21 23c-5-3.5-9.5-2-10.5 2.5 6.5 1 8 6.5 7.6 10.5" />
-  <path d="M43 23c5-3.5 9.5-2 10.5 2.5-6.5 1-8 6.5-7.6 10.5" />
-  <path d="M22.5 21c2-5.2 5.6-8 9.5-8s7.5 2.8 9.5 8c2.6 6.4 2 13.6-2.2 18.8-2.4 3-5 4.6-7.3 4.6s-4.9-1.6-7.3-4.6C20.5 34.6 19.9 27.4 22.5 21Z" />
-  <path d="M27 30.5h.01M37 30.5h.01" />
-  <path d="M28.5 40.5c2.2 2 4.8 2 7 0" />
-  <path d="M32 13c0-2 .1-3.6.4-4.8" />
-  <path d="M30.5 46.5c1 1.4 2.5 1.4 3 0" />
+const EMBLEM = `
+  <path d="M32 6v5" />
+  <path d="M18.5 10.5l2.6 4.4" />
+  <path d="M45.5 10.5l-2.6 4.4" />
+  <path d="M26.5 20c-1.4-2.4 1.4-3.6 0-6" />
+  <path d="M32 19c-1.4-2.4 1.4-3.6 0-6" />
+  <path d="M37.5 20c-1.4-2.4 1.4-3.6 0-6" />
+  <path d="M18 26h26v7c0 7.2-5.8 13-13 13s-13-5.8-13-13v-7Z" />
+  <path d="M44 29h3.5a4.5 4.5 0 0 1 0 9H42.5" />
+  <path d="M15 52c5 2.6 29 2.6 34 0" />
+  <path d="M29.5 57.5c0-1.4 2.2-2.5 2.5-2.5s2.5 1.1 2.5 2.5-2.2 2.5-2.5 2.5-2.5-1.1-2.5-2.5Z" stroke-width="1.6" />
 `;
 
 const GOLD = `
@@ -39,15 +42,15 @@ function obsidianBg(size) {
     </radialGradient>`;
 }
 
-// Эмблема козла, отцентрованная в квадрате `size`, масштаб `scale` (px ширины).
-function goat(size, widthPx) {
+// Эмблема DOFFA (чашка с паром), отцентрованная в квадрате `size`, масштаб `scale` (px ширины).
+function emblem(size, widthPx) {
   const s = widthPx / 64;
   const t = (size - widthPx) / 2;
   return `
     <g transform="translate(${t} ${t}) scale(${s})"
        fill="none" stroke="url(#gold)" stroke-width="2"
        stroke-linecap="round" stroke-linejoin="round">
-      ${GOAT}
+      ${EMBLEM}
     </g>`;
 }
 
@@ -61,7 +64,7 @@ function iconOnly() {
       fill="none" stroke="url(#gold)" stroke-width="7" opacity="0.55" />
     <rect x="104" y="104" width="${S - 208}" height="${S - 208}" rx="160"
       fill="none" stroke="url(#gold)" stroke-width="3.5" opacity="0.32" />
-    ${goat(S, 520)}
+    ${emblem(S, 520)}
   </svg>`;
 }
 
@@ -75,11 +78,11 @@ function iconBackground() {
 }
 
 function iconForeground() {
-  // Адаптивная иконка: безопасная зона ~66%, поэтому козёл меньше.
+  // Адаптивная иконка: безопасная зона ~66%, поэтому эмблема меньше.
   const S = 1024;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">
     <defs>${GOLD}</defs>
-    ${goat(S, 430)}
+    ${emblem(S, 430)}
   </svg>`;
 }
 
@@ -89,7 +92,7 @@ function splash(dark) {
     <defs>${obsidianBg(S)}${GOLD}</defs>
     <rect width="${S}" height="${S}" fill="url(#bg)" />
     <rect width="${S}" height="${S}" fill="url(#glow)" />
-    ${goat(S, 760)}
+    ${emblem(S, 760)}
   </svg>`;
 }
 

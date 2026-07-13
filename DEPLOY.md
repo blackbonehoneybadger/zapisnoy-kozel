@@ -12,7 +12,7 @@
 
 ### 1.1. Создать сервис
 1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Выбрать `blackbonehoneybadger/Zapisnoy-Kozel`
+2. Выбрать `blackbonehoneybadger/zapisnoy-kozel` (игра DOFFA Crazy 8)
 3. Railway найдёт `railway.toml` и соберёт образ из `server/Dockerfile`
    (контекст сборки — корень репозитория, серверу нужен общий движок `src/game`).
 
