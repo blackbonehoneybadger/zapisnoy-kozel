@@ -45,7 +45,7 @@ export function PremiumButton({
       disabled={disabled}
       className={`${base} ${variants[variant]} ${full ? 'w-full' : ''} ${className}`}
     >
-      {variant === 'gold' && (
+      {variant === 'gold' && !disabled && (
         <>
           <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
             <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-20deg] bg-white/35 blur-md animate-shimmer" />
