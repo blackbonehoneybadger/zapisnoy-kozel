@@ -9,7 +9,7 @@ import { dirname, resolve } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = resolve(here, '..', 'data', 'accounts.json');
 
-const DEFAULT_SECRET = 'zapisnoy-kozel-dev-secret-change-me';
+const DEFAULT_SECRET = 'doffa-crazy8-dev-secret-change-me';
 const RAW_SECRET = process.env.AUTH_SECRET;
 // На mainnet секрет из исходников недопустим: иначе кто угодно подделает
 // HMAC-токен и войдёт под чужим кошельком (обход подписи). Падаем явно,

@@ -1,9 +1,12 @@
-# 🐐 Записной Козёл
+# ☕ DOFFA Crazy 8
 
-Премиальная карточная игра-PWA «Записной Козёл». Тёмный luxury-дизайн, золотые
-акценты, стеклянные панели, плавные анимации, игра против ботов трёх уровней,
-статистика и гибкие настройки. Готова к публикации в App Store / Google Play
-как PWA.
+Карточная игра экосистемы [DOFFA](https://doffa.coffee) — премиальная PWA в
+фирменном стиле кофейни: тёплый эспрессо-фон, золото рассвета, стеклянные
+панели, плавные анимации. Игра против ботов трёх уровней, онлайн-режим с
+Solana-кошельком, статистика и гибкие настройки. Готова к публикации в
+App Store / Google Play как PWA.
+
+**Cups** — внутренняя игровая энергия. **DOFFA** — настоящая награда.
 
 ## ✨ Что внутри
 
@@ -54,15 +57,15 @@ npm run preview  # локально проверить собранную вер
 
 ### Скачать готовый APK
 
-1. Открой раздел **Releases** репозитория → релиз **«Записной Козёл — Android APK»**.
-2. Скачай файл `zapisnoy-kozel-latest.apk` на телефон.
+1. Открой раздел **Releases** репозитория → релиз **«DOFFA Crazy 8 — Android APK»**.
+2. Скачай файл `doffa-crazy8-latest.apk` на телефон.
 3. На Android разреши установку из неизвестных источников (Настройки →
    Безопасность / «Установка неизвестных приложений»).
 4. Открой скачанный файл → **«Установить»**.
 
 > APK пересобирается автоматически при каждом пуше. Вручную запустить сборку:
 > вкладка **Actions → Build Android APK → Run workflow**. Готовый файл также
-> лежит в артефактах запуска (`zapisnoy-kozel-apk`).
+> лежит в артефактах запуска (`doffa-crazy8-apk`).
 
 ### Собрать APK локально
 
@@ -74,7 +77,7 @@ cd android
 ./gradlew assembleDebug  # APK → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Иконки и сплэш генерируются из эмблемы козла:
+Иконки и сплэш генерируются из эмблемы DOFFA:
 
 ```bash
 npm run icons            # пересоздать иконки/сплэш для всех плотностей
@@ -111,7 +114,7 @@ VITE_SERVER_URL=ws://localhost:8080 npm run dev      # локально
 ```
 
 Для APK задайте repo variable `VITE_SERVER_URL` (Settings → Secrets and
-variables → Actions → Variables), например `wss://kozel.example.com` — тогда
+variables → Actions → Variables), например `wss://game.example.com` — тогда
 онлайн заработает и в приложении. Без адреса доступен только офлайн против ботов.
 
 > Сервер нужно где-то хостить (VPS/облако), чтобы он работал постоянно.
@@ -122,8 +125,8 @@ variables → Actions → Variables), например `wss://kozel.example.com`
 В репозитории есть `server/Dockerfile` (контекст сборки — корень проекта):
 
 ```bash
-docker build -f server/Dockerfile -t kozel-server .
-docker run -p 8080:8080 -e AUTH_SECRET=задайте-секрет kozel-server
+docker build -f server/Dockerfile -t doffa-crazy8-server .
+docker run -p 8080:8080 -e AUTH_SECRET=задайте-секрет doffa-crazy8-server
 ```
 
 Образ подходит для любого контейнерного хостинга (Render, Railway, Fly.io,

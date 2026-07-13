@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Hero3DCard } from '../components/Hero3DCard';
 import { PremiumButton } from '../components/PremiumButton';
 import { haptics } from '../game/haptics';
+import { useRewardsStore } from '../store/rewardsStore';
 import type { Screen } from '../App';
 
 interface Props {
@@ -19,14 +20,45 @@ const item = {
 };
 
 const secondary: { label: string; screen: Screen; hint: string }[] = [
+  { label: 'Профиль', screen: 'profile', hint: 'Кошелёк, награды, Cups' },
   { label: 'Правила', screen: 'rules', hint: 'Как играть' },
   { label: 'Статистика', screen: 'stats', hint: 'Победы и партии' },
   { label: 'Настройки', screen: 'settings', hint: 'Боты, лимит, звук' },
 ];
 
 export function HomeScreen({ navigate, onPlay }: Props) {
+  const cups = useRewardsStore((s) => s.cups);
+  const doffa = useRewardsStore((s) => s.doffa);
+
   return (
-    <div className="relative flex min-h-[100dvh] flex-col items-center justify-between px-7 py-12 safe-top safe-bottom">
+    <div className="relative flex min-h-[100dvh] flex-col items-center justify-between px-7 py-8 safe-top safe-bottom">
+      {/* балансы наград — тихая плашка над hero, ведёт в профиль */}
+      <div className="z-20 flex h-9 w-full items-start justify-end">
+        {(cups > 0 || doffa > 0) && (
+          <motion.button
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            onClick={() => {
+              haptics.tap();
+              navigate('profile');
+            }}
+            className="glass flex items-center gap-3 rounded-full px-4 py-2 text-xs"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-white/70">{cups}</span>
+              <span className="text-white/35">Cups</span>
+            </span>
+            <span className="h-3 w-px bg-white/[0.1]" />
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+              <span className="text-gold-300">{doffa}</span>
+              <span className="text-white/35">DOFFA</span>
+            </span>
+          </motion.button>
+        )}
+      </div>
       <div className="relative flex w-full flex-1 flex-col items-center justify-center text-center">
         {/* парящие 3D-карты за заголовком (Three.js, лениво) */}
         <Hero3DCard className="absolute inset-0 z-0" />

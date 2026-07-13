@@ -30,7 +30,7 @@ export const useSettingsStore = create<SettingsState>()(
         }),
     }),
     {
-      name: 'kozel-settings-v1',
+      name: 'doffa-crazy8-settings-v1',
       onRehydrateStorage: () => (state) => {
         if (state) {
           setSoundEnabled(state.soundEnabled);

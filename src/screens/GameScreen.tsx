@@ -8,20 +8,23 @@ import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
 import { PremiumButton } from '../components/PremiumButton';
-import { GoatEmblem } from '../components/GoatEmblem';
 import { RewardOverlay } from '../components/RewardOverlay';
+import { DoffaEmblem } from '../components/DoffaEmblem';
 import { useGameStore } from '../store/gameStore';
+import { useRewardsStore } from '../store/rewardsStore';
 
 interface Props {
   onExit: () => void;
+  onClaim: () => void;
 }
 
-export function GameScreen({ onExit }: Props) {
+export function GameScreen({ onExit, onClaim }: Props) {
   const game = useGameStore((s) => s.game);
   const playCard = useGameStore((s) => s.playCard);
   const take = useGameStore((s) => s.take);
   const nextRound = useGameStore((s) => s.nextRound);
   const start = useGameStore((s) => s.start);
+  const wonDoffa = useRewardsStore((s) => s.lastWinDoffa);
 
   const [queenCard, setQueenCard] = useState<CardType | null>(null);
   const [showScore, setShowScore] = useState(false);
@@ -231,13 +234,14 @@ export function GameScreen({ onExit }: Props) {
         )}
       </AnimatePresence>
 
-      {/* конец партии — фирменный экран победы и награды (Cups) */}
+      {/* конец партии — фирменный экран победы и награды (DOFFA уже начислен
+          rewardsStore в gameStore.commit; здесь только показываем сумму) */}
       <AnimatePresence>
         {game.phase === 'gameOver' && (
           <RewardOverlay
             won={game.winnerId === 'you'}
-            unit="Cups"
-            reward={game.winnerId === 'you' ? 100 + (game.roundNumber - 1) * 20 : undefined}
+            unit="DOFFA"
+            reward={game.winnerId === 'you' ? wonDoffa : undefined}
             loserNote={
               game.winnerId === 'you'
                 ? undefined
@@ -245,7 +249,8 @@ export function GameScreen({ onExit }: Props) {
             }
             onAgain={start}
             onMenu={onExit}
-            againLabel="Новая партия"
+            onClaim={onClaim}
+            againLabel="Играть ещё"
             menuLabel="В меню"
           />
         )}
@@ -270,7 +275,7 @@ function SuitChooser({ onChoose, onCancel }: { onChoose: (s: Suit) => void; onCa
         onClick={(e) => e.stopPropagation()}
         className="glass-strong w-full max-w-xs rounded-3xl p-6 text-center"
       >
-        <GoatEmblem size={40} className="mx-auto mb-2" />
+        <DoffaEmblem size={40} className="mx-auto mb-2" />
         <h3 className="font-display text-xl gold-text">Выберите масть</h3>
         <p className="mb-5 mt-1 text-xs text-white/50">Дама меняет масть на столе</p>
         <div className="grid grid-cols-2 gap-3">

@@ -8,8 +8,8 @@ import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
 import { PremiumButton } from '../components/PremiumButton';
-import { GoatEmblem } from '../components/GoatEmblem';
 import { RewardOverlay } from '../components/RewardOverlay';
+import { DoffaEmblem } from '../components/DoffaEmblem';
 import {
   drawCardSound,
   loseSound,
@@ -243,7 +243,7 @@ function SuitChooser({ onChoose, onCancel }: { onChoose: (s: Suit) => void; onCa
         onClick={(e) => e.stopPropagation()}
         className="glass-strong w-full max-w-xs rounded-3xl p-6 text-center"
       >
-        <GoatEmblem size={40} className="mx-auto mb-2" />
+        <DoffaEmblem size={40} className="mx-auto mb-2" />
         <h3 className="font-display text-xl gold-text">Выберите масть</h3>
         <p className="mb-5 mt-1 text-xs text-white/50">Дама меняет масть на столе</p>
         <div className="grid grid-cols-2 gap-3">
