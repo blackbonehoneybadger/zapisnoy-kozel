@@ -58,7 +58,7 @@ function OpponentSeat({
             className="pointer-events-none absolute -inset-2 -z-10 hex-clip animate-halo"
             style={{
               background:
-                'radial-gradient(60% 60% at 50% 45%, rgba(153,69,255,0.6), rgba(25,214,138,0.22) 55%, transparent 72%)',
+                'radial-gradient(60% 60% at 50% 45%, rgba(224,164,59,0.6), rgba(58,94,66,0.22) 55%, transparent 72%)',
             }}
           />
         )}
@@ -68,8 +68,8 @@ function OpponentSeat({
           className="pointer-events-none absolute inset-0 hex-clip"
           style={{
             background: active
-              ? 'linear-gradient(135deg, rgba(216,199,255,0.95), rgba(25,214,138,0.6))'
-              : 'linear-gradient(135deg, rgba(196,165,255,0.6), rgba(25,214,138,0.38))',
+              ? 'linear-gradient(135deg, rgba(242,217,160,0.95), rgba(58,94,66,0.6))'
+              : 'linear-gradient(135deg, rgba(242,217,160,0.6), rgba(58,94,66,0.38))',
           }}
         />
         {/* тёмная сердцевина */}
@@ -79,7 +79,7 @@ function OpponentSeat({
           aria-hidden
           className="pointer-events-none absolute inset-[1.5px] hex-clip"
           style={{
-            background: 'radial-gradient(70% 60% at 50% 38%, rgba(153,69,255,0.42), transparent 72%)',
+            background: 'radial-gradient(70% 60% at 50% 38%, rgba(224,164,59,0.42), transparent 72%)',
           }}
         />
 
@@ -150,19 +150,19 @@ function CrystalToken() {
         className="absolute -inset-2 rounded-full blur-xl"
         style={{
           background:
-            'radial-gradient(circle, rgba(153,69,255,0.7), rgba(25,214,138,0.26) 58%, transparent 74%)',
+            'radial-gradient(circle, rgba(224,164,59,0.7), rgba(58,94,66,0.26) 58%, transparent 74%)',
         }}
       />
-      <svg viewBox="0 0 48 56" width="54" height="63" fill="none" className="relative drop-shadow-[0_4px_12px_rgba(153,69,255,0.6)]">
+      <svg viewBox="0 0 48 56" width="54" height="63" fill="none" className="relative drop-shadow-[0_4px_12px_rgba(224,164,59,0.6)]">
         <defs>
           <linearGradient id="gemFace" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#d8c7ff" />
-            <stop offset="0.5" stopColor="#9945ff" />
-            <stop offset="1" stopColor="#19d68a" />
+            <stop offset="0" stopColor="#f2d9a0" />
+            <stop offset="0.5" stopColor="#e0a43b" />
+            <stop offset="1" stopColor="#3a5e42" />
           </linearGradient>
           <linearGradient id="gemCrown" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#ffffff" stopOpacity="0.85" />
-            <stop offset="1" stopColor="#c4a5ff" stopOpacity="0.25" />
+            <stop offset="1" stopColor="#f2d9a0" stopOpacity="0.25" />
           </linearGradient>
         </defs>
         {/* корона */}
@@ -201,16 +201,16 @@ function RewardsOrb() {
         <span
           aria-hidden
           className="absolute -inset-1 rounded-full blur-md"
-          style={{ background: 'radial-gradient(circle, rgba(153,69,255,0.5), transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.5), transparent 70%)' }}
         />
         <span className="relative grid h-7 w-7 place-items-center rounded-full border border-gold-600/40 bg-ink-900/85">
           <GoatEmblem size={16} />
         </span>
       </div>
       <span className="text-[7px] font-medium uppercase leading-[1.3] tracking-[0.22em] text-white/35">
-        Solana
+        DOFFA
         <br />
-        Rewards
+        Cups
       </span>
     </div>
   );
@@ -238,23 +238,16 @@ export function GameTable({ state, youSeat }: Props) {
     !!you && state.players[state.currentPlayerIndex].id === you.id && state.phase === 'playing';
 
   return (
-    <div
-      className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-gold-700/25 shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]"
-      style={{
-        backgroundImage: "url('/art/table-felt.webp'), url('/art/table-felt.svg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
-      {/* CSS-фоллбэк неонового сукна */}
-      <div className="pointer-events-none absolute inset-0 bg-felt-radial opacity-50" />
+    <div className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-gold-700/25 bg-felt-radial shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]">
+      {/* тёплое эспрессо-сукно DOFFA */}
+      <div className="pointer-events-none absolute inset-0 bg-felt-radial opacity-60" />
 
       {/* гравировка «печатной платы»: тонкие дорожки + узлы, приглушены к краям */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.14]"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(60deg, transparent 0 26px, rgba(196,165,255,0.5) 26px 27px), repeating-linear-gradient(-60deg, transparent 0 26px, rgba(25,214,138,0.35) 26px 27px)',
+            'repeating-linear-gradient(60deg, transparent 0 26px, rgba(242,217,160,0.5) 26px 27px), repeating-linear-gradient(-60deg, transparent 0 26px, rgba(58,94,66,0.35) 26px 27px)',
           maskImage: 'radial-gradient(70% 60% at 50% 50%, #000 0%, transparent 75%)',
           WebkitMaskImage: 'radial-gradient(70% 60% at 50% 50%, #000 0%, transparent 75%)',
         }}
@@ -263,7 +256,7 @@ export function GameTable({ state, youSeat }: Props) {
         className="pointer-events-none absolute inset-0 opacity-[0.18]"
         style={{
           backgroundImage:
-            'radial-gradient(circle, rgba(196,165,255,0.7) 1px, transparent 1.6px), radial-gradient(circle, rgba(25,214,138,0.5) 1px, transparent 1.6px)',
+            'radial-gradient(circle, rgba(242,217,160,0.7) 1px, transparent 1.6px), radial-gradient(circle, rgba(58,94,66,0.5) 1px, transparent 1.6px)',
           backgroundSize: '54px 54px, 54px 54px',
           backgroundPosition: '0 0, 27px 27px',
           maskImage: 'radial-gradient(65% 55% at 50% 50%, #000 0%, transparent 78%)',
@@ -288,7 +281,7 @@ export function GameTable({ state, youSeat }: Props) {
           yourTurn ? 'opacity-100 animate-halo' : 'opacity-0'
         }`}
         style={{
-          background: 'radial-gradient(circle, rgba(153,69,255,0.4), rgba(25,214,138,0.14) 55%, transparent 72%)',
+          background: 'radial-gradient(circle, rgba(224,164,59,0.4), rgba(58,94,66,0.14) 55%, transparent 72%)',
         }}
       />
 

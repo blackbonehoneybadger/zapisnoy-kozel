@@ -16,9 +16,9 @@ export function GoatEmblem({ size = 96, className = '' }: Props) {
     >
       <defs>
         <linearGradient id="goatGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#d8c7ff" />
-          <stop offset="0.5" stopColor="#9945ff" />
-          <stop offset="1" stopColor="#19d68a" />
+          <stop offset="0" stopColor="#f2d9a0" />
+          <stop offset="0.5" stopColor="#e0a43b" />
+          <stop offset="1" stopColor="#3a5e42" />
         </linearGradient>
       </defs>
       <g

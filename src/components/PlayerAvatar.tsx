@@ -31,12 +31,12 @@ export function PlayerAvatar({ player, active, compact }: Props) {
             <span
               aria-hidden
               className="pointer-events-none absolute -inset-2 -z-10 hex-clip animate-halo"
-              style={{ background: 'radial-gradient(60% 60% at 50% 45%, rgba(153,69,255,0.6), rgba(25,214,138,0.2) 55%, transparent 72%)' }}
+              style={{ background: 'radial-gradient(60% 60% at 50% 45%, rgba(224,164,59,0.6), rgba(58,94,66,0.2) 55%, transparent 72%)' }}
             />
             <span
               aria-hidden
               className="pointer-events-none absolute -inset-[2px] -z-10 hex-clip"
-              style={{ background: 'linear-gradient(135deg, rgba(216,199,255,0.9), rgba(25,214,138,0.5))' }}
+              style={{ background: 'linear-gradient(135deg, rgba(242,217,160,0.9), rgba(58,94,66,0.5))' }}
             />
           </>
         )}

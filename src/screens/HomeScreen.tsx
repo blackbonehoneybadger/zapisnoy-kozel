@@ -41,11 +41,11 @@ export function HomeScreen({ navigate, onPlay }: Props) {
         >
           <div className="absolute inset-0 -z-10 rounded-full bg-gold-500/20 blur-[40px] animate-breathe" />
           <div className="absolute -inset-3 rounded-[2.4rem] border border-gold-500/15" />
-          <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-[2rem] glass-strong">
+          <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full glass-strong">
             <img
-              src="/art/logo.webp"
-              alt="Crazy 8"
-              className="h-full w-full animate-float object-cover"
+              src="/art/doffa-logo.webp"
+              alt="DOFFA"
+              className="h-[112%] w-[112%] animate-float object-cover"
             />
           </div>
         </motion.div>
@@ -56,7 +56,7 @@ export function HomeScreen({ navigate, onPlay }: Props) {
           transition={{ delay: 0.12 }}
           className="text-[0.65rem] uppercase tracking-luxe text-gold-500/70"
         >
-          Карточная игра
+          DOFFA · Espresso Bar
         </motion.p>
 
         <motion.h1
@@ -65,9 +65,9 @@ export function HomeScreen({ navigate, onPlay }: Props) {
           transition={{ delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
           className="mt-3 font-display text-[3.4rem] font-semibold leading-[0.92] tracking-tight"
         >
-          <span className="gold-text">Crazy</span>
+          <span className="gold-text">DOFFA</span>
           <br />
-          <span className="text-[#f3efe6]">8</span>
+          <span className="text-[#f3efe6]">Crazy 8</span>
         </motion.h1>
 
         <motion.div
@@ -91,7 +91,7 @@ export function HomeScreen({ navigate, onPlay }: Props) {
       <div className="w-full max-w-sm">
         <motion.div custom={0} variants={item} initial="hidden" animate="show">
           <PremiumButton full variant="gold" onClick={onPlay}>
-            Играть с ботами
+            Играть бесплатно
           </PremiumButton>
         </motion.div>
 
@@ -110,7 +110,7 @@ export function HomeScreen({ navigate, onPlay }: Props) {
               </svg>
             }
           >
-            Играть онлайн
+            Играть на DOFFA
           </PremiumButton>
         </motion.div>
 

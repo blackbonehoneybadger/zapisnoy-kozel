@@ -82,8 +82,8 @@ function ConnectionBanner() {
         >
           <div className="glass-strong flex items-center gap-2.5 rounded-full px-4 py-2 text-[12px] text-white/80">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#9945ff] opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#9945ff]" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e0a43b] opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#e0a43b]" />
             </span>
             Переподключение к серверу…
           </div>
@@ -429,7 +429,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
           </span>
           <button
             onClick={() => setUseBet((v) => !v)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#9945ff]/70' : 'bg-white/15'}`}
+            className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#e0a43b]/70' : 'bg-white/15'}`}
           >
             <motion.span
               animate={{ x: useBet ? 22 : 2 }}
@@ -455,7 +455,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
                     onClick={() => setSolAmount(v)}
                     className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium transition-colors ${
                       solAmount === v
-                        ? 'border-[#9945ff]/50 bg-[#9945ff]/10 text-[#c4a5ff]'
+                        ? 'border-[#e0a43b]/50 bg-[#e0a43b]/10 text-[#f2d9a0]'
                         : 'border-white/[0.08] bg-white/[0.03] text-white/55'
                     }`}
                   >
@@ -687,7 +687,7 @@ function WaitingRoom() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-[#9945ff]/25 bg-[#9945ff]/5 px-4 py-3"
+            className="rounded-2xl border border-[#e0a43b]/25 bg-[#e0a43b]/5 px-4 py-3"
           >
             <p className="mb-1.5 text-xs text-white/60">
               Для участия переведите {(table.betLamports! / 1e9).toFixed(3)} SOL в банк партии.

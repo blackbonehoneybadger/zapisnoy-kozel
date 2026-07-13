@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 
 export function Trophy({ size = 60 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden className="drop-shadow-[0_4px_12px_rgba(153,69,255,0.5)]">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden className="drop-shadow-[0_4px_12px_rgba(224,164,59,0.5)]">
       <defs>
         <linearGradient id="trophyGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#d8c7ff" />
-          <stop offset="0.5" stopColor="#9945ff" />
-          <stop offset="1" stopColor="#19d68a" />
+          <stop offset="0" stopColor="#f2d9a0" />
+          <stop offset="0.5" stopColor="#e0a43b" />
+          <stop offset="1" stopColor="#3a5e42" />
         </linearGradient>
       </defs>
       <g stroke="url(#trophyGrad)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -24,7 +24,7 @@ export function Trophy({ size = 60 }: { size?: number }) {
   );
 }
 
-const CONFETTI_COLORS = ['#9945ff', '#c4a5ff', '#19d68a', '#8ef2c9', '#f3efe6'];
+const CONFETTI_COLORS = ['#e0a43b', '#f2d9a0', '#3a5e42', '#6e7d5b', '#f3efe6'];
 
 export function Confetti() {
   const pieces = useMemo(
