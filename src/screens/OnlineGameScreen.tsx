@@ -9,7 +9,7 @@ import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
 import { PremiumButton } from '../components/PremiumButton';
 import { GoatEmblem } from '../components/GoatEmblem';
-import { Confetti, Trophy } from '../components/WinFx';
+import { RewardOverlay } from '../components/RewardOverlay';
 import {
   drawCardSound,
   loseSound,
@@ -195,17 +195,33 @@ export function OnlineGameScreen() {
         )}
       </AnimatePresence>
 
-      {/* конец партии */}
+      {/* конец партии — фирменный экран победы и награды */}
       <AnimatePresence>
-        {game.phase === 'gameOver' && (
-          <GameOverOverlay
-            state={game}
-            won={game.winnerId === me?.id}
-            isHost={isHost}
-            onAgain={startGame}
-            onLeave={leaveTable}
-          />
-        )}
+        {game.phase === 'gameOver' && (() => {
+          const won = game.winnerId === me?.id;
+          const bet = table?.betLamports ?? 0;
+          // Ставка есть → реальная награда DOFFA из банка партии; иначе — дружеская игра на Cups.
+          const potDoffa = Math.round(((bet * game.players.length) / 1e9) * 1000);
+          const unit: 'Cups' | 'DOFFA' = bet > 0 ? 'DOFFA' : 'Cups';
+          const reward = bet > 0 ? potDoffa : 100 + (game.roundNumber - 1) * 20;
+          return (
+            <RewardOverlay
+              won={won}
+              unit={unit}
+              reward={won ? reward : undefined}
+              loserNote={
+                won
+                  ? undefined
+                  : `Победитель — ${game.players.find((p) => p.id === game.winnerId)?.name ?? '—'}.`
+              }
+              showAgain={isHost}
+              onAgain={startGame}
+              onMenu={leaveTable}
+              againLabel="Сыграть ещё"
+              menuLabel="Выйти в лобби"
+            />
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
@@ -322,89 +338,3 @@ function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void 
   );
 }
 
-function GameOverOverlay({
-  state,
-  won,
-  isHost,
-  onAgain,
-  onLeave,
-}: {
-  state: GameState;
-  won: boolean;
-  isHost: boolean;
-  onAgain: () => void;
-  onLeave: () => void;
-}) {
-  const winner = state.players.find((p) => p.id === state.winnerId);
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 grid place-items-center overflow-hidden px-6"
-    >
-      <div className={`absolute inset-0 ${won ? 'bg-felt-radial' : 'bg-ink-900'}`} />
-      <div className="absolute inset-0 bg-black/55" />
-      {won && <Confetti />}
-
-      {/* пульсирующий ореол за баннером победы */}
-      {won && (
-        <motion.div
-          aria-hidden
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.12, 0.9] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          className="pointer-events-none absolute h-80 w-80 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.55), rgba(58,94,66,0.22) 55%, transparent 72%)' }}
-        />
-      )}
-
-      <motion.div
-        initial={{ scale: 0.8, y: 30 }}
-        animate={{ scale: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-        className="glass-strong relative w-full max-w-sm rounded-3xl p-7 text-center"
-      >
-        <div className="relative mx-auto mb-3 grid h-28 w-28 place-items-center">
-          {/* вращающийся орб-награда за кубком */}
-          {won && (
-            <>
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-full table-ring animate-spin-slow opacity-80"
-              />
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -inset-2 rounded-full blur-xl animate-halo"
-                style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.5), transparent 70%)' }}
-              />
-            </>
-          )}
-          <motion.div
-            animate={won ? { rotate: [0, -6, 6, 0], y: [0, -4, 0] } : {}}
-            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-            className="relative grid h-24 w-24 place-items-center rounded-3xl glass"
-          >
-            {won ? <Trophy size={60} /> : <GoatEmblem size={64} />}
-          </motion.div>
-        </div>
-        <p className="text-xs uppercase tracking-[0.3em] text-gold-500/70">
-          {won ? 'Победа' : 'Партия окончена'}
-        </p>
-        <h2 className="mt-1 font-display text-3xl">
-          {won ? <span className="gold-text">Вы выиграли!</span> : <span className="text-white/90">Победил {winner?.name ?? '—'}</span>}
-        </h2>
-        <div className="mt-5 space-y-3">
-          {isHost && (
-            <PremiumButton full onClick={onAgain}>
-              Сыграть ещё
-            </PremiumButton>
-          )}
-          <PremiumButton full variant="ghost" onClick={onLeave}>
-            Выйти в лобби
-          </PremiumButton>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
