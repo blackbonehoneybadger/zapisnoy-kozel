@@ -1,25 +1,43 @@
-# Запуск DOFFA Crazy 8 на Replit.
-# Клонируй репозиторий как Repl (Import from GitHub) и нажми Run.
-run = "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
-entrypoint = "index.html"
+# DOFFA Crazy 8 — запуск на Replit.
+# Import from GitHub → Run. Webview слушает порт 5173.
+
+run = "npm install && npm run replit"
+entrypoint = "src/main.tsx"
 modules = ["nodejs-22"]
+hidden = [".config", "node_modules", "dist", "android", ".git"]
 
 [nix]
 channel = "stable-24_05"
 
 [env]
-# Онлайн-режим (опционально): адрес WebSocket-сервера DOFFA на Railway.
+# Онлайн-режим (опционально): WebSocket-сервер DOFFA на Railway.
 VITE_SERVER_URL = "wss://zapisnoy-kozel-production.up.railway.app"
 VITE_SOLANA_NETWORK = "mainnet-beta"
+# Vite / Replit proxy
+HOST = "0.0.0.0"
+PORT = "5173"
 
-# Vite dev-сервер на 5173 → внешний порт 80.
+[packager]
+language = "nodejs"
+ignoredPaths = [".git", "node_modules", "dist", "android"]
+
+[packager.features]
+packageSearch = true
+guessImports = false
+enabledForHosting = false
+
+# Vite → внешний порт webview (80).
 [[ports]]
 localPort = 5173
 externalPort = 80
+exposeLocalhost = true
 
 [deployment]
-# Продакшн-запуск на Replit Deployments: собрать и раздать статику.
+# Static hosting: сборка + preview (порт 5173).
 build = ["npm", "run", "build"]
 run = ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "5173"]
 deploymentTarget = "static"
 publicDir = "dist"
+
+[unitTest]
+language = "nodejs"
