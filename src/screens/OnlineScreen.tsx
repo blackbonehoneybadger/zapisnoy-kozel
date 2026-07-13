@@ -4,6 +4,15 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { DoffaEmblem } from '../components/DoffaEmblem';
 import { PremiumButton } from '../components/PremiumButton';
 import { WalletButton } from '../components/WalletButton';
+import {
+  IconAlert,
+  IconBolt,
+  IconCards,
+  IconCheck,
+  IconClock,
+  IconHint,
+  IconStar,
+} from '../components/icons';
 import { OnlineGameScreen } from './OnlineGameScreen';
 import { useOnlineStore } from '../net/onlineStore';
 import { useWalletStore } from '../solana/walletStore';
@@ -246,7 +255,7 @@ function LobbyView({ onBack }: { onBack: () => void }) {
       <div className="flex-1 space-y-2.5 overflow-y-auto no-scrollbar pb-2">
         <SectionLabel>Открытые столы</SectionLabel>
         {lobby.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/10 py-8 text-center text-sm text-white/35">
+          <div className="rounded-2xl glass py-8 text-center text-sm text-white/35">
             Пока нет открытых столов.
             <br />
             Создайте первый!
@@ -264,7 +273,8 @@ function LobbyView({ onBack }: { onBack: () => void }) {
               else joinTable(tbl.id);
             }}
             disabled={tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers}
-            className="flex w-full items-center justify-between rounded-2xl glass px-4 py-3.5 text-left transition-colors hover:bg-white/[0.05] disabled:opacity-45"
+            className="flex w-full items-center justify-between rounded-2xl glass px-4 py-3.5 text-left hover:bg-white/[0.05] disabled:opacity-45"
+            whileTap={{ scale: 0.99 }}
           >
             <span className="flex min-w-0 flex-col">
               <span className="flex items-center gap-1.5 truncate text-sm font-medium text-white/90">
@@ -283,7 +293,9 @@ function LobbyView({ onBack }: { onBack: () => void }) {
                     ? 'Стол заполнен'
                     : `${tbl.players} в столе · ждут ещё ${tbl.maxPlayers - tbl.players}`}
                 {!!tbl.betLamports && tbl.betLamports > 0 && (
-                  <span className="font-medium text-gold-300">⬙ {(tbl.betLamports / 1e9).toFixed(3)} SOL</span>
+                  <span className="inline-flex items-center gap-1 font-medium text-gold-300">
+                    <SolMark /> {(tbl.betLamports / 1e9).toFixed(3)} SOL
+                  </span>
                 )}
               </span>
             </span>
@@ -355,27 +367,27 @@ function PlayerRow({
           {player.inGame ? (
             <span className="text-wine-400/80">в игре</span>
           ) : (
-            <span className="text-emerald-400/80">свободен</span>
+            <span className="text-gold-300/80">свободен</span>
           )}
           {' · '}
           {short(player.id)}
         </div>
       </div>
       {onInvite && !player.inGame && (
-        <button
+        <PremiumButton
+          className="!rounded-xl !px-3 !py-1.5 !text-xs"
           onClick={onInvite}
-          className="rounded-xl bg-gold-sheen px-3 py-1.5 text-xs font-semibold text-ink-900 shadow-glow transition active:scale-95"
         >
           Позвать
-        </button>
+        </PremiumButton>
       )}
       <button
         onClick={onToggleFriend}
         aria-label={isFriend ? 'Убрать из друзей' : 'В друзья'}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white/40 transition active:scale-90 hover:text-gold-300"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white/40 active:scale-90 hover:text-gold-300"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill={isFriend ? 'currentColor' : 'none'} className={isFriend ? 'text-gold-400' : ''}>
-          <path d="M12 17.3l-5.4 3.3 1.5-6.1L3 10.3l6.2-.5L12 4l2.8 5.8 6.2.5-5.1 4.2 1.5 6.1z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M12 17.3l-5.4 3.3 1.5-6.1L3 10.3l6.2-.5L12 4l2.8 5.8 6.2.5-5.1 4.2 1.5 6.1z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
         </svg>
       </button>
     </div>
@@ -409,7 +421,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
               <button
                 key={n}
                 onClick={() => setMaxPlayers(n)}
-                className={`flex-1 rounded-2xl border py-3 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-2xl border py-3 text-sm font-medium ${
                   maxPlayers === n
                     ? 'border-gold-500/40 bg-gold-500/10 text-gold-200'
                     : 'border-white/[0.08] bg-white/[0.03] text-white/55'
@@ -429,7 +441,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
           </span>
           <button
             onClick={() => setUseBet((v) => !v)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#e0a43b]/70' : 'bg-white/15'}`}
+            className={`relative h-6 w-11 rounded-full ${useBet ? 'bg-gold-500/70' : 'bg-white/[0.06]'}`}
           >
             <motion.span
               animate={{ x: useBet ? 22 : 2 }}
@@ -453,9 +465,9 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
                   <button
                     key={v}
                     onClick={() => setSolAmount(v)}
-                    className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium transition-colors ${
+                    className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium ${
                       solAmount === v
-                        ? 'border-[#e0a43b]/50 bg-[#e0a43b]/10 text-[#f2d9a0]'
+                        ? 'border-gold-500/50 bg-gold-500/10 text-gold-300'
                         : 'border-white/[0.08] bg-white/[0.03] text-white/55'
                     }`}
                   >
@@ -466,8 +478,9 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
               <p className="mt-2 text-[11px] text-white/30">
                 Банк: {(solAmount * maxPlayers).toFixed(3)} SOL · победителю −5% комиссии
               </p>
-              <p className="mt-1 text-[11px] text-white/35">
-                💡 Ставка работает только если все {maxPlayers} места заняты живыми игроками
+              <p className="mt-1 flex items-start gap-1.5 text-[11px] text-white/35">
+                <IconHint size={12} className="mt-0.5 shrink-0 text-gold-400/70" />
+                Ставка работает только если все {maxPlayers} места заняты живыми игроками
               </p>
             </motion.div>
           )}
@@ -477,7 +490,7 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
           <span className="text-sm text-white/80">Закрыть паролем</span>
           <button
             onClick={() => setUsePassword((v) => !v)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${usePassword ? 'bg-gold-600' : 'bg-white/15'}`}
+            className={`relative h-6 w-11 rounded-full ${usePassword ? 'bg-gold-600' : 'bg-white/[0.06]'}`}
           >
             <motion.span
               animate={{ x: usePassword ? 22 : 2 }}
@@ -603,7 +616,9 @@ function WaitingRoom() {
         )}
         Комната ожидания · {humanCount}/{table.maxPlayers}
         {hasBet && (
-          <span className="ml-1 font-medium text-gold-300">· ⬙ {(table.betLamports! / 1e9).toFixed(3)} SOL</span>
+          <span className="ml-1 inline-flex items-center gap-1 font-medium text-gold-300">
+            · <SolMark /> {(table.betLamports! / 1e9).toFixed(3)} SOL
+          </span>
         )}
       </p>
 
@@ -612,10 +627,10 @@ function WaitingRoom() {
           <div
             key={i}
             className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 ${
-              seat.userId ? 'glass' : 'border border-dashed border-white/10 bg-transparent'
+              seat.userId ? 'glass' : 'border border-gold-500/12 bg-white/[0.02]'
             }`}
           >
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-white/[0.05] border border-white/10">
+            <div className="grid h-11 w-11 place-items-center rounded-full bg-white/[0.05] border border-white/[0.07]">
               {seat.userId ? (
                 <span className="font-display text-lg gold-text">{(seat.name.trim()[0] ?? '?').toUpperCase()}</span>
               ) : (
@@ -629,8 +644,20 @@ function WaitingRoom() {
               {seat.userId === table.hostId && <span className="text-[11px] text-gold-500/70">Хозяин стола</span>}
             </span>
             {hasBet && seat.userId && !seat.isBot && (
-              <span className={`text-[11px] font-medium ${seat.paid ? 'text-emerald-400' : 'text-white/30'}`}>
-                {seat.paid ? '✓ оплачено' : '⏳ не оплачено'}
+              <span
+                className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+                  seat.paid ? 'text-gold-300' : 'text-white/30'
+                }`}
+              >
+                {seat.paid ? (
+                  <>
+                    <IconCheck size={12} /> оплачено
+                  </>
+                ) : (
+                  <>
+                    <IconClock size={12} /> не оплачено
+                  </>
+                )}
               </span>
             )}
           </div>
@@ -641,9 +668,9 @@ function WaitingRoom() {
           <div className="rounded-2xl glass px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-white/75">Пригласить игроков</span>
-              <button onClick={inviteAll} className="rounded-xl bg-gold-sheen px-3 py-1.5 text-xs font-semibold text-ink-900 shadow-glow transition active:scale-95">
+              <PremiumButton className="!rounded-xl !px-3 !py-1.5 !text-xs" onClick={inviteAll}>
                 Позвать всех
-              </button>
+              </PremiumButton>
             </div>
             <button
               onClick={() => setShowInvite((v) => !v)}
@@ -665,12 +692,12 @@ function WaitingRoom() {
                     invitable.map((u) => (
                       <div key={u.id} className="flex items-center justify-between rounded-xl bg-white/[0.03] px-3 py-2">
                         <span className="flex items-center gap-1.5 text-sm text-white/80">
-                          {u.isFriend && <span className="text-gold-400">★</span>}
+                          {u.isFriend && <IconStar size={12} className="text-gold-400" />}
                           {u.name}
                         </span>
                         <button
                           onClick={() => invitePlayer(u.id)}
-                          className="rounded-lg bg-white/[0.06] px-3 py-1 text-xs text-gold-300 transition active:scale-95 hover:bg-white/[0.1]"
+                          className="rounded-lg bg-white/[0.05] px-3 py-1.5 text-xs text-gold-300 active:scale-95 hover:bg-white/[0.07]"
                         >
                           Позвать
                         </button>
@@ -687,13 +714,14 @@ function WaitingRoom() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-[#e0a43b]/25 bg-[#e0a43b]/5 px-4 py-3"
+            className="rounded-2xl border border-gold-500/25 bg-gold-500/[0.06] px-4 py-3"
           >
             <p className="mb-1.5 text-xs text-white/60">
               Для участия переведите {(table.betLamports! / 1e9).toFixed(3)} SOL в банк партии.
             </p>
-            <p className="mb-2.5 text-[11px] leading-relaxed text-wine-400/80">
-              ⚠ После оплаты ставка не возвращается. Выход — потеря ставки.
+            <p className="mb-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-wine-400/80">
+              <IconAlert size={12} className="mt-0.5 shrink-0" />
+              После оплаты ставка не возвращается. Выход — потеря ставки.
             </p>
             {walletAddress ? (
               <PremiumButton full onClick={handlePay} disabled={paying}>
@@ -711,16 +739,22 @@ function WaitingRoom() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-wine-600/25 bg-wine-600/5 px-4 py-3"
           >
-            <p className="text-xs text-wine-400/80">
-              ⚠ Ставка SOL — только среди людей. Свободных мест: {emptySeats}. Пригласите игроков.
+            <p className="flex items-start gap-1.5 text-xs text-wine-400/80">
+              <IconAlert size={12} className="mt-0.5 shrink-0" />
+              Ставка SOL — только среди людей. Свободных мест: {emptySeats}. Пригласите игроков.
             </p>
           </motion.div>
         )}
 
-        <p className="px-1 pt-2 text-[11px] leading-relaxed text-white/30">
-          {hasBet
-            ? '⚡ Ставки только среди живых игроков. После оплаты возврата нет: выход — потеря ставки, банк уходит победителю.'
-            : 'Свободные места при старте займут боты. Хозяин стола начинает партию.'}
+        <p className="flex items-start gap-1.5 px-1 pt-2 text-[11px] leading-relaxed text-white/30">
+          {hasBet ? (
+            <>
+              <IconBolt size={12} className="mt-0.5 shrink-0 text-gold-400/60" />
+              Ставки только среди живых игроков. После оплаты возврата нет: выход — потеря ставки, банк уходит победителю.
+            </>
+          ) : (
+            'Свободные места при старте займут боты. Хозяин стола начинает партию.'
+          )}
         </p>
       </div>
 
@@ -764,8 +798,8 @@ function InviteToasts() {
             className="pointer-events-auto w-full max-w-sm rounded-2xl glass-strong p-4"
           >
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold-sheen text-lg shadow-glow">
-                🎴
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold-sheen text-ink-900 shadow-glow">
+                <IconCards size={20} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-white/90">
@@ -774,21 +808,24 @@ function InviteToasts() {
                 <p className="truncate text-[12px] text-white/50">
                   «{inv.tableName}»
                   {!!inv.betLamports && inv.betLamports > 0 && (
-                    <span className="text-gold-300"> · ⬙ {(inv.betLamports / 1e9).toFixed(3)} SOL</span>
+                    <span className="inline-flex items-center gap-1 text-gold-300">
+                      {' '}
+                      · <SolMark /> {(inv.betLamports / 1e9).toFixed(3)} SOL
+                    </span>
                   )}
                 </p>
               </div>
             </div>
             <div className="mt-3 flex gap-2">
-              <button
+              <PremiumButton
+                className="!flex-1 !rounded-xl !py-2.5 !text-sm"
                 onClick={() => acceptInvite(inv)}
-                className="flex-1 rounded-xl bg-gold-sheen py-2.5 text-sm font-semibold text-ink-900 shadow-glow transition active:scale-95"
               >
                 Войти
-              </button>
+              </PremiumButton>
               <button
                 onClick={() => dismissInvite(inv.tableId)}
-                className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white/60 transition active:scale-95"
+                className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm text-white/60 active:scale-95"
               >
                 Позже
               </button>
@@ -824,7 +861,7 @@ function Field({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && onEnter?.()}
-        className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/90 outline-none transition-colors placeholder:text-white/25 focus:border-gold-500/40"
+        className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-gold-500/40"
       />
     </label>
   );

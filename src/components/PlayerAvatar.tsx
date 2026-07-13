@@ -22,7 +22,7 @@ export function PlayerAvatar({ player, active, compact }: Props) {
         } ${active ? 'hex-clip' : 'rounded-full'} ${
           active
             ? 'bg-gold-sheen'
-            : 'bg-white/[0.05] border border-white/10 rounded-full'
+            : 'bg-white/[0.05] border border-white/[0.07] rounded-full'
         }`}
       >
         {/* пульсирующее шестиугольное свечение при ходе */}
@@ -47,7 +47,7 @@ export function PlayerAvatar({ player, active, compact }: Props) {
             {(player.name.trim()[0] ?? 'И').toUpperCase()}
           </span>
         )}
-        <span className="absolute -bottom-1.5 -right-1.5 z-10 grid h-6 min-w-6 place-items-center rounded-full bg-ink-900 px-1 text-xs font-bold text-gold-400 border border-gold-600/40">
+        <span className="absolute -bottom-1.5 -right-1.5 z-10 grid h-6 min-w-6 place-items-center rounded-full bg-ink-900 px-1 text-xs font-medium text-gold-400 border border-gold-600/40">
           {player.hand.length}
         </span>
       </div>
@@ -55,7 +55,7 @@ export function PlayerAvatar({ player, active, compact }: Props) {
         <div className={`text-[11px] ${active ? 'text-gold-300' : 'text-white/70'}`}>
           {player.name}
         </div>
-        <div className="text-[11px] font-semibold text-white/50">
+        <div className="text-[11px] font-medium text-white/50">
           {player.busted ? 'улетел' : `${player.score} очк.`}
         </div>
       </div>

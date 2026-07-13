@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { PremiumButton } from './PremiumButton';
 import { Confetti, Trophy } from './WinFx';
 import { CountUpOnView } from './CountUpOnView';
+import { IconBean, IconCheck } from './icons';
 
 interface Props {
   won: boolean;
@@ -48,9 +49,9 @@ function CoinBurst() {
           initial={{ y: 0, x: 0, opacity: 0, scale: 0.6 }}
           animate={{ y: -180, x: c.x, opacity: [0, 1, 1, 0], scale: 1 }}
           transition={{ duration: c.dur, delay: c.delay, ease: 'easeOut' }}
-          className="absolute grid h-6 w-6 place-items-center rounded-full border border-gold-600/50 bg-gold-sheen text-[10px] font-bold text-ink-900 shadow-glow"
+          className="absolute grid h-6 w-6 place-items-center rounded-full border border-gold-600/50 bg-gold-sheen text-ink-900 shadow-glow"
         >
-          ◎
+          <IconBean size={12} className="text-ink-900" />
         </motion.span>
       ))}
     </div>
@@ -87,8 +88,9 @@ export function RewardOverlay({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 grid place-items-center overflow-hidden px-6"
     >
-      <div className={`absolute inset-0 ${won ? 'bg-felt-radial' : 'bg-ink-900'}`} />
+      <div className={`absolute inset-0 ${won ? 'bg-felt-radial' : 'bg-[radial-gradient(140%_120%_at_50%_-10%,#2a2016_0%,#1e1710_50%,#16110b_100%)]'}`} />
       <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 grain opacity-[0.04] mix-blend-soft-light" />
       {won && <Confetti />}
       {bursting && <CoinBurst />}
 
@@ -153,18 +155,16 @@ export function RewardOverlay({
 
         <div className="mt-6 space-y-3">
           {won && (
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              animate={claimed ? {} : { scale: [1, 1.035, 1] }}
-              transition={{ duration: 1.8, repeat: claimed ? 0 : Infinity, ease: 'easeInOut' }}
-              onClick={claim}
-              disabled={claimed}
-              className={`relative w-full overflow-hidden rounded-2xl py-4 text-base font-semibold text-ink-900 shadow-glow transition ${
-                claimed ? 'bg-felt-600/40 text-gold-300' : 'bg-gold-sheen'
-              }`}
-            >
-              {claimed ? '✓ Награда зачислена' : 'Забрать награду'}
-            </motion.button>
+            <PremiumButton full variant={claimed ? 'ghost' : 'gold'} onClick={claim} disabled={claimed}>
+              {claimed ? (
+                <span className="inline-flex items-center gap-2">
+                  <IconCheck size={16} />
+                  Награда зачислена
+                </span>
+              ) : (
+                'Забрать награду'
+              )}
+            </PremiumButton>
           )}
           {showAgain && (
             <PremiumButton full variant={won ? 'ghost' : 'gold'} onClick={onAgain}>

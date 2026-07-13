@@ -1,14 +1,16 @@
 import { motion } from 'framer-motion';
 import { useRewardsStore, type RewardEntry } from '../store/rewardsStore';
+import { IconChevronRight } from '../components/icons';
+import type { ReactNode } from 'react';
 
 interface Props {
   onBack: () => void;
 }
 
-const KIND_META: Record<RewardEntry['kind'], { label: string; badge: string; cls: string }> = {
+const KIND_META: Record<RewardEntry['kind'], { label: string; badge: ReactNode; cls: string }> = {
   doffa: { label: 'DOFFA', badge: '+', cls: 'bg-gold-500/15 text-gold-300' },
-  cups: { label: 'Cups', badge: '+', cls: 'bg-felt-600/25 text-emerald-300' },
-  claim: { label: 'Вывод', badge: '→', cls: 'bg-white/[0.06] text-white/70' },
+  cups: { label: 'Cups', badge: '+', cls: 'bg-felt-600/25 text-gold-300' },
+  claim: { label: 'Вывод', badge: <IconChevronRight size={14} />, cls: 'bg-white/[0.06] text-white/70' },
 };
 
 /** История наград: начисления Cups, DOFFA и заявки на вывод. */
@@ -36,7 +38,7 @@ export function RewardsScreen({ onBack }: Props) {
       {/* сводка балансов */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Cups', value: cups, cls: 'text-emerald-300' },
+          { label: 'Cups', value: cups, cls: 'text-gold-300' },
           { label: 'DOFFA', value: doffa, cls: 'text-gold-300' },
           { label: 'К выводу', value: doffaClaimed, cls: 'text-white/85' },
         ].map((c) => (
@@ -78,7 +80,7 @@ export function RewardsScreen({ onBack }: Props) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`font-display text-lg ${h.kind === 'doffa' ? 'text-gold-300' : h.kind === 'cups' ? 'text-emerald-300' : 'text-white/70'}`}>
+                  <div className={`font-display text-lg ${h.kind === 'doffa' ? 'text-gold-300' : h.kind === 'cups' ? 'text-gold-300' : 'text-white/70'}`}>
                     {h.kind === 'claim' ? '' : '+'}
                     {h.amount}
                   </div>

@@ -95,7 +95,7 @@ function OpponentSeat({
         </span>
 
         {/* бейдж числа карт на руке */}
-        <span className="absolute -bottom-1 -right-1 z-10 grid h-5 min-w-5 place-items-center rounded-full border border-gold-600/40 bg-ink-900 px-1 text-[10px] font-semibold text-gold-300">
+        <span className="absolute -bottom-1 -right-1 z-10 grid h-5 min-w-5 place-items-center rounded-full border border-gold-600/40 bg-ink-900 px-1 text-[10px] font-medium text-gold-300">
           {player.hand.length}
         </span>
       </div>
@@ -119,7 +119,7 @@ function OpponentSeat({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 340, damping: 22 }}
-              className={`inline-flex items-center rounded-full px-2 py-[1px] text-[8px] font-semibold uppercase tracking-[0.15em] ${
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] ${
                 chip.tone === 'busted'
                   ? 'bg-wine-700/40 text-wine-400 border border-wine-500/30'
                   : chip.tone === 'penalty'
@@ -136,57 +136,6 @@ function OpponentSeat({
   );
 }
 
-/** Парящий кофейный медальон-зерно — декоративный бренд-акцент DOFFA над стопками. */
-function CoffeeToken() {
-  return (
-    <motion.div
-      aria-hidden
-      animate={{ y: [0, -6, 0], rotate: [-3, 3, -3] }}
-      transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-      className="pointer-events-none relative grid place-items-center"
-      style={{ width: '4.2rem', height: '4.8rem' }}
-    >
-      <span
-        className="absolute -inset-2 rounded-full blur-xl"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(224,164,59,0.7), rgba(58,94,66,0.26) 58%, transparent 74%)',
-        }}
-      />
-      <svg viewBox="0 0 56 56" width="60" height="60" fill="none" className="relative drop-shadow-[0_4px_12px_rgba(224,164,59,0.55)]">
-        <defs>
-          <linearGradient id="beanFace" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#f2d9a0" />
-            <stop offset="0.5" stopColor="#e0a43b" />
-            <stop offset="1" stopColor="#3a5e42" />
-          </linearGradient>
-          <radialGradient id="beanSheen" cx="0.38" cy="0.3" r="0.8">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.7" />
-            <stop offset="0.4" stopColor="#ffffff" stopOpacity="0.12" />
-            <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        {/* тело зерна (наклонённый овал) */}
-        <g transform="rotate(-24 28 28)">
-          <ellipse cx="28" cy="28" rx="16" ry="22" fill="url(#beanFace)" />
-          <ellipse cx="28" cy="28" rx="16" ry="22" fill="url(#beanSheen)" />
-          {/* внутренняя борозда */}
-          <path
-            d="M28 8c-4 6-4 34 0 40"
-            stroke="#1b140c"
-            strokeOpacity="0.55"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            fill="none"
-          />
-          {/* тонкая обводка */}
-          <ellipse cx="28" cy="28" rx="16" ry="22" stroke="#f2d9a0" strokeOpacity="0.55" strokeWidth="1" fill="none" />
-        </g>
-      </svg>
-    </motion.div>
-  );
-}
-
 /** Стопка с подписью капсом. */
 function Pile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -197,31 +146,7 @@ function Pile({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-/** Постоянный вращающийся Solana Rewards Orb — декоративный бренд-акцент. */
-function RewardsOrb() {
-  return (
-    <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center gap-2">
-      <div className="relative grid h-10 w-10 place-items-center">
-        <span aria-hidden className="absolute inset-0 rounded-full table-ring animate-spin-slow opacity-80" />
-        <span
-          aria-hidden
-          className="absolute -inset-1 rounded-full blur-md"
-          style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.5), transparent 70%)' }}
-        />
-        <span className="relative grid h-7 w-7 place-items-center rounded-full border border-gold-600/40 bg-ink-900/85">
-          <DoffaEmblem size={16} />
-        </span>
-      </div>
-      <span className="text-[7px] font-medium uppercase leading-[1.3] tracking-[0.22em] text-white/35">
-        DOFFA
-        <br />
-        Cups
-      </span>
-    </div>
-  );
-}
-
-/** Карточный стол: гексагональные аватары соперников, кофейный медальон, подписанные стопки. */
+/** Карточный стол: сукно, двойной кант, стопки в фокусе. */
 export function GameTable({ state, youSeat }: Props) {
   const mySeat = youSeat ?? Math.max(0, state.players.findIndex((p) => p.id === 'you'));
   const opponents = state.players
@@ -244,10 +169,8 @@ export function GameTable({ state, youSeat }: Props) {
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-gold-700/25 bg-felt-radial shadow-[inset_0_2px_40px_rgba(0,0,0,0.55),0_30px_70px_-30px_rgba(0,0,0,0.8)]">
-      {/* тёплое эспрессо-сукно DOFFA */}
       <div className="pointer-events-none absolute inset-0 bg-felt-radial opacity-60" />
 
-      {/* фактура сукна: тонкое плетение + зёрна-узлы, приглушены к краям */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.14]"
         style={{
@@ -269,31 +192,27 @@ export function GameTable({ state, youSeat }: Props) {
         }}
       />
 
-      {/* зерно и свет */}
       <div className="pointer-events-none absolute inset-0 grain opacity-[0.06] mix-blend-soft-light" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(68%_52%_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_45%,transparent_60%,rgba(0,0,0,0.4)_100%)]" />
 
-      {/* овальный неоновый ободок стола */}
-      <div className="pointer-events-none absolute inset-2 rounded-full">
-        <div className="absolute left-1/2 top-1/2 aspect-square h-[135%] max-h-none -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slow opacity-90 blur-[0.5px]" />
-        <div className="absolute left-1/2 top-1/2 aspect-square h-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full table-ring animate-spin-slower opacity-60" />
-      </div>
+      {/* двойной шампань-кант */}
+      <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-gold-500/18" />
+      <div className="pointer-events-none absolute inset-[14px] rounded-[1.35rem] border border-gold-500/[0.08]" />
 
-      {/* усиленное свечение центра во время хода игрока-человека */}
-      <div
-        className={`pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl transition-opacity duration-700 ${
-          yourTurn ? 'opacity-100 animate-halo' : 'opacity-0'
+      {/* мягкое свечение центра на вашем ходе */}
+      <motion.div
+        aria-hidden
+        animate={{ opacity: yourTurn ? 0.85 : 0 }}
+        transition={{ type: 'spring', stiffness: 180, damping: 24 }}
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl ${
+          yourTurn ? 'animate-halo' : ''
         }`}
         style={{
-          background: 'radial-gradient(circle, rgba(224,164,59,0.4), rgba(58,94,66,0.14) 55%, transparent 72%)',
+          background: 'radial-gradient(circle, rgba(224,164,59,0.32), rgba(58,94,66,0.1) 55%, transparent 72%)',
         }}
       />
 
-      {/* шампань-кант */}
-      <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-gold-500/12" />
-
-      {/* соперники в гексагональных рамках */}
       {opponents.map(({ player }, i) => (
         <div key={player.id} className={`absolute z-10 ${seatClass(i, opponents.length)}`}>
           <OpponentSeat
@@ -304,63 +223,52 @@ export function GameTable({ state, youSeat }: Props) {
         </div>
       ))}
 
-      {/* центр: кофейный медальон над двумя подписанными стопками */}
-      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-        <CoffeeToken />
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-start justify-center gap-5">
+        <Pile label="Сброс">
+          <div className="relative" style={{ perspective: 900 }}>
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={top.id}
+                initial={{ scale: 0.6, rotateY: -120, rotateZ: -14, opacity: 0 }}
+                animate={{ scale: 1, rotateY: 0, rotateZ: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                style={{ transformStyle: 'preserve-3d' }}
+              >
+                <Card card={top} />
+              </motion.div>
+            </AnimatePresence>
 
-        <div className="mt-1 flex items-start justify-center gap-5">
-          {/* СБРОС — текущая верхняя карта */}
-          <Pile label="Сброс">
-            <div className="relative" style={{ perspective: 900 }}>
-              <AnimatePresence mode="popLayout">
-                <motion.div
-                  key={top.id}
-                  initial={{ scale: 0.6, rotateY: -120, rotateZ: -14, opacity: 0 }}
-                  animate={{ scale: 1, rotateY: 0, rotateZ: 0, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <Card card={top} />
-                </motion.div>
-              </AnimatePresence>
-
-              {demandBadge && (
-                <motion.span
-                  key={demandBadge}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -right-3 -top-3 grid h-7 min-w-7 place-items-center rounded-full border border-wine-400/40 bg-wine-600 px-1.5 text-[11px] font-semibold text-white shadow-lg"
-                >
-                  {demandBadge}
-                </motion.span>
-              )}
-            </div>
-          </Pile>
-
-          {/* КОЛОДА — стопка рубашек */}
-          <Pile label="Колода">
-            {state.deck.length > 0 ? (
-              <>
-                {/* Card сам relative — позиционируем через обёртки, иначе стопка распадается в столбик */}
-                <div className="absolute -left-1 -top-1 rotate-[-7deg] opacity-70">
-                  <Card faceDown />
-                </div>
-                <div className="absolute left-0.5 top-0.5 rotate-[4deg] opacity-85">
-                  <Card faceDown />
-                </div>
-                <Card faceDown />
-              </>
-            ) : (
-              <div className="grid h-full w-full place-items-center rounded-[0.85rem] border border-dashed border-white/10 text-[9px] uppercase tracking-widest text-white/25">
-                пусто
-              </div>
+            {demandBadge && (
+              <motion.span
+                key={demandBadge}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -right-3 -top-3 grid h-7 min-w-7 place-items-center rounded-full border border-wine-400/40 bg-wine-600 px-1.5 text-[11px] font-medium text-white shadow-lg"
+              >
+                {demandBadge}
+              </motion.span>
             )}
-          </Pile>
-        </div>
-      </div>
+          </div>
+        </Pile>
 
-      {/* Solana Rewards Orb */}
-      <RewardsOrb />
+        <Pile label="Колода">
+          {state.deck.length > 0 ? (
+            <>
+              <div className="absolute -left-1 -top-1 rotate-[-7deg] opacity-70">
+                <Card faceDown />
+              </div>
+              <div className="absolute left-0.5 top-0.5 rotate-[4deg] opacity-85">
+                <Card faceDown />
+              </div>
+              <Card faceDown />
+            </>
+          ) : (
+            <div className="grid h-full w-full place-items-center rounded-[0.85rem] border border-white/[0.07] bg-white/[0.03] text-[9px] uppercase tracking-widest text-white/25">
+              пусто
+            </div>
+          )}
+        </Pile>
+      </div>
     </div>
   );
 }

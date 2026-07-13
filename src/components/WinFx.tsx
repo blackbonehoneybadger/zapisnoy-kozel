@@ -48,11 +48,11 @@ export function Confetti() {
           key={p.id}
           initial={{ y: -40, x: 0, opacity: 0, rotate: p.rot }}
           animate={{ y: '110vh', x: p.drift, opacity: [0, 1, 1, 0], rotate: p.rot + 360 }}
-          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity }}
+          transition={{ duration: p.dur, delay: p.delay, repeat: 0 }}
           style={{
             left: `${p.x}%`,
             backgroundColor: p.color,
-            boxShadow: `0 0 6px ${p.color}80`,
+            boxShadow: `0 0 4px ${p.color}55`,
           }}
           className={`absolute top-0 ${p.round ? 'h-1.5 w-1.5 rounded-full' : 'h-2.5 w-1.5 rounded-sm'}`}
         />

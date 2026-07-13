@@ -7,6 +7,7 @@ import { Card } from '../components/Card';
 import { CARD_POINTS } from '../game/scoring';
 import { RANKS } from '../game/deck';
 import type { Card as CardType } from '../game/types';
+import { IconWallet, IconChairs, IconCoin, IconCards, IconTrophy } from '../components/icons';
 
 interface Props {
   onBack: () => void;
@@ -22,29 +23,29 @@ const ART = {
   king: { id: 'art-k', suit: 'spades', rank: 'K' },
 } satisfies Record<string, CardType>;
 
-const FLOW: { icon: string; title: string; text: string }[] = [
+const FLOW: { icon: ReactNode; title: string; text: string }[] = [
   {
-    icon: '👛',
+    icon: <IconWallet size={20} className="text-ink-900" />,
     title: 'Подключи кошелёк',
     text: 'Phantom или Solflare — без регистрации. Это твой вход и твой счёт в SOL.',
   },
   {
-    icon: '🪑',
+    icon: <IconChairs size={20} className="text-ink-900" />,
     title: 'Найди или создай комнату',
     text: 'Видишь, кто в сети и кому нужны игроки. Или создай свою на 2–4 человек и позови друзей.',
   },
   {
-    icon: '💰',
+    icon: <IconCoin size={20} className="text-ink-900" />,
     title: 'Все вносят ставку',
     text: 'Перед стартом каждый переводит одинаковую ставку в банк партии. Играют только живые игроки.',
   },
   {
-    icon: '🃏',
+    icon: <IconCards size={20} className="text-ink-900" />,
     title: 'Играете партию',
     text: 'Обычный «Crazy 8»: первым сбросил все карты — победил. Правила ниже.',
   },
   {
-    icon: '🏆',
+    icon: <IconTrophy size={20} className="text-ink-900" />,
     title: 'Победитель забирает банк',
     text: 'Весь банк уходит победителю автоматически. Площадка удерживает 5% комиссии.',
   },
@@ -65,13 +66,13 @@ export function RulesScreen({ onBack }: Props) {
         animate={{ opacity: 1, y: 0 }}
         className="glass-strong relative overflow-hidden rounded-3xl p-5"
       >
-        {/* фирменное свечение Solana — scrub-параллакс при прокрутке */}
+        {/* фирменное свечение DOFFA — scrub-параллакс при прокрутке */}
         <div data-parallax="26" className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gold-500/20 blur-3xl" />
-        <div data-parallax="-20" className="pointer-events-none absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl" />
+        <div data-parallax="-20" className="pointer-events-none absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-felt-600/20 blur-3xl" />
 
         <div className="relative">
           <span className="text-[11px] uppercase tracking-[0.3em] text-gold-400/80">
-            Solana · игра на токены
+            DOFFA · игра на токены
           </span>
           <h2 className="mt-1 font-display text-2xl gold-text">Как это работает</h2>
           <p className="mt-1 text-sm text-white/55">
@@ -180,7 +181,7 @@ function FlowStep({
   index,
   last,
 }: {
-  icon: string;
+  icon: ReactNode;
   title: string;
   text: string;
   index: number;
@@ -189,14 +190,14 @@ function FlowStep({
   return (
     <div data-reveal className="flex gap-3.5">
       <div className="flex flex-col items-center">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-sheen text-lg shadow-glow">
-          <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]">{icon}</span>
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-sheen shadow-glow">
+          {icon}
         </div>
         {!last && <div className="my-1 w-px flex-1 bg-gradient-to-b from-gold-500/40 to-transparent" />}
       </div>
       <div className={last ? '' : 'pb-4'}>
         <div className="flex items-center gap-2">
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-white/[0.06] text-[11px] font-semibold text-gold-300">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white/[0.06] text-[11px] font-medium text-gold-300">
             {index + 1}
           </span>
           <h3 className="font-display text-lg leading-tight text-white/90">{title}</h3>

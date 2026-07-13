@@ -33,18 +33,16 @@ export function Card({
   if (faceDown || !card) {
     return (
       <div className={`${dim} ${className} relative overflow-hidden rounded-[0.85rem] shadow-card`}>
-        {/* неон-рубашка Solana (webp — арт Higgsfield, svg — фоллбэк) */}
+        {/* эспрессо-рубашка DOFFA: рассвет + золотая рамка + герб */}
         <div
-          className="absolute inset-0 bg-[linear-gradient(165deg,#1b0f38_0%,#120827_55%,#0a0518_100%)]"
+          className="absolute inset-0 bg-[linear-gradient(165deg,#2a2016_0%,#1e1710_55%,#16110b_100%)]"
           style={{
             backgroundImage: "url('/art/card-back.webp'), url('/art/card-back.svg')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         />
-        {/* мягкое центральное свечение */}
-        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(224,164,59,0.2),transparent_72%)]" />
-        {/* верхний блик */}
+        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(224,164,59,0.18),transparent_72%)]" />
         <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/[0.07] to-transparent" />
       </div>
     );
@@ -82,19 +80,18 @@ export function Card({
           animate={{ opacity: [0.5, 0.85, 0.5] }}
           whileHover={{ opacity: 1 }}
           transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ boxShadow: '0 0 30px 2px rgba(224,164,59,0.55), 0 0 12px rgba(58,94,66,0.4)' }}
+          style={{ boxShadow: '0 0 26px 2px rgba(224,164,59,0.38)' }}
         />
       )}
-      {/* внутренняя золотисто-мятная кромка доступной карты */}
       {playable && (
         <span
           className="pointer-events-none absolute inset-0 rounded-[0.85rem]"
-          style={{ boxShadow: 'inset 0 0 0 1.5px rgba(242,217,160,0.7), inset 0 0 14px rgba(58,94,66,0.25)' }}
+          style={{ boxShadow: 'inset 0 0 0 1.5px rgba(242,217,160,0.65), inset 0 0 10px rgba(224,164,59,0.12)' }}
         />
       )}
 
       <span className={`absolute left-1.5 top-1 flex flex-col items-center leading-none ${color}`}>
-        <span className="font-semibold tracking-tight">{card.rank}</span>
+        <span className="font-medium tracking-tight">{card.rank}</span>
         <span className={small ? 'text-[10px]' : 'text-sm'}>{symbol}</span>
       </span>
 
@@ -109,7 +106,7 @@ export function Card({
       <span
         className={`absolute bottom-1 right-1.5 flex rotate-180 flex-col items-center leading-none ${color}`}
       >
-        <span className="font-semibold tracking-tight">{card.rank}</span>
+        <span className="font-medium tracking-tight">{card.rank}</span>
         <span className={small ? 'text-[10px]' : 'text-sm'}>{symbol}</span>
       </span>
     </motion.button>
