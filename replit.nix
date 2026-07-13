@@ -1,4 +1,4 @@
-# Окружение Replit для DOFFA Crazy 8 (Node 22).
+# Окружение Replit для DOFFA Crazy 8 (Node 22 + npm).
 { pkgs }: {
   deps = [
     pkgs.nodejs_22

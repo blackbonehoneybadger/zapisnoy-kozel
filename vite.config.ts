@@ -51,13 +51,34 @@ const pwaPlugin = VitePWA({
   },
 });
 
+const replitHost = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0];
+const port = Number(process.env.PORT) || 5173;
+
 export default defineConfig({
   // Относительные пути — нужно для корректной загрузки ассетов из WebView Capacitor.
   base: isCapacitor ? './' : '/',
   plugins: [nodePolyfills(), react(), ...(isCapacitor ? [] : [pwaPlugin])],
   server: {
-    host: true,
-    port: 5173,
+    // Replit / туннели: слушать все интерфейсы и не блокировать *.replit.dev.
+    host: '0.0.0.0',
+    port,
+    strictPort: true,
+    allowedHosts: true,
+    ...(replitHost
+      ? {
+          hmr: {
+            protocol: 'wss',
+            host: replitHost,
+            clientPort: 443,
+          },
+        }
+      : {}),
+  },
+  preview: {
+    host: '0.0.0.0',
+    port,
+    strictPort: true,
+    allowedHosts: true,
   },
   build: {
     rollupOptions: {

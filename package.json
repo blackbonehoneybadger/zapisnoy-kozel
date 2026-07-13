@@ -5,9 +5,10 @@
   "type": "module",
   "description": "DOFFA Crazy 8 — карточная игра экосистемы DOFFA (PWA)",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "replit": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host",
+    "preview": "vite preview --host 0.0.0.0 --port 5173",
     "lint": "tsc --noEmit",
     "cap:build": "CAP_BUILD=1 npm run build && cap sync android",
     "cap:open": "cap open android",
