@@ -136,8 +136,8 @@ function OpponentSeat({
   );
 }
 
-/** Парящий стеклянный Solana-кристалл — декоративный акцент над стопками. */
-function CrystalToken() {
+/** Парящий кофейный медальон-зерно — декоративный бренд-акцент DOFFA над стопками. */
+function CoffeeToken() {
   return (
     <motion.div
       aria-hidden
@@ -153,30 +153,35 @@ function CrystalToken() {
             'radial-gradient(circle, rgba(224,164,59,0.7), rgba(58,94,66,0.26) 58%, transparent 74%)',
         }}
       />
-      <svg viewBox="0 0 48 56" width="54" height="63" fill="none" className="relative drop-shadow-[0_4px_12px_rgba(224,164,59,0.6)]">
+      <svg viewBox="0 0 56 56" width="60" height="60" fill="none" className="relative drop-shadow-[0_4px_12px_rgba(224,164,59,0.55)]">
         <defs>
-          <linearGradient id="gemFace" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="beanFace" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#f2d9a0" />
             <stop offset="0.5" stopColor="#e0a43b" />
             <stop offset="1" stopColor="#3a5e42" />
           </linearGradient>
-          <linearGradient id="gemCrown" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.85" />
-            <stop offset="1" stopColor="#f2d9a0" stopOpacity="0.25" />
-          </linearGradient>
+          <radialGradient id="beanSheen" cx="0.38" cy="0.3" r="0.8">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.7" />
+            <stop offset="0.4" stopColor="#ffffff" stopOpacity="0.12" />
+            <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
         </defs>
-        {/* корона */}
-        <polygon points="16,6 32,6 42,20 6,20" fill="url(#gemCrown)" />
-        {/* павильон */}
-        <polygon points="6,20 42,20 24,52" fill="url(#gemFace)" />
-        {/* грани-тени */}
-        <polygon points="6,20 24,20 24,52" fill="#050308" opacity="0.18" />
-        <polygon points="16,6 24,6 24,20 6,20" fill="#ffffff" opacity="0.16" />
-        {/* блик на площадке */}
-        <polygon points="17,7 31,7 29,12 19,12" fill="#ffffff" opacity="0.55" />
-        {/* контур и рёбра */}
-        <path d="M16 6 32 6 42 20 24 52 6 20Z" stroke="url(#gemFace)" strokeWidth="1" opacity="0.9" />
-        <path d="M6 20H42M24 20V52M16 6 24 20M32 6 24 20" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="0.6" />
+        {/* тело зерна (наклонённый овал) */}
+        <g transform="rotate(-24 28 28)">
+          <ellipse cx="28" cy="28" rx="16" ry="22" fill="url(#beanFace)" />
+          <ellipse cx="28" cy="28" rx="16" ry="22" fill="url(#beanSheen)" />
+          {/* внутренняя борозда */}
+          <path
+            d="M28 8c-4 6-4 34 0 40"
+            stroke="#1b140c"
+            strokeOpacity="0.55"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            fill="none"
+          />
+          {/* тонкая обводка */}
+          <ellipse cx="28" cy="28" rx="16" ry="22" stroke="#f2d9a0" strokeOpacity="0.55" strokeWidth="1" fill="none" />
+        </g>
       </svg>
     </motion.div>
   );
@@ -216,7 +221,7 @@ function RewardsOrb() {
   );
 }
 
-/** Карточный стол: гексагональные аватары соперников, кристалл, подписанные стопки. */
+/** Карточный стол: гексагональные аватары соперников, кофейный медальон, подписанные стопки. */
 export function GameTable({ state, youSeat }: Props) {
   const mySeat = youSeat ?? Math.max(0, state.players.findIndex((p) => p.id === 'you'));
   const opponents = state.players
@@ -242,7 +247,7 @@ export function GameTable({ state, youSeat }: Props) {
       {/* тёплое эспрессо-сукно DOFFA */}
       <div className="pointer-events-none absolute inset-0 bg-felt-radial opacity-60" />
 
-      {/* гравировка «печатной платы»: тонкие дорожки + узлы, приглушены к краям */}
+      {/* фактура сукна: тонкое плетение + зёрна-узлы, приглушены к краям */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.14]"
         style={{
@@ -299,9 +304,9 @@ export function GameTable({ state, youSeat }: Props) {
         </div>
       ))}
 
-      {/* центр: кристалл над двумя подписанными стопками */}
+      {/* центр: кофейный медальон над двумя подписанными стопками */}
       <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-        <CrystalToken />
+        <CoffeeToken />
 
         <div className="mt-1 flex items-start justify-center gap-5">
           {/* СБРОС — текущая верхняя карта */}
