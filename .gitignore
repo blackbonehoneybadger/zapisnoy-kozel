@@ -9,6 +9,9 @@ dist-ssr
 npm-debug.log*
 .claude/worktrees/
 
+# Кэш инкрементальной сборки TypeScript (генерируется, не коммитить)
+*.tsbuildinfo
+
 # Секреты и состояние сервера — НИКОГДА не коммитить
 .env
 .env.*
