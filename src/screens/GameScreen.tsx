@@ -15,16 +15,15 @@ import { useRewardsStore } from '../store/rewardsStore';
 
 interface Props {
   onExit: () => void;
-  onClaim: () => void;
 }
 
-export function GameScreen({ onExit, onClaim }: Props) {
+export function GameScreen({ onExit }: Props) {
   const game = useGameStore((s) => s.game);
   const playCard = useGameStore((s) => s.playCard);
   const take = useGameStore((s) => s.take);
   const nextRound = useGameStore((s) => s.nextRound);
   const start = useGameStore((s) => s.start);
-  const wonDoffa = useRewardsStore((s) => s.lastWinDoffa);
+  const trainingCups = useRewardsStore((s) => s.lastTrainingCups);
 
   const [queenCard, setQueenCard] = useState<CardType | null>(null);
   const [showScore, setShowScore] = useState(false);
@@ -234,22 +233,22 @@ export function GameScreen({ onExit, onClaim }: Props) {
         )}
       </AnimatePresence>
 
-      {/* конец партии — фирменный экран победы и награды (DOFFA уже начислен
-          rewardsStore в gameStore.commit; здесь только показываем сумму) */}
+      {/* конец офлайн-партии: тренировочная награда — только Cups. Настоящий
+          DOFFA-Claim здесь недоступен (даётся лишь за подтверждённую сервером
+          онлайн-победу). Тренировочные Cups начислены awardTraining в commit. */}
       <AnimatePresence>
         {game.phase === 'gameOver' && (
           <RewardOverlay
             won={game.winnerId === 'you'}
-            unit="DOFFA"
-            reward={game.winnerId === 'you' ? wonDoffa : undefined}
+            unit="Cups"
+            reward={game.winnerId === 'you' ? trainingCups : undefined}
             loserNote={
               game.winnerId === 'you'
-                ? undefined
+                ? 'Тренировка против ботов — награда в Cups.'
                 : `Победитель — ${game.players.find((p) => p.id === game.winnerId)?.name ?? '—'}.`
             }
             onAgain={start}
             onMenu={onExit}
-            onClaim={onClaim}
             againLabel="Играть ещё"
             menuLabel="В меню"
           />

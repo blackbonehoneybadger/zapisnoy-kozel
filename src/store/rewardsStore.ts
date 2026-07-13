@@ -1,17 +1,22 @@
-// Награды экосистемы DOFFA: Cups — внутренняя игровая энергия (начисляется за
-// каждую партию), DOFFA — настоящая награда (начисляется за победы).
-// Балансы и история живут в localStorage; «Забрать награду» закрепляет
-// накопленный DOFFA за подключённым Solana-кошельком. Реальный вывод токена
-// в сеть делает команда DOFFA по этим заявкам — игра сама ключами не владеет.
+// Награды экосистемы DOFFA.
+//
+// РАЗДЕЛЕНИЕ СУЩНОСТЕЙ (этап 2):
+//   Cups  — внутренняя игровая энергия. Не криптовалюта, не выводится.
+//           Офлайн-тренировка против ботов начисляет ТОЛЬКО тренировочные Cups.
+//   DOFFA — настоящая награда на Solana. Клиент НИКОГДА не начисляет DOFFA сам.
+//           Поле `doffa` (доступно к получению) заполняется ТОЛЬКО сервером
+//           после подтверждённой онлайн-победы (этап 3+). До подключения
+//           серверной экономики оно остаётся 0 в офлайн-режиме.
+//
+// localStorage здесь — только КЭШ интерфейса. Истинный баланс (этап 3+) живёт
+// на сервере; клиент будет синхронизировать его через `setServerRewards`.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-/** Cups за любую сыгранную партию. */
+/** Тренировочные Cups за любую офлайн-партию против ботов. */
 export const CUPS_PER_GAME = 10;
-/** Cups сверху за победу. */
+/** Тренировочные Cups сверху за офлайн-победу. */
 export const CUPS_PER_WIN = 25;
-/** DOFFA за победу над ботами. */
-export const DOFFA_PER_WIN = 10;
 
 export interface RewardEntry {
   id: number;
@@ -22,20 +27,32 @@ export interface RewardEntry {
 }
 
 export interface RewardsState {
-  /** Игровая энергия. */
+  /** Игровая энергия (кэш; серверная истина — этап 3+). */
   cups: number;
-  /** Накопленный DOFFA, ещё не забранный. */
+  /** Доступный к получению DOFFA. Заполняется ТОЛЬКО сервером. */
   doffa: number;
-  /** DOFFA, закреплённый за кошельком (заявки на вывод). */
+  /** DOFFA, по которому создана заявка на вывод (кэш серверного статуса). */
   doffaClaimed: number;
-  /** Кошелёк, за которым закреплены заявки (последний использованный). */
+  /** Кошелёк последней заявки. */
   claimWallet: string | null;
-  /** Выигрыш последней завершённой партии — для оверлея победы. */
-  lastWinDoffa: number;
+  /** Тренировочные Cups последней офлайн-победы — для оверлея. */
+  lastTrainingCups: number;
   history: RewardEntry[];
-  /** Начислить награды за завершённую партию. Возвращает DOFFA за победу. */
-  awardGame: (won: boolean) => number;
-  /** Закрепить весь доступный DOFFA за кошельком. Возвращает сумму заявки. */
+  /**
+   * Офлайн-тренировка против ботов: начисляет ТОЛЬКО тренировочные Cups.
+   * НЕ начисляет DOFFA и НЕ создаёт заявку на вывод. Возвращает сумму Cups.
+   */
+  awardTraining: (won: boolean) => number;
+  /**
+   * Синхронизация с сервером (этап 3+): единственный легитимный способ
+   * изменить баланс DOFFA/Cups на клиенте. Пока сервер не шлёт эти данные —
+   * не вызывается.
+   */
+  setServerRewards: (r: Partial<Pick<RewardsState, 'cups' | 'doffa' | 'doffaClaimed'>>) => void;
+  /**
+   * Кэш-отметка о заявке на вывод. НАСТОЯЩИЙ Claim выполняет сервер (этап 4+);
+   * здесь только локальное отражение статуса. Возвращает сумму заявки.
+   */
   claim: (wallet: string) => number;
   reset: () => void;
 }
@@ -51,26 +68,28 @@ export const useRewardsStore = create<RewardsState>()(
       doffa: 0,
       doffaClaimed: 0,
       claimWallet: null,
-      lastWinDoffa: 0,
+      lastTrainingCups: 0,
       history: [],
 
-      awardGame: (won) => {
+      awardTraining: (won) => {
         const cupsGain = CUPS_PER_GAME + (won ? CUPS_PER_WIN : 0);
-        const doffaGain = won ? DOFFA_PER_WIN : 0;
-        set((s) => {
-          const items: RewardEntry[] = [
-            entry('cups', cupsGain, won ? 'Партия сыграна · победа' : 'Партия сыграна'),
-          ];
-          if (doffaGain > 0) items.unshift(entry('doffa', doffaGain, 'Победа в партии'));
-          return {
-            cups: s.cups + cupsGain,
-            doffa: s.doffa + doffaGain,
-            lastWinDoffa: doffaGain,
-            history: [...items, ...s.history].slice(0, 50),
-          };
-        });
-        return doffaGain;
+        set((s) => ({
+          cups: s.cups + cupsGain,
+          lastTrainingCups: cupsGain,
+          history: [
+            entry('cups', cupsGain, won ? 'Тренировка · победа' : 'Тренировка'),
+            ...s.history,
+          ].slice(0, 50),
+        }));
+        return cupsGain;
       },
+
+      setServerRewards: (r) =>
+        set((s) => ({
+          cups: r.cups ?? s.cups,
+          doffa: r.doffa ?? s.doffa,
+          doffaClaimed: r.doffaClaimed ?? s.doffaClaimed,
+        })),
 
       claim: (wallet) => {
         const amount = get().doffa;
@@ -88,8 +107,9 @@ export const useRewardsStore = create<RewardsState>()(
       },
 
       reset: () =>
-        set({ cups: 0, doffa: 0, doffaClaimed: 0, claimWallet: null, lastWinDoffa: 0, history: [] }),
+        set({ cups: 0, doffa: 0, doffaClaimed: 0, claimWallet: null, lastTrainingCups: 0, history: [] }),
     }),
-    { name: 'doffa-crazy8-rewards-v1' },
+    // v2: сбрасываем прежний кэш, где офлайн-победы нелегитимно копили DOFFA.
+    { name: 'doffa-crazy8-rewards-v2' },
   ),
 );

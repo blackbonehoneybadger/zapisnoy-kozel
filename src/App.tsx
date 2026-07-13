@@ -43,11 +43,6 @@ export default function App() {
     setScreen('home');
   };
 
-  const claimFromGame = () => {
-    quit();
-    setScreen('claim');
-  };
-
   return (
     <div className="relative mx-auto min-h-[100dvh] max-w-md overflow-hidden">
       <PremiumBackground />
@@ -61,7 +56,7 @@ export default function App() {
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             {screen === 'home' && <HomeScreen navigate={setScreen} onPlay={startGame} />}
-            {screen === 'game' && <GameScreen onExit={exitGame} onClaim={claimFromGame} />}
+            {screen === 'game' && <GameScreen onExit={exitGame} />}
             {screen === 'rules' && <RulesScreen onBack={() => setScreen('home')} />}
             {screen === 'stats' && <StatsScreen onBack={() => setScreen('home')} />}
             {screen === 'settings' && <SettingsScreen onBack={() => setScreen('home')} />}
