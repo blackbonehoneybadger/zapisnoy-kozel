@@ -15,7 +15,7 @@ interface Props {
 }
 
 const base =
-  'relative inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-[0.95rem] font-medium tracking-wide transition-all duration-300 select-none disabled:opacity-40 disabled:cursor-not-allowed';
+  'relative inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-[0.95rem] font-medium tracking-wide select-none disabled:opacity-40 disabled:cursor-not-allowed';
 
 const variants: Record<Variant, string> = {
   gold: 'text-ink-900 bg-gold-sheen shadow-gold hover:shadow-glow',

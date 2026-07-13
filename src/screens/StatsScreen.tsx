@@ -75,11 +75,11 @@ export function StatsScreen({ onBack }: Props) {
             >
               <div className="flex items-center gap-3">
                 <span
-                  className={`grid h-9 w-9 place-items-center rounded-lg text-sm font-medium ${
+                  className={`grid h-9 w-9 place-items-center rounded-lg text-[10px] font-medium uppercase tracking-wider ${
                     h.won ? 'bg-emerald-500/15 text-emerald-300' : 'bg-wine-700/20 text-wine-400'
                   }`}
                 >
-                  {h.won ? 'W' : 'L'}
+                  {h.won ? 'победа' : 'пораж.'}
                 </span>
                 <div>
                   <div className="text-sm text-white/85">

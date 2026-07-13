@@ -80,7 +80,7 @@ export function SettingsScreen({ onBack }: Props) {
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={resetStats}
-            className="w-full rounded-2xl border border-wine-500/30 bg-wine-700/25 px-6 py-4 font-medium text-wine-400 transition-colors hover:bg-wine-700/40"
+            className="w-full rounded-2xl border border-wine-500/30 bg-wine-700/25 px-6 py-4 font-medium text-wine-400 hover:bg-wine-700/40"
           >
             Сбросить статистику
           </motion.button>
@@ -128,7 +128,7 @@ function Segmented<T extends string | number>({
             key={String(o.value)}
             whileTap={{ scale: 0.95 }}
             onClick={() => onChange(o.value)}
-            className={`relative flex-1 min-w-[4rem] rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative flex-1 min-w-[4rem] rounded-xl px-3 py-2.5 text-sm font-medium ${
               active ? 'text-ink-900' : 'text-white/70 bg-white/[0.04]'
             }`}
           >
@@ -151,15 +151,15 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   return (
     <button
       onClick={() => onChange(!value)}
-      className={`relative h-8 w-14 rounded-full transition-colors ${
-        value ? 'bg-gold-sheen' : 'bg-white/10'
+      className={`relative min-h-11 min-w-[3.5rem] rounded-full ${
+        value ? 'bg-gold-sheen' : 'bg-white/[0.06]'
       }`}
     >
       <motion.span
         layout
         transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-        className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow ${
-          value ? 'left-7' : 'left-1'
+        className={`absolute top-1.5 h-6 w-6 rounded-full bg-white shadow ${
+          value ? 'left-7' : 'left-1.5'
         }`}
       />
     </button>

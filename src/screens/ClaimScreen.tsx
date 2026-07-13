@@ -70,9 +70,7 @@ export function ClaimScreen({ onBack }: Props) {
         <div className="relative mx-auto mb-4 grid h-24 w-24 place-items-center">
           <span aria-hidden className="absolute inset-0 rounded-full table-ring animate-spin-slow opacity-70" />
           <motion.div
-            animate={{ y: [0, -4, 0] }}
-            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-            className="grid h-20 w-20 place-items-center overflow-hidden rounded-full glass"
+            className="grid h-20 w-20 place-items-center overflow-hidden rounded-full glass animate-float"
           >
             {coinArtOk ? (
               <img

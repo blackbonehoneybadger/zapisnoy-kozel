@@ -15,7 +15,7 @@ const item = {
   show: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: 0.25 + i * 0.07, ease: [0.22, 1, 0.36, 1] },
+    transition: { delay: 0.25 + i * 0.07, type: 'spring' as const, stiffness: 300, damping: 24 },
   }),
 };
 
@@ -46,11 +46,11 @@ export function HomeScreen({ navigate, onPlay }: Props) {
             className="glass flex items-center gap-3 rounded-full px-4 py-2 text-xs"
           >
             <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
               <span className="text-white/70">{cups}</span>
               <span className="text-white/35">Cups</span>
             </span>
-            <span className="h-3 w-px bg-white/[0.1]" />
+            <span className="h-3 w-px bg-white/[0.07]" />
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
               <span className="text-gold-300">{doffa}</span>
@@ -158,7 +158,8 @@ export function HomeScreen({ navigate, onPlay }: Props) {
                 haptics.tap();
                 navigate(b.screen);
               }}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-white/[0.04] [&:not(:last-child)]:border-b [&:not(:last-child)]:border-white/[0.05]"
+              className="flex w-full items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.04] [&:not(:last-child)]:border-b [&:not(:last-child)]:border-white/[0.05]"
+              whileTap={{ scale: 0.99 }}
             >
               <span className="flex flex-col">
                 <span className="text-sm font-medium text-white/85">{b.label}</span>

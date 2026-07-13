@@ -64,7 +64,7 @@ export function ProfileScreen({ onBack, navigate }: Props) {
       {/* балансы */}
       <div className="mt-4 grid grid-cols-3 gap-3">
         {[
-          { label: 'Cups', value: cups, cls: 'text-emerald-300', hint: 'энергия' },
+          { label: 'Cups', value: cups, cls: 'text-gold-300', hint: 'энергия' },
           { label: 'DOFFA', value: doffa, cls: 'text-gold-300', hint: 'награда' },
           { label: 'К выводу', value: doffaClaimed, cls: 'text-white/85', hint: 'заявки' },
         ].map((c) => (

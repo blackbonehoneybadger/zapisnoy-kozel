@@ -47,7 +47,7 @@ body {
       inset 0 1px 0 rgba(255, 255, 255, 0.07);
   }
 
-  /* Фирменный градиент-текст Solana: фиолет → мята */
+  /* Фирменный градиент-текст DOFFA: амбра → охра → терракота */
   .gold-text {
     background: linear-gradient(135deg, #f2d9a0 0%, #e0a43b 45%, #bb5c3c 100%);
     -webkit-background-clip: text;
@@ -82,17 +82,17 @@ body {
     clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
   }
 
-  /* Вращающийся неоново-золотой ободок стола */
+  /* Тонкий шампань-ободок стола */
   .table-ring {
     background: conic-gradient(
       from 0deg,
       transparent 0deg,
       rgba(224, 164, 59, 0.0) 40deg,
-      rgba(236, 186, 84, 0.6) 90deg,
-      rgba(58, 94, 66, 0.4) 150deg,
+      rgba(236, 186, 84, 0.32) 90deg,
+      rgba(58, 94, 66, 0.22) 150deg,
       transparent 200deg,
       transparent 300deg,
-      rgba(236, 186, 84, 0.45) 350deg,
+      rgba(236, 186, 84, 0.24) 350deg,
       transparent 360deg
     );
     -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));

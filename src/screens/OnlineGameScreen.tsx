@@ -255,7 +255,7 @@ function SuitChooser({ onChoose, onCancel }: { onChoose: (s: Suit) => void; onCa
               onClick={() => onChoose(s)}
               className="glass flex flex-col items-center gap-1 rounded-2xl py-4"
             >
-              <span className={`text-3xl ${SUIT_IS_RED[s] ? 'text-[#d98a93]' : 'text-white'}`}>
+              <span className={`text-3xl ${SUIT_IS_RED[s] ? 'text-wine-400' : 'text-white'}`}>
                 {SUIT_SYMBOL[s]}
               </span>
               <span className="text-xs text-white/60">{SUIT_LABEL[s]}</span>
@@ -284,7 +284,7 @@ function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () =
         onClick={(e) => e.stopPropagation()}
         className="glass-strong w-full rounded-t-3xl p-5 safe-bottom"
       >
-        <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-white/20" />
+        <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-white/[0.08]" />
         {children}
       </motion.div>
     </motion.div>

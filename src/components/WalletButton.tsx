@@ -6,8 +6,9 @@ function SolanaIcon({ size = 16 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <defs>
         <linearGradient id="solGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#e0a43b" />
-          <stop offset="1" stopColor="#14f195" />
+          <stop offset="0" stopColor="#f2d9a0" />
+          <stop offset="0.55" stopColor="#e0a43b" />
+          <stop offset="1" stopColor="#3a5e42" />
         </linearGradient>
       </defs>
       <circle cx="12" cy="12" r="11" fill="url(#solGrad)" opacity="0.15" />
@@ -45,7 +46,7 @@ export function WalletButton({ className = '' }: Props) {
         onClick={handleClick}
         whileTap={{ scale: 0.97 }}
         disabled={connecting}
-        className="flex items-center gap-2 rounded-2xl glass-strong px-4 py-2.5 text-sm transition-colors hover:bg-white/[0.06] disabled:opacity-60"
+        className="flex items-center gap-2 rounded-2xl glass-strong px-4 py-2.5 text-sm hover:border-gold-500/25 disabled:opacity-60"
       >
         <SolanaIcon size={16} />
 
@@ -73,7 +74,7 @@ export function WalletButton({ className = '' }: Props) {
               exit={{ opacity: 0, x: -6 }}
               className="flex items-center gap-2"
             >
-              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
+              <span className="h-2 w-2 rounded-full bg-gold-400 shadow-[0_0_6px_rgba(224,164,59,0.45)]" />
               <span className="font-mono text-[13px] text-gold-300">{short}</span>
               {balance !== null && (
                 <span className="text-[11px] text-white/50">
