@@ -45,7 +45,7 @@ export function HomeScreen({ navigate, onPlay }: Props) {
             <img
               src="/art/doffa-logo.webp"
               alt="DOFFA"
-              className="h-[112%] w-[112%] animate-float object-cover"
+              className="h-[94%] w-[94%] animate-float object-contain"
             />
           </div>
         </motion.div>

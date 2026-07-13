@@ -1,0 +1,25 @@
+# Запуск DOFFA Crazy 8 на Replit.
+# Клонируй репозиторий как Repl (Import from GitHub) и нажми Run.
+run = "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+entrypoint = "index.html"
+modules = ["nodejs-22"]
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+# Онлайн-режим (опционально): адрес WebSocket-сервера DOFFA на Railway.
+VITE_SERVER_URL = "wss://zapisnoy-kozel-production.up.railway.app"
+VITE_SOLANA_NETWORK = "mainnet-beta"
+
+# Vite dev-сервер на 5173 → внешний порт 80.
+[[ports]]
+localPort = 5173
+externalPort = 80
+
+[deployment]
+# Продакшн-запуск на Replit Deployments: собрать и раздать статику.
+build = ["npm", "run", "build"]
+run = ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "5173"]
+deploymentTarget = "static"
+publicDir = "dist"

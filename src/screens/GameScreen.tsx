@@ -9,8 +9,8 @@ import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
 import { PremiumButton } from '../components/PremiumButton';
 import { GoatEmblem } from '../components/GoatEmblem';
+import { RewardOverlay } from '../components/RewardOverlay';
 import { useGameStore } from '../store/gameStore';
-import { Confetti, Trophy } from '../components/WinFx';
 
 interface Props {
   onExit: () => void;
@@ -231,14 +231,22 @@ export function GameScreen({ onExit }: Props) {
         )}
       </AnimatePresence>
 
-      {/* конец партии */}
+      {/* конец партии — фирменный экран победы и награды (Cups) */}
       <AnimatePresence>
         {game.phase === 'gameOver' && (
-          <GameOverOverlay
-            state={game}
+          <RewardOverlay
             won={game.winnerId === 'you'}
+            unit="Cups"
+            reward={game.winnerId === 'you' ? 100 + (game.roundNumber - 1) * 20 : undefined}
+            loserNote={
+              game.winnerId === 'you'
+                ? undefined
+                : `Победитель — ${game.players.find((p) => p.id === game.winnerId)?.name ?? '—'}.`
+            }
+            onAgain={start}
             onMenu={onExit}
-            onRestart={start}
+            againLabel="Новая партия"
+            menuLabel="В меню"
           />
         )}
       </AnimatePresence>
@@ -393,98 +401,6 @@ function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void 
     </motion.div>
   );
 }
-
-function GameOverOverlay({
-  state,
-  won,
-  onMenu,
-  onRestart,
-}: {
-  state: GameState;
-  won: boolean;
-  onMenu: () => void;
-  onRestart: () => void;
-}) {
-  const winner = state.players.find((p) => p.id === state.winnerId);
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 grid place-items-center overflow-hidden px-6"
-    >
-      <div className={`absolute inset-0 ${won ? 'bg-felt-radial' : 'bg-ink-900'}`} />
-      <div className="absolute inset-0 bg-black/55" />
-      {won && <Confetti />}
-
-      {/* пульсирующий ореол за баннером победы */}
-      {won && (
-        <motion.div
-          aria-hidden
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.12, 0.9] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          className="pointer-events-none absolute h-80 w-80 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.55), rgba(58,94,66,0.22) 55%, transparent 72%)' }}
-        />
-      )}
-
-      <motion.div
-        initial={{ scale: 0.8, y: 30 }}
-        animate={{ scale: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-        className="glass-strong relative w-full max-w-sm rounded-3xl p-7 text-center"
-      >
-        <div className="relative mx-auto mb-3 grid h-28 w-28 place-items-center">
-          {/* вращающийся орб-награда за эмблемой (место под сумму SOL в онлайне) */}
-          {won && (
-            <>
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-full table-ring animate-spin-slow opacity-80"
-              />
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -inset-2 rounded-full blur-xl animate-halo"
-                style={{ background: 'radial-gradient(circle, rgba(224,164,59,0.5), transparent 70%)' }}
-              />
-            </>
-          )}
-          <motion.div
-            animate={won ? { rotate: [0, -6, 6, 0], y: [0, -4, 0] } : {}}
-            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-            className="relative grid h-24 w-24 place-items-center rounded-3xl glass"
-          >
-            {won ? <Trophy size={60} /> : <GoatEmblem size={64} />}
-          </motion.div>
-        </div>
-        <p className="text-xs uppercase tracking-[0.3em] text-gold-500/70">
-          {won ? 'Победа' : 'Партия окончена'}
-        </p>
-        <h2 className="mt-1 font-display text-4xl">
-          {won ? <span className="gold-text">Вы выиграли!</span> : <span className="text-white/90">Вы проиграли</span>}
-        </h2>
-        <p className="mt-2 text-sm text-white/55">
-          {won
-            ? 'Вы остались последним, кто не «улетел».'
-            : `Победитель — ${winner?.name ?? '—'}.`}
-        </p>
-
-        <div className="mt-5 space-y-3">
-          <PremiumButton full onClick={onRestart}>
-            Новая партия
-          </PremiumButton>
-          <PremiumButton full variant="ghost" onClick={onMenu}>
-            В меню
-          </PremiumButton>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-
-
 
 
 function logColor(kind: string): string {
