@@ -21,18 +21,24 @@ import {
 import * as lobby from './lobby';
 import { redactFor } from './match';
 import {
-  SERVER_WALLET,
-  PLATFORM_FEE,
-  PLATFORM_WALLET,
+  getServerWallet,
+  getPlatformFee,
+  getPlatformWallet,
   sendSol,
   verifyPayment,
   verifySignature,
+  solanaNetwork,
 } from './solana.js';
+import { loadEnv, solStakesEnabled } from './env.js';
+import { createEconomy } from './services/index.js';
+
+// Валидация env при старте (AUTH_SECRET / SOLANA_* в production).
+const bootEnv = loadEnv();
+const economy = createEconomy();
+const PORT = bootEnv.PORT;
 
 const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
-
-const PORT = Number(process.env.PORT ?? 8080);
 
 // Использованные подписи платежей — защита от повторного зачёта одной транзакции.
 const USED_SIGS_PATH = resolve(here, '..', 'data', 'used_sigs.json');
@@ -178,6 +184,7 @@ function pushGame(table: lobby.Table): void {
 async function handlePayout(table: lobby.Table): Promise<void> {
   const game = table.game;
   if (!game) return;
+  if (!solStakesEnabled()) return;
   // Защита от двойной выплаты: pushGame может сработать повторно в gameOver.
   if (table.paidOut) return;
   const candidates = table.seats
@@ -191,7 +198,7 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   const humans = table.seats.filter((s) => s.userId && !s.isBot);
   // potLamports зафиксирован при старте — не уменьшается, если кто-то вышел.
   const pot = table.potLamports ?? (table.betLamports ?? 0) * humans.length;
-  const commission = Math.floor(pot * PLATFORM_FEE);
+  const commission = Math.floor(pot * getPlatformFee());
   const winnerGets = pot - commission;
 
   // Ставим флаг ДО await — чтобы параллельный вызов сразу вышел выше.
@@ -199,8 +206,10 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   try {
     const sig = await sendSol(winner.seat.walletAddress, winnerGets);
     // Опционально уводим комиссию на отдельный кошелёк площадки.
-    if (PLATFORM_WALLET && PLATFORM_WALLET !== SERVER_WALLET && commission > 0) {
-      sendSol(PLATFORM_WALLET, commission).catch((e) =>
+    const platformWallet = getPlatformWallet();
+    const serverWallet = getServerWallet();
+    if (platformWallet && platformWallet !== serverWallet && commission > 0) {
+      sendSol(platformWallet, commission).catch((e) =>
         console.error('Не удалось перевести комиссию:', e),
       );
     }
@@ -355,13 +364,16 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       break;
 
     case 'table:create': {
+      if (msg.betLamports && msg.betLamports > 0 && !solStakesEnabled()) {
+        return send(conn.ws, { t: 'error', message: 'Ставки SOL временно отключены' });
+      }
       const res = lobby.createTable(
         user,
         msg.name,
         msg.maxPlayers,
         msg.password,
         msg.betLamports,
-        msg.betLamports && msg.betLamports > 0 ? SERVER_WALLET : undefined,
+        msg.betLamports && msg.betLamports > 0 ? getServerWallet() : undefined,
       );
       if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
       conn.inLobby = false;
@@ -483,9 +495,13 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       lobby.registerWallet(user.id, msg.walletAddress);
       const walletTable = lobby.tableOf(user.id);
       if (walletTable?.betLamports && walletTable.betLamports > 0) {
+        if (!solStakesEnabled()) {
+          send(conn.ws, { t: 'error', message: 'Ставки SOL временно отключены' });
+          break;
+        }
         send(conn.ws, {
           t: 'wallet:required',
-          serverWallet: SERVER_WALLET,
+          serverWallet: getServerWallet(),
           lamports: walletTable.betLamports,
         });
       }
@@ -493,6 +509,9 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     }
 
     case 'wallet:pay': {
+      if (!solStakesEnabled()) {
+        return send(conn.ws, { t: 'error', message: 'Ставки SOL временно отключены' });
+      }
       const payTable = lobby.tableOf(user.id);
       if (!payTable || !payTable.betLamports) break;
       const paySeat = payTable.seats.find((s) => s.userId === user.id);
@@ -517,7 +536,7 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       const valid = await verifyPayment(
         msg.signature,
         payer,
-        SERVER_WALLET,
+        getServerWallet(),
         payTable.betLamports,
       );
       if (!valid) {
@@ -543,8 +562,18 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
 // ─── HTTP + WebSocket ──────────────────────────────────────────────
 const http = createServer((req, res) => {
   if (req.url === '/health') {
+    const e = loadEnv();
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, tables: lobby.lobbyList().length, online: byUser.size }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        tables: lobby.lobbyList().length,
+        online: byUser.size,
+        network: solanaNetwork(),
+        solStakes: e.SOL_STAKES_ENABLED,
+        claimEnabled: e.DOFFA_CLAIM_ENABLED,
+      }),
+    );
     return;
   }
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
@@ -605,4 +634,8 @@ wss.on('connection', (ws) => {
 
 http.listen(PORT, () => {
   console.log(`Сервер «DOFFA Crazy 8» слушает порт ${PORT}`);
+  console.log(
+    `◎ Variant A · network=${bootEnv.SOLANA_NETWORK} · solStakes=${bootEnv.SOL_STAKES_ENABLED} · claim=${bootEnv.DOFFA_CLAIM_ENABLED}`,
+  );
+  console.log(`◎ Economy · ${economy.summary}`);
 });

@@ -5,24 +5,14 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { loadEnv } from './env';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = resolve(here, '..', 'data', 'accounts.json');
 
-const DEFAULT_SECRET = 'doffa-crazy8-dev-secret-change-me';
-const RAW_SECRET = process.env.AUTH_SECRET;
-// На mainnet секрет из исходников недопустим: иначе кто угодно подделает
-// HMAC-токен и войдёт под чужим кошельком (обход подписи). Падаем явно,
-// как и SOLANA_PRIVATE_KEY.
-if (
-  process.env.SOLANA_NETWORK === 'mainnet-beta' &&
-  (!RAW_SECRET || RAW_SECRET === DEFAULT_SECRET)
-) {
-  throw new Error(
-    'AUTH_SECRET обязателен на mainnet-beta (подпись токенов сессии). Задайте длинную случайную строку в переменных окружения.',
-  );
+function authSecret(): string {
+  return loadEnv().AUTH_SECRET;
 }
-const SECRET = RAW_SECRET ?? DEFAULT_SECRET;
 
 // Срок жизни токена сессии: 30 дней. Просроченный токен не восстанавливает вход.
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -66,7 +56,7 @@ export function shortAddress(address: string): string {
 
 function makeToken(id: string): string {
   const payload = Buffer.from(`${id}.${Date.now()}`).toString('base64url');
-  const sig = createHmac('sha256', SECRET).update(payload).digest('base64url');
+  const sig = createHmac('sha256', authSecret()).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
 
@@ -74,7 +64,7 @@ export function verifyToken(token: string): string | null {
   const parts = token.split('.');
   if (parts.length !== 2) return null;
   const [payload, sig] = parts;
-  const expected = createHmac('sha256', SECRET).update(payload).digest('base64url');
+  const expected = createHmac('sha256', authSecret()).update(payload).digest('base64url');
   if (sig.length !== expected.length) return null;
   if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   const decoded = Buffer.from(payload, 'base64url').toString('utf8');

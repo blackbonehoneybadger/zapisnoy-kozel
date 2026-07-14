@@ -7,58 +7,87 @@ import {
   clusterApiUrl,
 } from '@solana/web3.js';
 import { verify as edVerify } from 'node:crypto';
+import { loadEnv, solStakesEnabled } from './env';
 
-// По умолчанию — mainnet (реальные SOL). Для тестов: SOLANA_NETWORK=devnet.
-const NETWORK = (process.env.SOLANA_NETWORK ?? 'mainnet-beta') as 'devnet' | 'mainnet-beta';
-const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl(NETWORK);
-export const connection = new Connection(RPC_URL, 'confirmed');
-
-// Комиссия площадки с банка партии (доля). По умолчанию 5%. Валидируем: мусор
-// или значение вне [0,1) дал бы NaN/отрицательную выплату → clamp к дефолту.
-function parseFee(raw: string | undefined): number {
-  const f = Number((raw ?? '0.05').trim());
-  return Number.isFinite(f) && f >= 0 && f < 1 ? f : 0.05;
+function rpcUrl(): string {
+  const e = loadEnv();
+  return e.SOLANA_RPC_URL || clusterApiUrl(e.SOLANA_NETWORK);
 }
-export const PLATFORM_FEE = parseFee(process.env.PLATFORM_FEE);
-// Куда уводить комиссию. Если не задан — остаётся на горячем кошельке сервера.
-export const PLATFORM_WALLET = process.env.PLATFORM_WALLET || '';
 
-// Серверный «горячий» кошелёк: собирает ставки, платит выигрыши.
-let serverKeypair: Keypair;
-const privKeyEnv = process.env.SOLANA_PRIVATE_KEY;
+let _connection: Connection | null = null;
+export function getConnection(): Connection {
+  if (!_connection) _connection = new Connection(rpcUrl(), 'confirmed');
+  return _connection;
+}
 
-if (privKeyEnv) {
-  try {
-    if (privKeyEnv.trim().startsWith('[')) {
-      serverKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(privKeyEnv) as number[]));
-    } else {
-      serverKeypair = Keypair.fromSecretKey(Buffer.from(privKeyEnv, 'base64'));
+/** @deprecated Предпочитайте getConnection(). Proxy для старых импортов. */
+export const connection = new Proxy({} as Connection, {
+  get(_t, prop, receiver) {
+    return Reflect.get(getConnection(), prop, receiver);
+  },
+});
+
+export function getPlatformFee(): number {
+  return loadEnv().PLATFORM_FEE;
+}
+
+export function getPlatformWallet(): string {
+  return loadEnv().PLATFORM_WALLET;
+}
+
+/** Совместимость: снимок при первом импорте. Предпочитайте getPlatformFee(). */
+export const PLATFORM_FEE = loadEnv().PLATFORM_FEE;
+export const PLATFORM_WALLET = loadEnv().PLATFORM_WALLET;
+
+let serverKeypair: Keypair | null = null;
+let loggedWallet = false;
+
+function ensureKeypair(): Keypair {
+  if (serverKeypair) return serverKeypair;
+
+  const e = loadEnv();
+  const privKeyEnv = e.SOLANA_PRIVATE_KEY.trim();
+
+  if (privKeyEnv) {
+    try {
+      if (privKeyEnv.startsWith('[')) {
+        serverKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(privKeyEnv) as number[]));
+      } else {
+        serverKeypair = Keypair.fromSecretKey(Buffer.from(privKeyEnv, 'base64'));
+      }
+    } catch (err) {
+      throw new Error(`SOLANA_PRIVATE_KEY задан, но недействителен: ${(err as Error).message}`);
     }
-  } catch (e) {
-    throw new Error(`SOLANA_PRIVATE_KEY задан, но недействителен: ${(e as Error).message}`);
+  } else if (e.SOLANA_NETWORK === 'mainnet-beta' && (e.SOL_STAKES_ENABLED || e.DOFFA_CLAIM_ENABLED)) {
+    throw new Error(
+      'SOLANA_PRIVATE_KEY обязателен на mainnet-beta при SOL_STAKES_ENABLED или DOFFA_CLAIM_ENABLED.',
+    );
+  } else {
+    serverKeypair = Keypair.generate();
+    console.log(
+      `💡 SOLANA_PRIVATE_KEY не задан (${e.SOLANA_NETWORK}, stakes=${e.SOL_STAKES_ENABLED}). Временный кошелёк: ${serverKeypair.publicKey.toBase58()}`,
+    );
   }
-} else if (NETWORK === 'mainnet-beta') {
-  // На mainnet нельзя играть с временным кошельком без баланса — падаем явно.
-  throw new Error(
-    'SOLANA_PRIVATE_KEY обязателен на mainnet-beta (горячий кошелёк для выплат). Задайте переменную окружения.',
-  );
-} else {
-  serverKeypair = Keypair.generate();
-  console.log(
-    `💡 SOLANA_PRIVATE_KEY не задан (devnet). Временный кошелёк: ${serverKeypair.publicKey.toBase58()}`,
-  );
+
+  if (!loggedWallet) {
+    loggedWallet = true;
+    console.log(
+      `◎ Solana: сеть ${e.SOLANA_NETWORK}, кошелёк сервера ${serverKeypair.publicKey.toBase58()}, комиссия ${e.PLATFORM_FEE * 100}%, stakes=${e.SOL_STAKES_ENABLED}`,
+    );
+  }
+  return serverKeypair;
 }
 
-export const SERVER_WALLET = serverKeypair.publicKey.toBase58();
-console.log(`◎ Solana: сеть ${NETWORK}, кошелёк сервера ${SERVER_WALLET}, комиссия ${PLATFORM_FEE * 100}%`);
+export function getServerWallet(): string {
+  return ensureKeypair().publicKey.toBase58();
+}
 
 /** Проверка подписи сообщения ed25519 (доказательство владения кошельком). */
 export function verifySignature(address: string, message: string, signatureB64: string): boolean {
   try {
-    const pubkeyBytes = new PublicKey(address).toBytes(); // 32 байта
+    const pubkeyBytes = new PublicKey(address).toBytes();
     const sig = Buffer.from(signatureB64, 'base64');
     if (sig.length !== 64) return false;
-    // Оборачиваем сырой ed25519-ключ в SPKI DER для node:crypto.
     const der = Buffer.concat([
       Buffer.from('302a300506032b6570032100', 'hex'),
       Buffer.from(pubkeyBytes),
@@ -74,28 +103,33 @@ export function verifySignature(address: string, message: string, signatureB64: 
   }
 }
 
+function assertStakesEnabled(op: string): void {
+  if (!solStakesEnabled()) {
+    throw new Error(`SOL stakes отключены (SOL_STAKES_ENABLED=false): ${op}`);
+  }
+}
+
 export async function sendSol(toAddress: string, lamports: number): Promise<string> {
+  assertStakesEnabled('sendSol');
+  const kp = ensureKeypair();
   const to = new PublicKey(toAddress);
-  const { blockhash } = await connection.getLatestBlockhash();
+  const { blockhash } = await getConnection().getLatestBlockhash();
   const tx = new Transaction({
     recentBlockhash: blockhash,
-    feePayer: serverKeypair.publicKey,
+    feePayer: kp.publicKey,
   }).add(
     SystemProgram.transfer({
-      fromPubkey: serverKeypair.publicKey,
+      fromPubkey: kp.publicKey,
       toPubkey: to,
       lamports,
     }),
   );
-  tx.sign(serverKeypair);
-  const signature = await connection.sendRawTransaction(tx.serialize());
+  tx.sign(kp);
+  const signature = await getConnection().sendRawTransaction(tx.serialize());
   try {
-    await connection.confirmTransaction(signature, 'confirmed');
+    await getConnection().confirmTransaction(signature, 'confirmed');
   } catch (e) {
-    // confirmTransaction мог отвалиться по таймауту RPC, ХОТЯ транзакция уже
-    // попала в сеть. Слепой повтор отправил бы вторую транзакцию — двойная
-    // выплата. Поэтому перед тем как признать неудачу, проверяем статус on-chain.
-    const st = await connection.getSignatureStatuses([signature]);
+    const st = await getConnection().getSignatureStatuses([signature]);
     const info = st.value[0];
     const landed =
       !!info &&
@@ -118,8 +152,9 @@ export async function verifyPayment(
   expectedTo: string,
   expectedLamports: number,
 ): Promise<boolean> {
+  if (!solStakesEnabled()) return false;
   try {
-    const tx = await connection.getTransaction(signature, {
+    const tx = await getConnection().getTransaction(signature, {
       commitment: 'confirmed',
       maxSupportedTransactionVersion: 0,
     });
@@ -128,7 +163,6 @@ export async function verifyPayment(
     const accounts = tx.transaction.message.staticAccountKeys ?? [];
     const fromIdx = accounts.findIndex((k) => k.toString() === expectedFrom);
     const toIdx = accounts.findIndex((k) => k.toString() === expectedTo);
-    // Обязательно: и плательщик, и получатель (кошелёк сервера) присутствуют.
     if (fromIdx === -1 || toIdx === -1) return false;
 
     const pre = tx.meta?.preBalances ?? [];
@@ -136,9 +170,12 @@ export async function verifyPayment(
     const spent = (pre[fromIdx] ?? 0) - (post[fromIdx] ?? 0);
     const received = (post[toIdx] ?? 0) - (pre[toIdx] ?? 0);
 
-    // Деньги действительно ушли от игрока И пришли на кошелёк сервера.
     return spent >= expectedLamports && received >= expectedLamports;
   } catch {
     return false;
   }
+}
+
+export function solanaNetwork(): 'devnet' | 'mainnet-beta' {
+  return loadEnv().SOLANA_NETWORK;
 }
