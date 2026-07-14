@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Card as CardType, GameState, Suit } from '../game/types';
 import { canPlayCard, hasPlayableCard } from '../game/rules';
-import { SUITS, SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../game/deck';
+import { SUITS, SUIT_LABEL } from '../game/deck';
+import { SuitGlyph } from '../components/coffee/SuitGlyph';
 import { getTakeLabel } from '../game/labels';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
@@ -253,11 +254,9 @@ function SuitChooser({ onChoose, onCancel }: { onChoose: (s: Suit) => void; onCa
               whileTap={{ scale: 0.93 }}
               whileHover={{ scale: 1.04 }}
               onClick={() => onChoose(s)}
-              className="glass flex flex-col items-center gap-1 rounded-2xl py-4"
+              className="glass flex flex-col items-center gap-1.5 rounded-2xl py-4"
             >
-              <span className={`text-3xl ${SUIT_IS_RED[s] ? 'text-[#d98a93]' : 'text-white'}`}>
-                {SUIT_SYMBOL[s]}
-              </span>
+              <SuitGlyph suit={s} size={36} />
               <span className="text-xs text-white/60">{SUIT_LABEL[s]}</span>
             </motion.button>
           ))}

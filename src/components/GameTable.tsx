@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import type { GameState, Player } from '../game/types';
-import { SUIT_SYMBOL } from '../game/deck';
+import type { GameState, Player, Suit } from '../game/types';
 import { topCard } from '../game/rules';
 import { Card } from './Card';
 import { DoffaEmblem } from './DoffaEmblem';
+import { SuitGlyph } from './coffee/SuitGlyph';
+import type { ReactNode } from 'react';
 
 interface Props {
   state: GameState;
@@ -230,10 +231,23 @@ export function GameTable({ state, youSeat }: Props) {
 
   const top = topCard(state);
   const d = state.demand;
-  let demandBadge: string | null = null;
-  if (d.drawCount > 0) demandBadge = `+${d.drawCount}`;
-  else if (d.aceSkip) demandBadge = 'Пропуск';
-  else if (d.nineSuit) demandBadge = `9·${SUIT_SYMBOL[d.nineSuit]}`;
+  let demandBadge: ReactNode = null;
+  let demandKey = '';
+  if (d.drawCount > 0) {
+    demandBadge = `+${d.drawCount}`;
+    demandKey = `draw-${d.drawCount}`;
+  } else if (d.aceSkip) {
+    demandBadge = 'Пропуск';
+    demandKey = 'skip';
+  } else if (d.nineSuit) {
+    demandBadge = (
+      <span className="inline-flex items-center gap-0.5">
+        9
+        <SuitGlyph suit={d.nineSuit as Suit} size={12} />
+      </span>
+    );
+    demandKey = `nine-${d.nineSuit}`;
+  }
 
   const isActive = (p: Player) =>
     state.players[state.currentPlayerIndex].id === p.id && state.phase === 'playing';
@@ -326,10 +340,10 @@ export function GameTable({ state, youSeat }: Props) {
 
               {demandBadge && (
                 <motion.span
-                  key={demandBadge}
+                  key={demandKey}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -right-3 -top-3 grid h-7 min-w-7 place-items-center rounded-full border border-wine-400/40 bg-wine-600 px-1.5 text-[11px] font-semibold text-white shadow-lg"
+                  className="absolute -right-3 -top-3 grid h-7 min-w-7 place-items-center rounded-full border border-wine-400/40 bg-wine-600 px-1.5 text-[11px] font-medium text-white shadow-lg"
                 >
                   {demandBadge}
                 </motion.span>
