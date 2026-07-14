@@ -1,7 +1,16 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import type { Card as CardType } from '../game/types';
+import type { Card as CardType, Rank } from '../game/types';
 import { SUIT_IS_RED } from '../game/deck';
 import { SuitIcon } from './SuitIcon';
+
+// Портреты карт-фигур (Higgsfield, винтажная гравюра в теме «история кофе»):
+// валет-докер с мешком зёрен, дама с чашкой, король-плантатор с веткой кофе.
+const FACE_ART: Partial<Record<Rank, string>> = {
+  J: '/art/faces/jack.webp',
+  Q: '/art/faces/queen.webp',
+  K: '/art/faces/king.webp',
+};
 
 interface Props {
   card?: CardType;
@@ -30,6 +39,10 @@ export function Card({
   className = '',
 }: Props) {
   const dim = small ? sizes.small : sizes.normal;
+  // Портрет карты-фигуры: если webp не загрузился, откатываемся на
+  // орнаментальную рамку с иконкой масти (заявлено до раннего return, чтобы
+  // не нарушать порядок хуков — hook должен вызываться безусловно).
+  const [portraitOk, setPortraitOk] = useState(true);
 
   if (faceDown || !card) {
     return (
@@ -115,9 +128,35 @@ export function Card({
         <SuitIcon suit={card.suit} size={iconSize} />
       </span>
 
-      {/* центр: крупная иконка масти (числовые/туз) либо декоративная
-          овальная рамка «карты-фигуры» — визуально отличает J/Q/K */}
-      {isFace ? (
+      {/* центр: крупная иконка масти (числовые/туз) либо портрет
+          «карты-фигуры» (J/Q/K) в золотой овальной рамке */}
+      {isFace && portraitOk ? (
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="relative grid place-items-center">
+            <svg
+              width={small ? 40 : 68}
+              height={small ? 52 : 88}
+              viewBox="0 0 68 88"
+              className="pointer-events-none absolute"
+              aria-hidden
+            >
+              <ellipse cx="34" cy="44" rx="31" ry="41" fill="none" stroke="#e0a43b" strokeWidth="1.6" opacity="0.85" />
+              <ellipse cx="34" cy="44" rx="27" ry="37" fill="none" stroke="#e0a43b" strokeWidth="0.6" opacity="0.4" />
+            </svg>
+            <img
+              src={FACE_ART[card.rank]}
+              alt=""
+              onError={() => setPortraitOk(false)}
+              className="relative object-cover"
+              style={{
+                width: small ? '34px' : '58px',
+                height: small ? '44px' : '75px',
+                clipPath: 'ellipse(47% 47% at 50% 50%)',
+              }}
+            />
+          </span>
+        </span>
+      ) : isFace ? (
         <span className="absolute inset-0 grid place-items-center">
           <span className="relative grid place-items-center">
             <svg
