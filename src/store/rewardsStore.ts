@@ -12,6 +12,7 @@
 // на сервере; клиент будет синхронизировать его через `setServerRewards`.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isOnlineConnected, sendOnline } from '../net/wsBridge';
 
 /** Тренировочные Cups за любую офлайн-партию против ботов. */
 export const CUPS_PER_GAME = 10;
@@ -26,6 +27,13 @@ export interface RewardEntry {
   note: string;
 }
 
+export interface ServerRewardItem {
+  id: string;
+  amount: number;
+  matchId: string;
+  status: string;
+}
+
 export interface RewardsState {
   /** Игровая энергия (кэш; серверная истина — этап 3+). */
   cups: number;
@@ -37,6 +45,8 @@ export interface RewardsState {
   claimWallet: string | null;
   /** Тренировочные Cups последней офлайн-победы — для оверлея. */
   lastTrainingCups: number;
+  /** Серверные available-награды (для reward:claim). */
+  available: ServerRewardItem[];
   history: RewardEntry[];
   /**
    * Офлайн-тренировка против ботов: начисляет ТОЛЬКО тренировочные Cups.
@@ -44,14 +54,15 @@ export interface RewardsState {
    */
   awardTraining: (won: boolean) => number;
   /**
-   * Синхронизация с сервером (этап 3+): единственный легитимный способ
-   * изменить баланс DOFFA/Cups на клиенте. Пока сервер не шлёт эти данные —
-   * не вызывается.
+   * Синхронизация с сервером: единственный легитимный способ изменить DOFFA/Cups
+   * и список available-наград на клиенте.
    */
-  setServerRewards: (r: Partial<Pick<RewardsState, 'cups' | 'doffa' | 'doffaClaimed'>>) => void;
+  setServerRewards: (
+    r: Partial<Pick<RewardsState, 'cups' | 'doffa' | 'doffaClaimed' | 'available'>>,
+  ) => void;
   /**
-   * Кэш-отметка о заявке на вывод. НАСТОЯЩИЙ Claim выполняет сервер (этап 4+);
-   * здесь только локальное отражение статуса. Возвращает сумму заявки.
+   * Кэш-отметка о заявке на вывод. НАСТОЯЩИЙ Claim выполняет сервер (mock пока
+   * DOFFA_CLAIM_ENABLED=false). Здесь только локальное отражение + отправка WS.
    */
   claim: (wallet: string) => number;
   reset: () => void;
@@ -69,6 +80,7 @@ export const useRewardsStore = create<RewardsState>()(
       doffaClaimed: 0,
       claimWallet: null,
       lastTrainingCups: 0,
+      available: [],
       history: [],
 
       awardTraining: (won) => {
@@ -89,25 +101,54 @@ export const useRewardsStore = create<RewardsState>()(
           cups: r.cups ?? s.cups,
           doffa: r.doffa ?? s.doffa,
           doffaClaimed: r.doffaClaimed ?? s.doffaClaimed,
+          available: r.available ?? s.available,
         })),
 
       claim: (wallet) => {
-        const amount = get().doffa;
+        const s = get();
+        const amount = s.doffa;
         if (amount <= 0) return 0;
-        set((s) => ({
+
+        // Онлайн: серверный mock-claim (DOFFA_CLAIM_ENABLED=false → testMode).
+        if (isOnlineConnected() && s.available.length > 0) {
+          const reward = s.available[0];
+          const idempotencyKey = `claim:${reward.id}:${wallet}`;
+          sendOnline({ t: 'reward:claim', rewardId: reward.id, idempotencyKey });
+          // Оптимистичный кэш — финальный список придёт в reward:list.
+          set({
+            doffa: Math.max(0, s.doffa - reward.amount),
+            doffaClaimed: s.doffaClaimed + reward.amount,
+            claimWallet: wallet,
+            history: [
+              entry('claim', reward.amount, `Заявка · ${wallet.slice(0, 4)}…${wallet.slice(-4)}`),
+              ...s.history,
+            ].slice(0, 50),
+          });
+          return reward.amount;
+        }
+
+        set((st) => ({
           doffa: 0,
-          doffaClaimed: s.doffaClaimed + amount,
+          doffaClaimed: st.doffaClaimed + amount,
           claimWallet: wallet,
           history: [
             entry('claim', amount, `Заявка на вывод · ${wallet.slice(0, 4)}…${wallet.slice(-4)}`),
-            ...s.history,
+            ...st.history,
           ].slice(0, 50),
         }));
         return amount;
       },
 
       reset: () =>
-        set({ cups: 0, doffa: 0, doffaClaimed: 0, claimWallet: null, lastTrainingCups: 0, history: [] }),
+        set({
+          cups: 0,
+          doffa: 0,
+          doffaClaimed: 0,
+          claimWallet: null,
+          lastTrainingCups: 0,
+          available: [],
+          history: [],
+        }),
     }),
     // v2: сбрасываем прежний кэш, где офлайн-победы нелегитимно копили DOFFA.
     { name: 'doffa-crazy8-rewards-v2' },

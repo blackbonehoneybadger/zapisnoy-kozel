@@ -21,18 +21,25 @@ import {
 import * as lobby from './lobby';
 import { redactFor } from './match';
 import {
-  SERVER_WALLET,
-  PLATFORM_FEE,
-  PLATFORM_WALLET,
+  getServerWallet,
+  getPlatformFee,
+  getPlatformWallet,
   sendSol,
   verifyPayment,
   verifySignature,
+  solanaNetwork,
 } from './solana.js';
+import { loadEnv, solStakesEnabled } from './env.js';
+import { createEconomy } from './services/index.js';
+import { CUPS_ENTRY_FEE } from './config.js';
+
+// Валидация env при старте (AUTH_SECRET / SOLANA_* в production).
+const bootEnv = loadEnv();
+const economy = createEconomy();
+const PORT = bootEnv.PORT;
 
 const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
-
-const PORT = Number(process.env.PORT ?? 8080);
 
 // Использованные подписи платежей — защита от повторного зачёта одной транзакции.
 const USED_SIGS_PATH = resolve(here, '..', 'data', 'used_sigs.json');
@@ -170,14 +177,68 @@ function pushGame(table: lobby.Table): void {
     if (!seat.userId) continue;
     sendToUser(seat.userId, { t: 'game', state: redactFor(table.game, i), youSeat: i });
   }
-  if (table.game.phase === 'gameOver' && table.betLamports && table.betLamports > 0) {
-    void handlePayout(table);
+  if (table.game.phase === 'gameOver') {
+    void handleEconomyAward(table);
+    if (table.betLamports && table.betLamports > 0) {
+      void handlePayout(table);
+    }
+  }
+}
+
+/** Награда DOFFA за победу человека (не бота). Идемпотентно по matchId. */
+async function handleEconomyAward(table: lobby.Table): Promise<void> {
+  const game = table.game;
+  if (!game || game.phase !== 'gameOver') return;
+
+  const seated = table.seats
+    .map((seat, i) => ({ seat, player: game.players[i], i }))
+    .filter((x) => x.seat.userId && !x.seat.isBot && x.player);
+
+  const alive = seated.filter((x) => !x.player.busted);
+  if (alive.length === 0) return;
+  alive.sort((a, b) => a.player.score - b.player.score);
+  const winner = alive[0];
+  // Только люди — бот не получает DOFFA.
+  if (!winner.seat.userId || winner.seat.isBot) return;
+
+  const matchId = `${table.id}:r${game.roundNumber}:w${winner.seat.userId}`;
+  const players = seated.map((x) => x.seat.userId!).filter(Boolean);
+  try {
+    await economy.rewards.ensureUser(winner.seat.userId, winner.seat.walletAddress ?? winner.seat.userId);
+    const { reward } = await economy.rewards.recordMatchResult({
+      matchId,
+      players,
+      winnerId: winner.seat.userId,
+      winnerWallet: winner.seat.walletAddress ?? winner.seat.userId,
+      startedAt: Date.now() - 60_000,
+      finishedAt: Date.now(),
+      cupsEntryFee: CUPS_ENTRY_FEE,
+    });
+    if (reward) {
+      const available = await economy.rewards.listAvailable(winner.seat.userId);
+      const u = await economy.repositories.users.get(winner.seat.userId);
+      sendToUser(winner.seat.userId, {
+        t: 'reward:list',
+        available: available.map((r) => ({
+          id: r.id,
+          amount: r.amount,
+          matchId: r.matchId,
+          status: r.status,
+        })),
+        pendingDoffa: u?.pendingDoffa ?? 0,
+        claimedDoffa: u?.claimedDoffa ?? 0,
+        cups: u?.cupsBalance ?? 0,
+      });
+    }
+  } catch (e) {
+    console.error('economy award failed:', e);
   }
 }
 
 async function handlePayout(table: lobby.Table): Promise<void> {
   const game = table.game;
   if (!game) return;
+  if (!solStakesEnabled()) return;
   // Защита от двойной выплаты: pushGame может сработать повторно в gameOver.
   if (table.paidOut) return;
   const candidates = table.seats
@@ -191,7 +252,7 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   const humans = table.seats.filter((s) => s.userId && !s.isBot);
   // potLamports зафиксирован при старте — не уменьшается, если кто-то вышел.
   const pot = table.potLamports ?? (table.betLamports ?? 0) * humans.length;
-  const commission = Math.floor(pot * PLATFORM_FEE);
+  const commission = Math.floor(pot * getPlatformFee());
   const winnerGets = pot - commission;
 
   // Ставим флаг ДО await — чтобы параллельный вызов сразу вышел выше.
@@ -199,8 +260,10 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   try {
     const sig = await sendSol(winner.seat.walletAddress, winnerGets);
     // Опционально уводим комиссию на отдельный кошелёк площадки.
-    if (PLATFORM_WALLET && PLATFORM_WALLET !== SERVER_WALLET && commission > 0) {
-      sendSol(PLATFORM_WALLET, commission).catch((e) =>
+    const platformWallet = getPlatformWallet();
+    const serverWallet = getServerWallet();
+    if (platformWallet && platformWallet !== serverWallet && commission > 0) {
+      sendSol(platformWallet, commission).catch((e) =>
         console.error('Не удалось перевести комиссию:', e),
       );
     }
@@ -355,13 +418,16 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       break;
 
     case 'table:create': {
+      if (msg.betLamports && msg.betLamports > 0 && !solStakesEnabled()) {
+        return send(conn.ws, { t: 'error', message: 'Ставки SOL временно отключены' });
+      }
       const res = lobby.createTable(
         user,
         msg.name,
         msg.maxPlayers,
         msg.password,
         msg.betLamports,
-        msg.betLamports && msg.betLamports > 0 ? SERVER_WALLET : undefined,
+        msg.betLamports && msg.betLamports > 0 ? getServerWallet() : undefined,
       );
       if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
       conn.inLobby = false;
@@ -407,8 +473,39 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
           return send(conn.ws, { t: 'error', message: 'Не все игроки оплатили ставку' });
         }
       }
+      // Cups/зёрна: вход только если сервер списал баланс у каждого человека.
+      const spent: string[] = [];
+      if (startTable) {
+        const humans = startTable.seats.filter((s) => s.userId && !s.isBot);
+        for (const seat of humans) {
+          const bal = await economy.beans.balance(seat.userId!);
+          const spend = await economy.beans.spendEntry(seat.userId!);
+          if (!spend.ok) {
+            for (const uid of spent) {
+              await economy.repositories.users.adjustCups(uid, CUPS_ENTRY_FEE);
+            }
+            return send(conn.ws, {
+              t: 'error',
+              message: spend.message ?? `Игроку ${seat.name} не хватает зёрен (${CUPS_ENTRY_FEE})`,
+            });
+          }
+          spent.push(seat.userId!);
+          sendToUser(seat.userId!, {
+            t: 'beans:state',
+            beans: spend.beans,
+            energy: bal.energy,
+            totalTaps: bal.totalTaps,
+            entryFee: CUPS_ENTRY_FEE,
+          });
+        }
+      }
       const res = lobby.startGame(user.id);
-      if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
+      if (!res.ok || !res.table) {
+        for (const uid of spent) {
+          await economy.repositories.users.adjustCups(uid, CUPS_ENTRY_FEE);
+        }
+        return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
+      }
       pushTable(res.table);
       pushGame(res.table);
       pushLobby();
@@ -483,9 +580,13 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       lobby.registerWallet(user.id, msg.walletAddress);
       const walletTable = lobby.tableOf(user.id);
       if (walletTable?.betLamports && walletTable.betLamports > 0) {
+        if (!solStakesEnabled()) {
+          send(conn.ws, { t: 'error', message: 'Ставки SOL временно отключены' });
+          break;
+        }
         send(conn.ws, {
           t: 'wallet:required',
-          serverWallet: SERVER_WALLET,
+          serverWallet: getServerWallet(),
           lamports: walletTable.betLamports,
         });
       }
@@ -493,6 +594,9 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     }
 
     case 'wallet:pay': {
+      if (!solStakesEnabled()) {
+        return send(conn.ws, { t: 'error', message: 'Ставки SOL временно отключены' });
+      }
       const payTable = lobby.tableOf(user.id);
       if (!payTable || !payTable.betLamports) break;
       const paySeat = payTable.seats.find((s) => s.userId === user.id);
@@ -517,7 +621,7 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       const valid = await verifyPayment(
         msg.signature,
         payer,
-        SERVER_WALLET,
+        getServerWallet(),
         payTable.betLamports,
       );
       if (!valid) {
@@ -537,14 +641,108 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       }
       break;
     }
+
+    case 'reward:list': {
+      await economy.rewards.ensureUser(user.id, user.id);
+      const available = await economy.rewards.listAvailable(user.id);
+      const u = await economy.repositories.users.get(user.id);
+      send(conn.ws, {
+        t: 'reward:list',
+        available: available.map((r) => ({
+          id: r.id,
+          amount: r.amount,
+          matchId: r.matchId,
+          status: r.status,
+        })),
+        pendingDoffa: u?.pendingDoffa ?? 0,
+        claimedDoffa: u?.claimedDoffa ?? 0,
+        cups: u?.cupsBalance ?? 0,
+      });
+      break;
+    }
+
+    case 'reward:claim': {
+      // Claim остаётся mock, пока DOFFA_CLAIM_ENABLED=false (следующий этап — SPL).
+      await economy.rewards.ensureUser(user.id, user.id);
+      const outcome = await economy.claims.claim({
+        userId: user.id,
+        rewardId: msg.rewardId,
+        walletAddress: user.id,
+        idempotencyKey: msg.idempotencyKey,
+      });
+      send(conn.ws, {
+        t: 'reward:claim:result',
+        ok: outcome.ok,
+        status: outcome.status,
+        testMode: outcome.testMode,
+        message: outcome.message,
+        rewardId: msg.rewardId,
+      });
+      break;
+    }
+
+    case 'beans:balance': {
+      const bal = await economy.beans.balance(user.id);
+      send(conn.ws, {
+        t: 'beans:state',
+        beans: bal.beans,
+        energy: bal.energy,
+        totalTaps: bal.totalTaps,
+        entryFee: bal.entryFee,
+      });
+      break;
+    }
+
+    case 'beans:tap': {
+      const result = await economy.beans.tap(user.id, msg.count ?? 1);
+      send(conn.ws, {
+        t: 'beans:state',
+        beans: result.beans,
+        energy: result.energy,
+        totalTaps: result.totalTaps,
+        entryFee: CUPS_ENTRY_FEE,
+        gained: result.gained,
+        combo: result.combo,
+        multiplier: result.multiplier,
+        golden: result.golden,
+        empty: result.empty,
+      });
+      break;
+    }
+
+    case 'beans:spendEntry': {
+      const spend = await economy.beans.spendEntry(user.id);
+      if (!spend.ok) {
+        send(conn.ws, { t: 'error', message: spend.message ?? 'Не хватает зёрен' });
+      }
+      const bal = await economy.beans.balance(user.id);
+      send(conn.ws, {
+        t: 'beans:state',
+        beans: bal.beans,
+        energy: bal.energy,
+        totalTaps: bal.totalTaps,
+        entryFee: bal.entryFee,
+      });
+      break;
+    }
   }
 }
 
 // ─── HTTP + WebSocket ──────────────────────────────────────────────
 const http = createServer((req, res) => {
   if (req.url === '/health') {
+    const e = loadEnv();
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, tables: lobby.lobbyList().length, online: byUser.size }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        tables: lobby.lobbyList().length,
+        online: byUser.size,
+        network: solanaNetwork(),
+        solStakes: e.SOL_STAKES_ENABLED,
+        claimEnabled: e.DOFFA_CLAIM_ENABLED,
+      }),
+    );
     return;
   }
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
@@ -605,4 +803,8 @@ wss.on('connection', (ws) => {
 
 http.listen(PORT, () => {
   console.log(`Сервер «DOFFA Crazy 8» слушает порт ${PORT}`);
+  console.log(
+    `◎ Variant A · network=${bootEnv.SOLANA_NETWORK} · solStakes=${bootEnv.SOL_STAKES_ENABLED} · claim=${bootEnv.DOFFA_CLAIM_ENABLED}`,
+  );
+  console.log(`◎ Economy · ${economy.summary}`);
 });

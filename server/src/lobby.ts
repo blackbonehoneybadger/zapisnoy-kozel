@@ -6,6 +6,7 @@ import { applyMove, startNextRound } from '../../src/game/engine';
 import { decideBotMove } from '../../src/game/bots';
 import { createMatch, type SeatAssignment } from './match';
 import type { LobbyTable, TableView } from './protocol';
+import { solStakesEnabled } from './env';
 
 const BOT_NAMES = ['Бот Мира', 'Бот Лев', 'Бот Ника'];
 
@@ -124,6 +125,9 @@ export function createTable(
   const safeMax = ([2, 3, 4].includes(maxPlayers) ? maxPlayers : 4) as 2 | 3 | 4;
   const cleanName = (name || '').trim() || `Стол ${user.name}`;
   const bet = sanitizeBet(betLamports);
+  if (bet && !solStakesEnabled()) {
+    return { ok: false, error: 'Ставки SOL временно отключены' };
+  }
   const seats: SeatAssignment[] = Array.from({ length: safeMax }, emptySeat);
   // id пользователя = адрес кошелька, поэтому сразу годится для выплат.
   seats[0] = { userId: user.id, name: user.name, isBot: false, walletAddress: user.id };

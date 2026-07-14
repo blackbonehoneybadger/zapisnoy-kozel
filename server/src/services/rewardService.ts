@@ -23,6 +23,9 @@ export class RewardService {
         cupsBalance: 0,
         pendingDoffa: 0,
         claimedDoffa: 0,
+        energy: 1000,
+        lastEnergyTs: this.now(),
+        totalTaps: 0,
         createdAt: this.now(),
         banned: false,
       };

@@ -9,7 +9,7 @@
 //                              accounts и настроенный Reward Vault. Включается
 //                              только при DOFFA_CLAIM_ENABLED=true.
 import { randomBytes } from 'node:crypto';
-import { DOFFA_CLAIM_ENABLED, DOFFA_REWARD_WALLET_ADDRESS, DOFFA_REWARD_WALLET_PRIVATE_KEY } from '../config';
+import { loadEnv } from '../env';
 
 export interface SendResult {
   signature: string;
@@ -56,8 +56,11 @@ export class SolanaSplTransactionProvider implements TransactionProvider {
 /**
  * Выбирает провайдера по конфигурации. Реальный провайдер включается ТОЛЬКО
  * при DOFFA_CLAIM_ENABLED=true и заданном горячем кошельке; иначе — mock.
+ * Variant A: claim по умолчанию выключен.
  */
 export function createTransactionProvider(): TransactionProvider {
-  const ready = DOFFA_CLAIM_ENABLED && !!DOFFA_REWARD_WALLET_PRIVATE_KEY && !!DOFFA_REWARD_WALLET_ADDRESS;
+  const e = loadEnv();
+  const ready =
+    e.DOFFA_CLAIM_ENABLED && !!e.DOFFA_REWARD_WALLET_PRIVATE_KEY && !!e.DOFFA_REWARD_WALLET_ADDRESS;
   return ready ? new SolanaSplTransactionProvider() : new MockTransactionProvider();
 }

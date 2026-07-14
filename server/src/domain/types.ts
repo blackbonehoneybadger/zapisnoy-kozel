@@ -23,12 +23,18 @@ export interface DoffaUser {
   telegramId?: string;
   /** Подключённый Solana-кошелёк (получатель DOFFA). */
   walletAddress?: string;
-  /** Игровая энергия (авторитетно на сервере). */
+  /** Игровая энергия / зёрна (авторитетно на сервере). */
   cupsBalance: number;
   /** Накопленный доступный DOFFA (сумма available-наград). */
   pendingDoffa: number;
   /** Суммарно выплаченный DOFFA. */
   claimedDoffa: number;
+  /** Энергия тапалки. */
+  energy?: number;
+  /** ms эпохи последнего пересчёта энергии. */
+  lastEnergyTs?: number;
+  /** Всего серверных тапов. */
+  totalTaps?: number;
   createdAt: number;
   banned: boolean;
 }
