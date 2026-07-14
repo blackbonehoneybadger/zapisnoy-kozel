@@ -1,0 +1,33 @@
+name: fetch-assets (temporary)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download candidate images
+        run: |
+          set -e
+          mkdir -p public/art/_gen
+          curl -sSL -o public/art/_gen/card-back-a.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_012445_6c90dcdf-db2d-4087-a527-34f7eb4c83b5.png"
+          curl -sSL -o public/art/_gen/card-back-b.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_012445_c427e6c0-0b32-4abc-a89c-a8e7a4713f76.png"
+          curl -sSL -o public/art/_gen/paper-a.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_012452_fdfcdc84-3e7f-454e-a537-b5e974c9b650.png"
+          curl -sSL -o public/art/_gen/paper-b.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_012452_40db80ea-dd12-4a9f-8480-f8d999937cb6.png"
+          ls -la public/art/_gen
+
+      - name: Commit assets
+        run: |
+          git config user.name "asset-fetch-bot"
+          git config user.email "actions@github.com"
+          git add public/art/_gen
+          git commit -m "chore: fetch DOFFA coffee-history card assets (temporary)" || echo "no changes"
+          git push
