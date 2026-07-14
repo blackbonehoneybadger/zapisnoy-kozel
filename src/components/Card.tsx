@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import type { Card as CardType } from '../game/types';
-import { SUIT_IS_RED, SUIT_SYMBOL } from '../game/deck';
+import { SUIT_IS_RED } from '../game/deck';
+import { SuitIcon } from './SuitIcon';
 
 interface Props {
   card?: CardType;
@@ -52,11 +53,14 @@ export function Card({
   }
 
   const red = SUIT_IS_RED[card.suit];
-  const symbol = SUIT_SYMBOL[card.suit];
   // Винтажные чернила: тёплый бургунд вместо кислотно-красного, эспрессо
   // вместо типографской черноты — читаются как «красная/чёрная» масть,
   // но в палитре истории кофе.
   const color = red ? 'text-[#8c3229]' : 'text-[#2e2015]';
+  const isFace = card.rank === 'J' || card.rank === 'Q' || card.rank === 'K';
+  const iconSize = small ? 9 : 12;
+  const centerIconSize = small ? 26 : 44;
+  const faceIconSize = small ? 22 : 38;
 
   return (
     <motion.button
@@ -106,24 +110,40 @@ export function Card({
         />
       )}
 
-      <span className={`absolute left-1.5 top-1 flex flex-col items-center leading-none ${color}`}>
+      <span className={`absolute left-1.5 top-1 flex flex-col items-center gap-0.5 leading-none ${color}`}>
         <span className="font-semibold tracking-tight">{card.rank}</span>
-        <span className={small ? 'text-[10px]' : 'text-sm'}>{symbol}</span>
+        <SuitIcon suit={card.suit} size={iconSize} />
       </span>
 
-      <span
-        className={`absolute inset-0 grid place-items-center ${color} ${
-          small ? 'text-2xl' : 'text-[2.6rem]'
-        } opacity-90 drop-shadow-[0_1px_0_rgba(0,0,0,0.06)]`}
-      >
-        {symbol}
-      </span>
+      {/* центр: крупная иконка масти (числовые/туз) либо декоративная
+          овальная рамка «карты-фигуры» — визуально отличает J/Q/K */}
+      {isFace ? (
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="relative grid place-items-center">
+            <svg
+              width={small ? 40 : 68}
+              height={small ? 52 : 88}
+              viewBox="0 0 68 88"
+              className="absolute opacity-80"
+              aria-hidden
+            >
+              <ellipse cx="34" cy="44" rx="30" ry="40" fill="rgba(224,164,59,0.07)" stroke="#e0a43b" strokeWidth="1.4" />
+              <ellipse cx="34" cy="44" rx="24" ry="33" fill="none" stroke="#e0a43b" strokeWidth="0.6" opacity="0.5" />
+            </svg>
+            <SuitIcon suit={card.suit} size={faceIconSize} className="relative drop-shadow-[0_1px_0_rgba(0,0,0,0.08)]" />
+          </span>
+        </span>
+      ) : (
+        <span className="absolute inset-0 grid place-items-center opacity-90 drop-shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+          <SuitIcon suit={card.suit} size={centerIconSize} />
+        </span>
+      )}
 
       <span
-        className={`absolute bottom-1 right-1.5 flex rotate-180 flex-col items-center leading-none ${color}`}
+        className={`absolute bottom-1 right-1.5 flex rotate-180 flex-col items-center gap-0.5 leading-none ${color}`}
       >
         <span className="font-semibold tracking-tight">{card.rank}</span>
-        <span className={small ? 'text-[10px]' : 'text-sm'}>{symbol}</span>
+        <SuitIcon suit={card.suit} size={iconSize} />
       </span>
     </motion.button>
   );
