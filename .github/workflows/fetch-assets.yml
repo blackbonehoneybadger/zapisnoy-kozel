@@ -1,0 +1,32 @@
+name: fetch-assets (temporary)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download candidate images
+        run: |
+          set -e
+          mkdir -p public/art/_gen
+          curl -sSL -o public/art/_gen/king.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_014213_11213627-33ab-48ee-ab15-f809147312f8.png"
+          curl -sSL -o public/art/_gen/jack.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_121930_88a025e8-7886-4262-8740-06630a72b3be.png"
+          curl -sSL -o public/art/_gen/queen.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_121942_e186e1c1-d0ae-4720-a23d-c337b9eb7b9e.png"
+          ls -la public/art/_gen
+
+      - name: Commit assets
+        run: |
+          git config user.name "asset-fetch-bot"
+          git config user.email "actions@github.com"
+          git add public/art/_gen
+          git commit -m "chore: fetch DOFFA face-card portraits (temporary)" || echo "no changes"
+          git push
