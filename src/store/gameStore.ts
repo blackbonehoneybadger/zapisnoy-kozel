@@ -34,6 +34,11 @@ interface GameStore {
 
 let botTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Бот «думает» 3–5 секунд — ощущается как живой соперник, а не автомат. */
+function botThinkDelay(): number {
+  return 3000 + Math.random() * 2000;
+}
+
 function clearBotTimer(): void {
   if (botTimer) {
     clearTimeout(botTimer);
@@ -129,7 +134,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!mover.isBot) return;
       const action = decideBotMove(cur, cur.settings.difficulty);
       commit(applyMove(cur, action));
-    }, 850);
+    }, botThinkDelay());
   }
 
   return {

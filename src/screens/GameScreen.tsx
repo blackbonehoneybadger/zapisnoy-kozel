@@ -28,18 +28,6 @@ export function GameScreen({ onExit }: Props) {
   const [queenCard, setQueenCard] = useState<CardType | null>(null);
   const [showScore, setShowScore] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
-  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
-
-  // Тост на яркие события (спец-карты, штрафы, победы).
-  useEffect(() => {
-    if (!game) return;
-    const last = game.log[0];
-    if (last && last.kind !== 'info') {
-      setToast({ id: last.id, text: last.text });
-      const t = setTimeout(() => setToast(null), 2200);
-      return () => clearTimeout(t);
-    }
-  }, [game?.log[0]?.id]);
 
   if (!game) return null;
 
@@ -148,23 +136,6 @@ export function GameScreen({ onExit }: Props) {
           {takeLabel.button}
         </PremiumButton>
       </div>
-
-      {/* тост события */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            key={toast.id}
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="pointer-events-none absolute left-1/2 top-20 z-30 w-[88%] max-w-sm -translate-x-1/2"
-          >
-            <div className="glass-strong rounded-2xl px-4 py-3 text-center text-sm text-white/90">
-              {toast.text}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* выбор масти дамой */}
       <AnimatePresence>

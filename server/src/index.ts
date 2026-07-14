@@ -238,6 +238,11 @@ async function handlePayout(table: lobby.Table): Promise<void> {
   }
 }
 
+/** Бот «думает» 3–5 секунд — ощущается как живой соперник, а не автомат. */
+function botThinkDelay(): number {
+  return 3000 + Math.random() * 2000;
+}
+
 // Гоняет ходы ботов с «живой» задержкой, пока очередь не дойдёт до человека.
 function pumpBots(tableId: string): void {
   clearTimeout(botTimers.get(tableId));
@@ -251,7 +256,7 @@ function pumpBots(tableId: string): void {
       pushGame(changed);
       pumpBots(tableId);
     }
-  }, 850);
+  }, botThinkDelay());
   botTimers.set(tableId, timer);
 }
 

@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { GameState, Player } from '../game/types';
+import type { GameEventFlag, GameState, Player } from '../game/types';
 import { SUIT_SYMBOL } from '../game/deck';
 import { topCard } from '../game/rules';
+import { actionLabel } from '../game/labels';
 import { Card } from './Card';
 import { DoffaEmblem } from './DoffaEmblem';
 
@@ -23,15 +25,55 @@ function seatClass(i: number, count: number): string {
   );
 }
 
-/** Светящаяся гексагональная рамка соперника: имя сверху, крупный счёт снизу, чип статуса. */
+/**
+ * Короткая (маленькие буквы, авто-исчезает) подпись действия — держится
+ * зарезервированное место в потоке (не absolute), поэтому никогда не
+ * обрезается овалом стола (overflow-hidden) и не сдвигает соседей.
+ */
+function ActionTag({ event }: { event: GameEventFlag | null }) {
+  const [shown, setShown] = useState<GameEventFlag | null>(null);
+
+  useEffect(() => {
+    if (!event) return;
+    setShown(event);
+    const t = setTimeout(() => setShown(null), 2000);
+    return () => clearTimeout(t);
+  }, [event?.ts]);
+
+  const label = shown ? actionLabel(shown) : '';
+
+  return (
+    <div className="mb-0.5 h-3 leading-none">
+      <AnimatePresence mode="wait">
+        {shown && label && (
+          <motion.span
+            key={shown.ts}
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -3 }}
+            transition={{ duration: 0.2 }}
+            className="inline-block whitespace-nowrap rounded-full border border-gold-600/25 bg-ink-900/80 px-1.5 py-[1px] text-[8px] font-medium text-gold-200/90"
+          >
+            {label}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** Светящаяся гексагональная рамка соперника: короткая подпись действия
+ *  сверху, имя, крупный счёт снизу, чип статуса. */
 function OpponentSeat({
   player,
   active,
   drawCount,
+  event,
 }: {
   player: Player;
   active: boolean;
   drawCount: number;
+  event: GameEventFlag | null;
 }) {
   let chip: { text: string; tone: 'turn' | 'penalty' | 'busted' } | null = null;
   if (player.busted) chip = { text: 'улетел', tone: 'busted' };
@@ -40,6 +82,8 @@ function OpponentSeat({
 
   return (
     <div className={`flex flex-col items-center gap-1 ${player.busted ? 'opacity-40' : ''}`}>
+      {/* короткая подпись последнего действия — над игроком, маленькими буквами */}
+      <ActionTag event={event} />
       {/* имя */}
       <div
         className={`max-w-[5rem] truncate text-[10px] font-medium tracking-wide ${
@@ -300,6 +344,7 @@ export function GameTable({ state, youSeat }: Props) {
             player={player}
             active={isActive(player)}
             drawCount={isActive(player) ? d.drawCount : 0}
+            event={state.lastEvent?.playerId === player.id ? state.lastEvent : null}
           />
         </div>
       ))}
