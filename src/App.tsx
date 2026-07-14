@@ -9,6 +9,8 @@ import { OnlineScreen } from './screens/OnlineScreen';
 import { ClaimScreen } from './screens/ClaimScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { BeansScreen } from './screens/BeansScreen';
+import { BottomNav } from './components/BottomNav';
 import { useGameStore } from './store/gameStore';
 
 export type Screen =
@@ -20,7 +22,11 @@ export type Screen =
   | 'online'
   | 'claim'
   | 'rewards'
-  | 'profile';
+  | 'profile'
+  | 'beans';
+
+/** Экраны-хабы, на которых показывается нижнее меню. */
+const HUB_SCREENS: Screen[] = ['home', 'beans', 'rewards', 'profile'];
 
 const transition = {
   initial: { opacity: 0, scale: 0.98, y: 12 },
@@ -43,6 +49,8 @@ export default function App() {
     setScreen('home');
   };
 
+  const showNav = HUB_SCREENS.includes(screen);
+
   return (
     <div className="relative mx-auto min-h-[100dvh] max-w-md overflow-hidden">
       <PremiumBackground />
@@ -54,6 +62,8 @@ export default function App() {
             animate={transition.animate}
             exit={transition.exit}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            // отступ снизу под фиксированное меню на хабовых экранах
+            className={showNav ? 'pb-24' : ''}
           >
             {screen === 'home' && <HomeScreen navigate={setScreen} onPlay={startGame} />}
             {screen === 'game' && <GameScreen onExit={exitGame} />}
@@ -66,9 +76,14 @@ export default function App() {
             {screen === 'profile' && (
               <ProfileScreen onBack={() => setScreen('home')} navigate={setScreen} />
             )}
+            {screen === 'beans' && (
+              <BeansScreen navigate={setScreen} onPlay={() => setScreen('online')} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {showNav && <BottomNav screen={screen} navigate={setScreen} />}
     </div>
   );
 }
