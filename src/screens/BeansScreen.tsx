@@ -100,8 +100,8 @@ export function BeansScreen({ navigate, onPlay }: Props) {
       {/* ВЕРХНЯЯ ЗОНА: баланс зёрен + энергия */}
       <div className="relative z-10 flex items-center justify-between gap-3">
         <div className="glass-strong flex items-center gap-2.5 rounded-2xl px-3.5 py-2">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-gold-sheen text-ink-900">
-            <BeanIcon />
+          <span className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-gold-sheen">
+            <img src="/art/bean.webp" alt="" className="h-6 w-6 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" />
           </span>
           <div className="leading-tight">
             {/* Живой счётчик: краткий «поп» при изменении (key по значению). */}
@@ -165,20 +165,31 @@ export function BeansScreen({ navigate, onPlay }: Props) {
             {bursts.map((b) => (
               <motion.div
                 key={b.id}
-                initial={{ opacity: 0, x: b.dx, y: -10, scale: 0.5 }}
-                animate={{ opacity: [0, 1, 1, 0], x: b.dx * 0.3 - 120, y: -230, scale: 1 }}
-                transition={{ duration: 0.85, ease: 'easeOut' }}
+                initial={{ opacity: 0.4, x: b.dx, y: -10, scale: 0.7 }}
+                animate={{ opacity: [0.4, 1, 1, 0], x: b.dx * 0.3 - 130, y: -240, scale: [0.7, 1.3, 1.1, 1] }}
+                transition={{ duration: 0.9, ease: 'easeOut' }}
                 onAnimationComplete={() => removeBurst(b.id)}
-                className="absolute flex items-center gap-1"
+                className="absolute flex items-center gap-1.5"
               >
+                {/* световой трейл позади летящего зерна */}
                 <span
-                  className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold ${
-                    b.golden ? 'bg-gold-sheen text-ink-900 shadow-glow' : 'bg-felt-600/60 text-gold-200'
-                  }`}
-                >
-                  <BeanIcon small />
-                </span>
-                <span className={`font-display text-sm ${b.golden ? 'text-gold-300' : 'text-gold-200/80'}`}>
+                  aria-hidden
+                  className="absolute left-1/2 top-1/2 h-20 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[4px]"
+                  style={{
+                    background: b.golden
+                      ? 'linear-gradient(180deg, rgba(255,247,224,0.95), transparent)'
+                      : 'linear-gradient(180deg, rgba(224,164,59,0.8), transparent)',
+                    transform: 'rotate(-58deg) translateY(20px)',
+                  }}
+                />
+                <motion.img
+                  src={b.golden ? '/art/bean-gold.webp' : '/art/bean.webp'}
+                  alt=""
+                  animate={{ rotate: [0, 220] }}
+                  transition={{ duration: 0.9, ease: 'easeOut' }}
+                  className={`relative h-9 w-9 object-contain ${b.golden ? 'drop-shadow-[0_0_10px_rgba(255,225,150,0.9)]' : 'drop-shadow-[0_2px_5px_rgba(0,0,0,0.6)]'}`}
+                />
+                <span className={`relative font-display text-base ${b.golden ? 'text-gold-300' : 'text-gold-200/90'}`}>
                   +{b.gained}
                 </span>
               </motion.div>
@@ -267,16 +278,6 @@ function InfoCard({
   );
 }
 
-/** Иконка зерна (маленькая, для счётчика и частиц). */
-function BeanIcon({ small }: { small?: boolean }) {
-  const s = small ? 12 : 16;
-  return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <ellipse cx="12" cy="12" rx="7" ry="10" fill="currentColor" transform="rotate(-24 12 12)" />
-      <path d="M12 3c-3 5-3 13 0 18" stroke="#1b140c" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
-    </svg>
-  );
-}
 
 /** Шторка «мало энергии». */
 function LowEnergySheet({ onTasks }: { onTasks: () => void }) {
