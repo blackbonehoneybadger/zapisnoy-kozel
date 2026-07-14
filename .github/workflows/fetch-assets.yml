@@ -1,0 +1,33 @@
+name: fetch-assets (temporary)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download candidate images
+        run: |
+          set -e
+          mkdir -p public/art/_gen
+          curl -sSL -o public/art/_gen/bean-a.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141017_93ec8b81-917c-4271-b5b6-ccdfe4e8e038.png"
+          curl -sSL -o public/art/_gen/bean-b.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141017_844fd1ce-4c99-4e05-a0a5-5b23027ed457.png"
+          curl -sSL -o public/art/_gen/bean-gold-a.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141029_4f4b93a1-cd50-4df2-80e4-086704856eef.png"
+          curl -sSL -o public/art/_gen/bean-gold-b.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141029_6dfa6939-b904-479f-9e11-4215f5e8574a.png"
+          ls -la public/art/_gen
+
+      - name: Commit assets
+        run: |
+          git config user.name "asset-fetch-bot"
+          git config user.email "actions@github.com"
+          git add public/art/_gen
+          git commit -m "chore: fetch DOFFA bean particle assets (temporary)" || echo "no changes"
+          git push
