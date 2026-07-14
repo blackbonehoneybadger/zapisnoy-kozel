@@ -11,6 +11,11 @@ import type {
   TableView,
 } from './protocol';
 import { useWalletStore } from '../solana/walletStore';
+import { useBeansStore } from '../store/beansStore';
+import { useRewardsStore } from '../store/rewardsStore';
+import { bindOnlineSocket, sendOnline } from './wsBridge';
+
+export { sendOnline, isOnlineConnected } from './wsBridge';
 
 // Адрес сервера задаётся на сборке: VITE_SERVER_URL=wss://your-host.
 // trim() обязателен: значение из панели Vercel может прийти с \n на конце.
@@ -84,11 +89,14 @@ let intentionalClose = false;
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+function setSocket(ws: WebSocket | null): void {
+  socket = ws;
+  bindOnlineSocket(ws);
+}
+
 export const useOnlineStore = create<OnlineStore>((set, get) => {
   function sendMsg(msg: ClientMessage): void {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(msg));
-    }
+    sendOnline(msg);
   }
 
   // Отправить сейчас, либо подключиться и отправить по готовности.
@@ -125,6 +133,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
           set({ view: 'lobby' });
           sendMsg({ t: 'lobby:subscribe' });
         }
+        // Синхронизация серверных зёрен и DOFFA-наград после входа.
+        sendMsg({ t: 'beans:balance' });
+        sendMsg({ t: 'reward:list' });
         break;
       case 'auth:err':
         localStorage.removeItem(TOKEN_KEY);
@@ -188,6 +199,34 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         });
         break;
       }
+      case 'beans:state':
+        useBeansStore.getState().syncFromServer({
+          beans: msg.beans,
+          energy: msg.energy,
+          totalTaps: msg.totalTaps,
+          combo: msg.combo,
+        });
+        break;
+      case 'reward:list':
+        useRewardsStore.getState().setServerRewards({
+          cups: msg.cups,
+          doffa: msg.pendingDoffa,
+          doffaClaimed: msg.claimedDoffa,
+          available: msg.available,
+        });
+        // Зёрна в rewards.cups дублируют beans — подтянем beansStore тоже.
+        useBeansStore.getState().syncFromServer({ beans: msg.cups });
+        break;
+      case 'reward:claim:result':
+        set({
+          notice: msg.ok
+            ? msg.testMode
+              ? 'Claim (mock): заявка принята. SPL — следующий этап.'
+              : 'Claim отправлен'
+            : msg.message ?? 'Claim не выполнен',
+        });
+        if (msg.ok) sendMsg({ t: 'reward:list' });
+        break;
     }
   }
 
@@ -235,12 +274,15 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       }, 8000);
 
       try {
-        socket = new WebSocket(SERVER_URL);
+        setSocket(new WebSocket(SERVER_URL));
       } catch {
         if (connectTimer) clearTimeout(connectTimer);
+        setSocket(null);
         set({ status: 'idle', busy: false, authError: 'Не удалось подключиться к серверу.' });
         return;
       }
+
+      if (!socket) return;
 
       socket.onopen = () => {
         if (connectTimer) clearTimeout(connectTimer);
@@ -263,6 +305,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       };
       socket.onclose = () => {
         if (connectTimer) clearTimeout(connectTimer);
+        setSocket(null);
         set({ status: 'idle' });
         // busy сбрасываем ВСЕГДА при обрыве — иначе кнопка входа/действия
         // залипала навсегда, если сокет умер между challenge и verify.

@@ -65,7 +65,12 @@ export type ClientMessage =
   | { t: 'invite:send'; tableId: string; toUserId: string }
   | { t: 'invite:all'; tableId: string }
   | { t: 'friend:add'; userId: string }
-  | { t: 'friend:remove'; userId: string };
+  | { t: 'friend:remove'; userId: string }
+  | { t: 'reward:list' }
+  | { t: 'reward:claim'; rewardId: string; idempotencyKey: string }
+  | { t: 'beans:balance' }
+  | { t: 'beans:tap'; count?: number }
+  | { t: 'beans:spendEntry' };
 
 export type ServerMessage =
   | { t: 'auth:challenge'; nonce: string }
@@ -81,4 +86,31 @@ export type ServerMessage =
   | { t: 'invite'; tableId: string; tableName: string; fromName: string; betLamports?: number }
   | { t: 'wallet:required'; serverWallet: string; lamports: number }
   | { t: 'wallet:paid'; seatIndex: number }
-  | { t: 'wallet:payout'; winnerName: string; txSignature: string; lamports: number; commission: number };
+  | { t: 'wallet:payout'; winnerName: string; txSignature: string; lamports: number; commission: number }
+  | {
+      t: 'reward:list';
+      available: Array<{ id: string; amount: number; matchId: string; status: string }>;
+      pendingDoffa: number;
+      claimedDoffa: number;
+      cups: number;
+    }
+  | {
+      t: 'reward:claim:result';
+      ok: boolean;
+      status: string;
+      testMode: boolean;
+      message?: string;
+      rewardId?: string;
+    }
+  | {
+      t: 'beans:state';
+      beans: number;
+      energy: number;
+      totalTaps: number;
+      entryFee: number;
+      gained?: number;
+      combo?: number;
+      multiplier?: number;
+      golden?: boolean;
+      empty?: boolean;
+    };

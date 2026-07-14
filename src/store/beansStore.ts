@@ -4,15 +4,10 @@
 // ВАЖНО (безопасность/античит): истинный баланс зёрен должен жить на СЕРВЕРЕ.
 // Этот стор — только КЭШ интерфейса для отзывчивости тапалки. Клиент не должен
 // быть источником истины: локальный тап начисляет зерно оптимистично, а сервер
-// (когда будет подключён `syncFromServer`) валидирует и перезаписывает баланс,
-// ограничивая накрутку (лимит энергии + серверная сверка). Пока сервер не готов —
-// работаем локально, но архитектура уже разделяет «оптимистичный кэш» и «истину».
-//
-// Экономика v1 (легко расширяется под комбо/бонусы/задания/множители):
-//   1 тап = +1 зерно, −1 энергия. Энергия ограничена и восстанавливается со временем.
-//   Быстрые тапы подряд → комбо-множитель. Редко выпадает бонусное/золотое зерно.
+// (beans:tap → beans:state) валидирует и перезаписывает баланс.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isOnlineConnected, sendOnline } from '../net/wsBridge';
 
 /** Стоимость входа в матч (зёрна). Должна совпадать с серверной CUPS_ENTRY_FEE. */
 export const MATCH_ENTRY_COST = 100;
@@ -64,9 +59,11 @@ interface BeansState {
   canEnterMatch: () => boolean;
   /** Списать вход в матч (вернёт false, если не хватает). Сервер продублирует. */
   spendEntry: () => boolean;
-  /** Синхронизация с сервером (заготовка): единственный легитимный способ
+  /** Синхронизация с сервером: единственный легитимный способ
    *  перезаписать баланс/энергию значениями, которым доверяет бэкенд. */
-  syncFromServer: (data: Partial<Pick<BeansState, 'beans' | 'energy'>>) => void;
+  syncFromServer: (
+    data: Partial<Pick<BeansState, 'beans' | 'energy' | 'totalTaps' | 'combo'>>,
+  ) => void;
   reset: () => void;
 }
 
@@ -94,6 +91,8 @@ export const useBeansStore = create<BeansState>()(
       totalTaps: 0,
 
       regen: () => {
+        // При онлайн-сессии энергия авторитетна на сервере — локальный реген
+        // только для офлайн-кэша UI между beans:state.
         const s = get();
         const r = computeRegen(s.energy, s.lastEnergyTs, Date.now());
         if (r.energy !== s.energy || r.ts !== s.lastEnergyTs) {
@@ -108,6 +107,7 @@ export const useBeansStore = create<BeansState>()(
         const r = computeRegen(s.energy, s.lastEnergyTs, now);
         if (r.energy <= 0) {
           set({ energy: 0, lastEnergyTs: r.ts, combo: 0 });
+          if (isOnlineConnected()) sendOnline({ t: 'beans:tap', count: 1 });
           return { gained: 0, combo: 0, multiplier: 1, golden: false, empty: true };
         }
 
@@ -118,6 +118,7 @@ export const useBeansStore = create<BeansState>()(
         const golden = deterministicChance(s.totalTaps, now);
         const gained = BASE_PER_TAP * multiplier + (golden ? 24 : 0);
 
+        // Оптимистичный кэш; сервер перезапишет через beans:state.
         set({
           beans: s.beans + gained,
           energy: r.energy - 1,
@@ -126,12 +127,18 @@ export const useBeansStore = create<BeansState>()(
           combo,
           totalTaps: s.totalTaps + 1,
         });
+
+        if (isOnlineConnected()) {
+          sendOnline({ t: 'beans:tap', count: 1 });
+        }
+
         return { gained, combo, multiplier, golden, empty: false };
       },
 
       canEnterMatch: () => get().beans >= MATCH_ENTRY_COST,
 
       spendEntry: () => {
+        // Офлайн / локальный UI. Онлайн-вход списывает сервер на table:start.
         const s = get();
         if (s.beans < MATCH_ENTRY_COST) return false;
         set({ beans: s.beans - MATCH_ENTRY_COST });
@@ -139,15 +146,18 @@ export const useBeansStore = create<BeansState>()(
       },
 
       syncFromServer: (data) =>
-        set((s) => ({
-          beans: data.beans ?? s.beans,
-          energy: data.energy ?? s.energy,
+        set((st) => ({
+          beans: data.beans ?? st.beans,
+          energy: data.energy ?? st.energy,
+          totalTaps: data.totalTaps ?? st.totalTaps,
+          combo: data.combo ?? st.combo,
           lastEnergyTs: Date.now(),
         })),
 
       reset: () =>
         set({ beans: 0, energy: ENERGY_MAX, lastEnergyTs: Date.now(), lastTapTs: 0, combo: 0, totalTaps: 0 }),
     }),
+    // Имя только UI-кэш; при online auth сервер перезапишет баланс.
     { name: 'doffa-crazy8-beans-v1' },
   ),
 );

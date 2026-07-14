@@ -71,22 +71,39 @@ class JsonCollection<T> {
   }
 }
 
+/** Нормализация legacy doffa-users.json (без energy/totalTaps). */
+function normalizeUser(u: DoffaUser): DoffaUser {
+  return {
+    ...u,
+    cupsBalance: u.cupsBalance ?? 0,
+    pendingDoffa: u.pendingDoffa ?? 0,
+    claimedDoffa: u.claimedDoffa ?? 0,
+    energy: u.energy ?? 1000,
+    lastEnergyTs: u.lastEnergyTs ?? Date.now(),
+    totalTaps: u.totalTaps ?? 0,
+    banned: u.banned ?? false,
+  };
+}
+
 class FileUserRepository implements UserRepository {
   constructor(private readonly c: JsonCollection<DoffaUser>) {}
   async get(id: string) {
-    return this.c.find(id);
+    const u = this.c.find(id);
+    return u ? normalizeUser(u) : undefined;
   }
   async getByWallet(wallet: string) {
-    return this.c.all().find((u) => u.walletAddress === wallet);
+    const u = this.c.all().find((x) => x.walletAddress === wallet);
+    return u ? normalizeUser(u) : undefined;
   }
   async upsert(user: DoffaUser) {
-    return this.c.upsert(user);
+    return this.c.upsert(normalizeUser(user));
   }
   async adjustCups(id: string, delta: number) {
     const user = this.c.find(id);
     if (!user) return undefined;
-    user.cupsBalance = Math.max(0, user.cupsBalance + delta);
-    return this.c.upsert(user);
+    const n = normalizeUser(user);
+    n.cupsBalance = Math.max(0, n.cupsBalance + delta);
+    return this.c.upsert(n);
   }
 }
 
