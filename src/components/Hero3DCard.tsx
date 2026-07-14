@@ -1,6 +1,6 @@
 // Парящие 3D-карты (Three.js) за заголовком главного экрана.
 // Three грузится лениво динамическим import — в стартовый чанк не попадает.
-// Текстура — неон-рубашка /art/card-back.webp (арт Higgsfield).
+// Текстура — craft coffee рубашка /art/card-back.webp.
 // Без WebGL или при prefers-reduced-motion — статичный фоллбэк из <img>.
 // Рендер-цикл останавливается, когда блок вне вьюпорта или вкладка скрыта.
 import { useEffect, useRef, useState } from 'react';
@@ -66,7 +66,7 @@ export function Hero3DCard({ className = '' }: { className?: string }) {
       const key = new THREE.DirectionalLight(0xf2d9a0, 1.6);
       key.position.set(2, 3, 5);
       scene.add(key);
-      const rim = new THREE.PointLight(0x3a5e42, 6, 20);
+      const rim = new THREE.PointLight(0xc8963d, 6, 20);
       rim.position.set(-3, -2, 4);
       scene.add(rim);
 
@@ -74,7 +74,7 @@ export function Hero3DCard({ className = '' }: { className?: string }) {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
 
-      const edge = new THREE.MeshStandardMaterial({ color: 0x120827, roughness: 0.6 });
+      const edge = new THREE.MeshStandardMaterial({ color: 0x5a2a1a, roughness: 0.55 });
       const face = new THREE.MeshStandardMaterial({
         map: tex,
         roughness: 0.35,
