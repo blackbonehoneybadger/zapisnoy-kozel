@@ -97,7 +97,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         players: next.players.length,
         flewAway: human?.busted ?? false,
       });
-      useRewardsStore.getState().awardGame(won);
+      // Офлайн-тренировка против ботов: только тренировочные Cups, без DOFFA.
+      useRewardsStore.getState().awardTraining(won);
       if (won) {
         winSound();
         haptics.win();
