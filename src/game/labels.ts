@@ -1,5 +1,6 @@
-// Подписи кнопки «взять» и подсказки хода — общие для офлайн- и онлайн-экрана.
-import type { GameState } from './types';
+// Подписи кнопки «взять», подсказки хода и короткие ярлыки действий игроков —
+// общие для офлайн- и онлайн-экрана.
+import type { GameEventFlag, GameState } from './types';
 import { mustTakeOnly } from './rules';
 import { SUIT_SYMBOL } from './deck';
 
@@ -45,4 +46,37 @@ export function getTakeLabel(state: GameState, canPlayAny: boolean): TakeLabel {
   }
   if (state.drewThisTurn) return { button: 'Пропустить', prompt: 'Сыграйте взятую карту или пропустите' };
   return { button: 'Взять карту', prompt: canPlayAny ? undefined : 'Нет хода — возьмите карту' };
+}
+
+/**
+ * Короткий (1-2 слова) ярлык последнего события — для маленькой подписи,
+ * которая на мгновение появляется прямо над игроком (не над всем столом).
+ */
+export function actionLabel(evt: GameEventFlag): string {
+  switch (evt.type) {
+    case 'play':
+      return 'ходит';
+    case 'draw':
+      return evt.amount && evt.amount > 1 ? `берёт ${evt.amount}` : 'берёт карту';
+    case 'six':
+      return 'кладёт 6';
+    case 'seven':
+      return 'кладёт 7';
+    case 'king':
+      return 'пик. король';
+    case 'ace':
+      return 'пропуск';
+    case 'queen':
+      return evt.suit ? `масть ${SUIT_SYMBOL[evt.suit]}` : 'меняет масть';
+    case 'nine':
+      return evt.suit ? `9${SUIT_SYMBOL[evt.suit]}` : 'девятка';
+    case 'busted':
+      return 'улетел';
+    case 'reset':
+      return 'обнулил счёт';
+    case 'roundWin':
+      return 'победа!';
+    default:
+      return '';
+  }
 }
