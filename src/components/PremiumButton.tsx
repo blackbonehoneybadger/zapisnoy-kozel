@@ -24,6 +24,18 @@ const variants: Record<Variant, string> = {
   danger: 'text-wine-400 bg-wine-700/25 border border-wine-500/25 hover:bg-wine-700/40',
 };
 
+/**
+ * Художественные фактуры (Higgsfield) поверх кнопок — гравированная золотая
+ * фольга с кофейными зёрнами для основной кнопки, тиснёная кожа с веткой
+ * кофе для второстепенной. Blend-режим подобран так, чтобы текст всегда
+ * оставался читаемым: multiply только затемняет (безопасно на светлом
+ * золоте), soft-light мягко проявляет фактуру на тёмном стекле.
+ */
+const TEXTURES: Partial<Record<Variant, { src: string; blend: 'multiply' | 'soft-light'; opacity: number }>> = {
+  gold: { src: '/art/button-gold.webp', blend: 'multiply', opacity: 0.4 },
+  ghost: { src: '/art/button-leather.webp', blend: 'soft-light', opacity: 0.55 },
+};
+
 export function PremiumButton({
   children,
   onClick,
@@ -33,6 +45,7 @@ export function PremiumButton({
   className = '',
   icon,
 }: Props) {
+  const texture = TEXTURES[variant];
   return (
     <motion.button
       whileHover={disabled ? undefined : { scale: 1.015 }}
@@ -45,6 +58,19 @@ export function PremiumButton({
       disabled={disabled}
       className={`${base} ${variants[variant]} ${full ? 'w-full' : ''} ${className}`}
     >
+      {texture && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+          style={{
+            backgroundImage: `url('${texture.src}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: texture.opacity,
+            mixBlendMode: texture.blend,
+          }}
+        />
+      )}
       {variant === 'gold' && !disabled && (
         <>
           <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
