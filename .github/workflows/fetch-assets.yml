@@ -18,10 +18,8 @@ jobs:
         run: |
           set -e
           mkdir -p public/art/_gen
-          curl -sSL -o public/art/_gen/bean-a.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141017_93ec8b81-917c-4271-b5b6-ccdfe4e8e038.png"
-          curl -sSL -o public/art/_gen/bean-b.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141017_844fd1ce-4c99-4e05-a0a5-5b23027ed457.png"
-          curl -sSL -o public/art/_gen/bean-gold-a.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141029_4f4b93a1-cd50-4df2-80e4-086704856eef.png"
-          curl -sSL -o public/art/_gen/bean-gold-b.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141029_6dfa6939-b904-479f-9e11-4215f5e8574a.png"
+          curl -sSL -o public/art/_gen/bean-cut.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141525_713638f8-db44-4403-9caf-c0e5ded0770e.png"
+          curl -sSL -o public/art/_gen/bean-gold-cut.png "https://d8j0ntlcm91z4.cloudfront.net/user_2wpHpzXpvrW7bw4za2Omx4tlMCc/hf_20260714_141535_f99603b1-e907-4ed3-b7b0-5efe776c2c50.png"
           ls -la public/art/_gen
 
       - name: Commit assets
