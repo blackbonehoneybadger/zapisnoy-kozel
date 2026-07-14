@@ -1,62 +1,44 @@
 <svg viewBox="0 0 300 420" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="neon" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#c4a5ff"/>
-      <stop offset="45%" stop-color="#9945ff"/>
-      <stop offset="100%" stop-color="#19d68a"/>
+    <linearGradient id="paperBase" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a2016"/>
+      <stop offset="55%" stop-color="#1e1710"/>
+      <stop offset="100%" stop-color="#16110b"/>
     </linearGradient>
-    <linearGradient id="bar1" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#9945ff"/>
-      <stop offset="100%" stop-color="#c4a5ff"/>
-    </linearGradient>
-    <linearGradient id="bar2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#7d3ce8"/>
-      <stop offset="100%" stop-color="#3ee0a8"/>
-    </linearGradient>
-    <linearGradient id="bar3" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#19d68a"/>
-      <stop offset="100%" stop-color="#8ef2c9"/>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f2d9a0"/>
+      <stop offset="50%" stop-color="#e0a43b"/>
+      <stop offset="100%" stop-color="#bb5c3c"/>
     </linearGradient>
     <radialGradient id="backGlow" cx="50%" cy="46%" r="60%">
-      <stop offset="0%" stop-color="#9945ff" stop-opacity="0.34"/>
-      <stop offset="60%" stop-color="#9945ff" stop-opacity="0.10"/>
+      <stop offset="0%" stop-color="#e0a43b" stop-opacity="0.3"/>
+      <stop offset="60%" stop-color="#3a5e42" stop-opacity="0.12"/>
       <stop offset="100%" stop-color="transparent"/>
     </radialGradient>
-    <linearGradient id="backBase" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1b0f38"/>
-      <stop offset="55%" stop-color="#120827"/>
-      <stop offset="100%" stop-color="#0a0518"/>
-    </linearGradient>
   </defs>
 
-  <rect x="0" y="0" width="300" height="420" fill="url(#backBase)"/>
+  <rect x="0" y="0" width="300" height="420" fill="url(#paperBase)"/>
   <ellipse cx="150" cy="196" rx="130" ry="160" fill="url(#backGlow)"/>
 
-  <!-- тонкая сетка-плата -->
-  <g stroke="#c4a5ff" stroke-width="0.6" opacity="0.10">
-    <path d="M 0 90 L 300 90 M 0 330 L 300 330 M 60 0 L 60 420 M 240 0 L 240 420"/>
-  </g>
-  <g fill="#19d68a" opacity="0.18">
-    <circle cx="60" cy="90" r="2"/><circle cx="240" cy="90" r="2"/>
-    <circle cx="60" cy="330" r="2"/><circle cx="240" cy="330" r="2"/>
-  </g>
+  <!-- двойная золотая рамка -->
+  <rect x="8" y="8" width="284" height="404" rx="18" fill="none" stroke="url(#gold)" stroke-width="2.4" opacity="0.85"/>
+  <rect x="17" y="17" width="266" height="386" rx="12" fill="none" stroke="url(#gold)" stroke-width="0.8" opacity="0.4"/>
 
-  <!-- двойная неоновая рамка -->
-  <rect x="8" y="8" width="284" height="404" rx="18" fill="none" stroke="url(#neon)" stroke-width="2.4" opacity="0.85"/>
-  <rect x="17" y="17" width="266" height="386" rx="12" fill="none" stroke="url(#neon)" stroke-width="0.8" opacity="0.35"/>
-
-  <!-- центральный глиф: три неоновые грани (мотив Solana) -->
-  <g>
-    <path d="M 96 158 L 186 158 L 208 134 L 118 134 Z" fill="url(#bar1)"/>
-    <path d="M 96 222 L 186 222 L 208 198 L 118 198 Z" fill="url(#bar2)" opacity="0.95"/>
-    <path d="M 118 262 L 208 262 L 186 286 L 96 286 Z" fill="url(#bar3)"/>
-    <path d="M 96 158 L 186 158 L 208 134 L 118 134 Z" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.8"/>
-    <path d="M 118 262 L 208 262 L 186 286 L 96 286 Z" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="0.8"/>
+  <!-- кофейное зерно-эмблема в центре -->
+  <g transform="translate(150,186)" fill="none" stroke="url(#gold)" stroke-width="2.6" stroke-linecap="round">
+    <ellipse cx="0" cy="0" rx="46" ry="62" transform="rotate(-22)"/>
+    <path d="M0 -56 C-13 -18 -13 40 0 58" transform="rotate(-22)" opacity="0.75"/>
+  </g>
+  <!-- пар -->
+  <g transform="translate(150,96)" fill="none" stroke="url(#gold)" stroke-width="2" opacity="0.55">
+    <path d="M-24 0c7-8 7-17 0-25s-7-17 0-25"/>
+    <path d="M0 4c7-8 7-17 0-25s-7-17 0-25"/>
+    <path d="M24 0c7-8 7-17 0-25s-7-17 0-25"/>
   </g>
 
-  <!-- цифра 8 под глифом -->
-  <text x="150" y="345" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="44" fill="url(#neon)" opacity="0.9">8</text>
+  <!-- цифра 8 под эмблемой -->
+  <text x="150" y="330" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="44" fill="url(#gold)" opacity="0.92">8</text>
 
   <!-- верхний блик -->
-  <rect x="8" y="8" width="284" height="120" rx="18" fill="white" opacity="0.045"/>
+  <rect x="8" y="8" width="284" height="120" rx="18" fill="white" opacity="0.05"/>
 </svg>
