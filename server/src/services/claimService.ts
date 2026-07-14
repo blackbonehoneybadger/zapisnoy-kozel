@@ -21,6 +21,12 @@ export interface ClaimOutcome {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export class ClaimService {
+  // In-process лок на награду: закрывает окно гонки между проверкой статуса и
+  // записью заявки в ОДНОМ процессе (JS однопоточен, add/has до первого await
+  // атомарны). Межпроцессная атомарность требует БД (уникальный индекс на
+  // rewardId / атомарный переход available→processing) — см. docs/ANTI_CHEAT.md.
+  private readonly inFlight = new Set<string>();
+
   constructor(
     private readonly repos: Repositories,
     private readonly provider: TransactionProvider,
@@ -51,9 +57,18 @@ export class ClaimService {
     if (reward.walletAddress !== input.walletAddress)
       return { ok: false, status: 'failed', message: 'Кошелёк не совпадает с наградой', testMode };
 
-    // 3. Одна заявка на награду.
+    // In-process лок на награду (P1): атомарно занимаем её до первого await ниже,
+    // чтобы два конкурентных Claim одной награды не создали две выплаты. Полная
+    // межпроцессная атомарность — через БД (см. docs/ANTI_CHEAT.md).
+    if (this.inFlight.has(reward.id))
+      return { ok: false, status: 'processing', message: 'Заявка уже обрабатывается', testMode };
+    this.inFlight.add(reward.id);
+    try {
+    // 3. Одна заявка на награду. failed-заявка НЕ блокирует повтор (P2): после
+    //    сбоя награда возвращается в available и её можно забрать снова с новым ключом.
     const byReward = await this.repos.claims.getByReward(reward.id);
-    if (byReward) return { ok: byReward.status === 'sent', status: byReward.status, claim: byReward, testMode };
+    if (byReward && byReward.status !== 'failed')
+      return { ok: byReward.status === 'sent', status: byReward.status, claim: byReward, testMode };
 
     if (reward.status !== 'available')
       return { ok: false, status: reward.status, message: 'Награда недоступна к получению', testMode };
@@ -123,6 +138,10 @@ export class ClaimService {
       reward.updatedAt = this.now();
       await this.repos.rewards.save(reward);
       return { ok: false, status: 'failed', claim, message: 'Отправка временно не выполнена', testMode };
+    }
+    } finally {
+      // Освобождаем награду для последующих попыток (в т.ч. после failed).
+      this.inFlight.delete(reward.id);
     }
   }
 
