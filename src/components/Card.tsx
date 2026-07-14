@@ -33,26 +33,30 @@ export function Card({
   if (faceDown || !card) {
     return (
       <div className={`${dim} ${className} relative overflow-hidden rounded-[0.85rem] shadow-card`}>
-        {/* неон-рубашка Solana (webp — арт Higgsfield, svg — фоллбэк) */}
+        {/* рубашка «история кофе» — винтажная гравюра кофейного дерева и торговых
+            путей (webp — арт Higgsfield, svg — офлайн-фоллбэк до кэширования) */}
         <div
-          className="absolute inset-0 bg-[linear-gradient(165deg,#1b0f38_0%,#120827_55%,#0a0518_100%)]"
+          className="absolute inset-0 bg-[#e7d6ad]"
           style={{
             backgroundImage: "url('/art/card-back.webp'), url('/art/card-back.svg')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         />
-        {/* мягкое центральное свечение */}
-        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(224,164,59,0.2),transparent_72%)]" />
+        {/* тёплое центральное свечение */}
+        <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_50%_42%,rgba(224,164,59,0.16),transparent_72%)]" />
         {/* верхний блик */}
-        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/[0.07] to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/[0.1] to-transparent" />
       </div>
     );
   }
 
   const red = SUIT_IS_RED[card.suit];
   const symbol = SUIT_SYMBOL[card.suit];
-  const color = red ? 'text-[#b8313f]' : 'text-[#1a1d22]';
+  // Винтажные чернила: тёплый бургунд вместо кислотно-красного, эспрессо
+  // вместо типографской черноты — читаются как «красная/чёрная» масть,
+  // но в палитре истории кофе.
+  const color = red ? 'text-[#8c3229]' : 'text-[#2e2015]';
 
   return (
     <motion.button
@@ -64,16 +68,25 @@ export function Card({
       transition={{ type: 'spring', stiffness: 320, damping: 22 }}
       disabled={!onClick}
       className={`${dim} ${className} group relative overflow-hidden rounded-[0.85rem]
-        bg-[linear-gradient(180deg,#fffefb_0%,#fbf6ea_60%,#f1e8d4_100%)]
+        bg-[linear-gradient(180deg,#fbf3e0_0%,#f3e6c4_58%,#e9d8ab_100%)]
         shadow-card ${onClick ? 'cursor-pointer' : 'cursor-default'}
         ${dimmed ? 'opacity-40 saturate-[0.6]' : ''}
         ${playable ? 'ring-1 ring-gold-400/60' : ''}
         ${selected ? 'ring-2 ring-gold-400 shadow-glow' : ''}`}
     >
+      {/* тонкая фактура состаренной бумаги (Higgsfield) поверх паспарту-градиента */}
+      <span
+        className="pointer-events-none absolute inset-0 opacity-[0.32] mix-blend-multiply"
+        style={{
+          backgroundImage: "url('/art/card-paper.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
       {/* тонкая внутренняя рамка */}
-      <span className="pointer-events-none absolute inset-[2.5px] rounded-[0.65rem] border border-gold-600/30" />
+      <span className="pointer-events-none absolute inset-[2.5px] rounded-[0.65rem] border border-gold-600/35" />
       {/* верхний глянец */}
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/70 to-transparent" />
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-1/3 rounded-t-[0.85rem] bg-gradient-to-b from-white/60 to-transparent" />
       {/* мягкий премиальный ореол доступной карты — мягко пульсирует, ярче при наведении */}
       {playable && (
         <motion.span
