@@ -11,7 +11,7 @@ import { PremiumButton } from '../components/PremiumButton';
 import { RewardOverlay } from '../components/RewardOverlay';
 import { DoffaEmblem } from '../components/DoffaEmblem';
 import { useGameStore } from '../store/gameStore';
-import { useRewardsStore } from '../store/rewardsStore';
+import { useBeansStore } from '../store/beansStore';
 
 interface Props {
   onExit: () => void;
@@ -23,7 +23,7 @@ export function GameScreen({ onExit }: Props) {
   const take = useGameStore((s) => s.take);
   const nextRound = useGameStore((s) => s.nextRound);
   const start = useGameStore((s) => s.start);
-  const trainingCups = useRewardsStore((s) => s.lastTrainingCups);
+  const trainingBeans = useBeansStore((s) => s.lastTrainingBeans);
 
   const [queenCard, setQueenCard] = useState<CardType | null>(null);
   const [showScore, setShowScore] = useState(false);
@@ -204,18 +204,18 @@ export function GameScreen({ onExit }: Props) {
         )}
       </AnimatePresence>
 
-      {/* конец офлайн-партии: тренировочная награда — только Cups. Настоящий
+      {/* конец офлайн-партии: тренировочная награда — только зёрна. Настоящий
           DOFFA-Claim здесь недоступен (даётся лишь за подтверждённую сервером
-          онлайн-победу). Тренировочные Cups начислены awardTraining в commit. */}
+          онлайн-победу). Тренировочные зёрна начислены awardTraining в commit. */}
       <AnimatePresence>
         {game.phase === 'gameOver' && (
           <RewardOverlay
             won={game.winnerId === 'you'}
-            unit="Cups"
-            reward={game.winnerId === 'you' ? trainingCups : undefined}
+            unit="Зёрна"
+            reward={game.winnerId === 'you' ? trainingBeans : undefined}
             loserNote={
               game.winnerId === 'you'
-                ? 'Тренировка против ботов — награда в Cups.'
+                ? 'Тренировка против ботов — награда зёрнами.'
                 : `Победитель — ${game.players.find((p) => p.id === game.winnerId)?.name ?? '—'}.`
             }
             onAgain={start}

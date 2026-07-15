@@ -51,6 +51,8 @@ interface OnlineStore {
   walletAddress: string | null;
   serverWallet: string | null;
   betRequired: boolean;
+  /** Сумма DOFFA за последнюю победу — приходит ТОЛЬКО от сервера (этап 3+). */
+  lastReward: number | null;
 
   connect: () => void;
   connectWallet: () => Promise<void>;
@@ -161,7 +163,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         });
         break;
       case 'table:left':
-        set({ table: null, game: null, view: 'lobby', serverWallet: null, betRequired: false });
+        set({ table: null, game: null, view: 'lobby', serverWallet: null, betRequired: false, lastReward: null });
         sendMsg({ t: 'lobby:subscribe' });
         break;
       case 'game':
@@ -208,6 +210,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     walletAddress: null,
     serverWallet: null,
     betRequired: false,
+    lastReward: null,
 
     connect: () => {
       if (socket && socket.readyState <= WebSocket.OPEN) return;
@@ -339,7 +342,10 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       sendMsg({ t: 'table:join', tableId, password: password || undefined });
     },
     leaveTable: () => sendMsg({ t: 'table:leave' }),
-    startGame: () => sendMsg({ t: 'table:start' }),
+    startGame: () => {
+      set({ lastReward: null });
+      sendMsg({ t: 'table:start' });
+    },
     playCard: (cardId, chosenSuit) =>
       sendMsg({ t: 'game:move', move: { type: 'play', cardId, chosenSuit } as MoveAction }),
     take: () => sendMsg({ t: 'game:move', move: { type: 'take' } }),

@@ -37,8 +37,8 @@ export const DOFFA_MIN_HOT_WALLET_BALANCE = toInt(process.env.DOFFA_MIN_HOT_WALL
 /** Награда DOFFA за подтверждённую сервером онлайн-победу (единицы токена). */
 export const DOFFA_REWARD_PER_WIN = toInt(process.env.DOFFA_REWARD_PER_WIN, 10);
 
-/** Стоимость входа в онлайн-матч за Cups. */
-export const CUPS_ENTRY_FEE = toInt(process.env.CUPS_ENTRY_FEE, 100);
+/** Стоимость входа в онлайн-матч за зёрна (beans). */
+export const BEANS_ENTRY_FEE = toInt(process.env.BEANS_ENTRY_FEE ?? process.env.CUPS_ENTRY_FEE, 100);
 
 function toInt(raw: string | undefined, fallback: number): number {
   const n = Number((raw ?? '').trim());
@@ -52,7 +52,7 @@ export function rewardConfigSummary(): string {
     `mint=${DOFFA_MINT.slice(0, 4)}…${DOFFA_MINT.slice(-4)}`,
     `pool=${DOFFA_REWARD_POOL_INITIAL}`,
     `perWin=${DOFFA_REWARD_PER_WIN}`,
-    `cupsEntry=${CUPS_ENTRY_FEE}`,
+    `beansEntry=${BEANS_ENTRY_FEE}`,
     `dailyLimit=${DOFFA_DAILY_REWARD_LIMIT || '∞'}`,
   ].join(' · ');
 }

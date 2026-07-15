@@ -259,7 +259,7 @@ function RewardsOrb() {
       <span className="text-[7px] font-medium uppercase leading-[1.3] tracking-[0.22em] text-white/35">
         DOFFA
         <br />
-        Cups
+        Зёрна
       </span>
     </div>
   );

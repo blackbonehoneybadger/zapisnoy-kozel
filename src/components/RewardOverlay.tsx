@@ -1,5 +1,5 @@
 // Фирменный DOFFA-экран победы и получения награды.
-// Cups — внутренняя энергия (бесплатная игра), DOFFA — реальная награда (онлайн).
+// Зёрна — внутренняя энергия (бесплатная игра), DOFFA — реальная награда (онлайн).
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PremiumButton } from './PremiumButton';
@@ -10,8 +10,8 @@ interface Props {
   won: boolean;
   /** Сумма награды для отображения (визуальная). Если не задана — показываем без числа. */
   reward?: number;
-  /** Единица: «Cups» (энергия) или «DOFFA» (награда). */
-  unit?: 'Cups' | 'DOFFA';
+  /** Единица: «Зёрна» (энергия) или «DOFFA» (награда). */
+  unit?: 'Зёрна' | 'DOFFA';
   /** Подпись под заголовком при проигрыше / имя победителя. */
   loserNote?: string;
   onAgain: () => void;
@@ -60,7 +60,7 @@ function CoinBurst() {
 export function RewardOverlay({
   won,
   reward,
-  unit = 'Cups',
+  unit = 'Зёрна',
   loserNote,
   onAgain,
   onMenu,

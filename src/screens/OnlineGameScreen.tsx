@@ -69,6 +69,7 @@ export function OnlineGameScreen() {
   const nextRound = useOnlineStore((s) => s.nextRound);
   const startGame = useOnlineStore((s) => s.startGame);
   const leaveTable = useOnlineStore((s) => s.leaveTable);
+  const lastReward = useOnlineStore((s) => s.lastReward);
 
   const [queenCard, setQueenCard] = useState<CardType | null>(null);
   const [showScore, setShowScore] = useState(false);
@@ -195,20 +196,19 @@ export function OnlineGameScreen() {
         )}
       </AnimatePresence>
 
-      {/* конец партии — фирменный экран победы и награды */}
+      {/* конец партии — фирменный экран победы и награды. Сумма DOFFA НЕ
+          вычисляется на клиенте — сервер подтверждает результат матча и
+          присылает настоящую сумму (см. lastReward в onlineStore, этап 3+
+          доменной экономики); пока её нет, показываем факт победы без
+          выдуманного числа. */}
       <AnimatePresence>
         {game.phase === 'gameOver' && (() => {
           const won = game.winnerId === me?.id;
-          const bet = table?.betLamports ?? 0;
-          // Ставка есть → реальная награда DOFFA из банка партии; иначе — дружеская игра на Cups.
-          const potDoffa = Math.round(((bet * game.players.length) / 1e9) * 1000);
-          const unit: 'Cups' | 'DOFFA' = bet > 0 ? 'DOFFA' : 'Cups';
-          const reward = bet > 0 ? potDoffa : 100 + (game.roundNumber - 1) * 20;
           return (
             <RewardOverlay
               won={won}
-              unit={unit}
-              reward={won ? reward : undefined}
+              unit="DOFFA"
+              reward={won ? lastReward ?? undefined : undefined}
               loserNote={
                 won
                   ? undefined

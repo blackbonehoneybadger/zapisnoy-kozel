@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Hero3DCard } from '../components/Hero3DCard';
 import { PremiumButton } from '../components/PremiumButton';
 import { haptics } from '../game/haptics';
+import { useBeansStore } from '../store/beansStore';
 import { useRewardsStore } from '../store/rewardsStore';
 import type { Screen } from '../App';
 
@@ -20,21 +21,21 @@ const item = {
 };
 
 const secondary: { label: string; screen: Screen; hint: string }[] = [
-  { label: 'Профиль', screen: 'profile', hint: 'Кошелёк, награды, Cups' },
+  { label: 'Профиль', screen: 'profile', hint: 'Кошелёк, награды, зёрна' },
   { label: 'Правила', screen: 'rules', hint: 'Как играть' },
   { label: 'Статистика', screen: 'stats', hint: 'Победы и партии' },
   { label: 'Настройки', screen: 'settings', hint: 'Боты, лимит, звук' },
 ];
 
 export function HomeScreen({ navigate, onPlay }: Props) {
-  const cups = useRewardsStore((s) => s.cups);
+  const beans = useBeansStore((s) => s.beans);
   const doffa = useRewardsStore((s) => s.doffa);
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-between px-7 py-8 safe-top safe-bottom">
       {/* балансы наград — тихая плашка над hero, ведёт в профиль */}
       <div className="z-20 flex h-9 w-full items-start justify-end">
-        {(cups > 0 || doffa > 0) && (
+        {(beans > 0 || doffa > 0) && (
           <motion.button
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -47,8 +48,8 @@ export function HomeScreen({ navigate, onPlay }: Props) {
           >
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <span className="text-white/70">{cups}</span>
-              <span className="text-white/35">Cups</span>
+              <span className="text-white/70">{beans}</span>
+              <span className="text-white/35">Зёрна</span>
             </span>
             <span className="h-3 w-px bg-white/[0.1]" />
             <span className="flex items-center gap-1.5">

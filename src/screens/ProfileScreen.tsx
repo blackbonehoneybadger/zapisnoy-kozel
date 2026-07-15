@@ -3,6 +3,7 @@ import { PremiumButton } from '../components/PremiumButton';
 import { WalletButton } from '../components/WalletButton';
 import { DoffaEmblem } from '../components/DoffaEmblem';
 import { useStatsStore } from '../store/statsStore';
+import { useBeansStore } from '../store/beansStore';
 import { useRewardsStore } from '../store/rewardsStore';
 import { useWalletStore } from '../solana/walletStore';
 import type { Screen } from '../App';
@@ -12,10 +13,10 @@ interface Props {
   navigate: (s: Screen) => void;
 }
 
-/** Профиль игрока: кошелёк, балансы Cups/DOFFA, сводка статистики. */
+/** Профиль игрока: кошелёк, балансы Зёрна/DOFFA, сводка статистики. */
 export function ProfileScreen({ onBack, navigate }: Props) {
   const stats = useStatsStore();
-  const cups = useRewardsStore((s) => s.cups);
+  const beans = useBeansStore((s) => s.beans);
   const doffa = useRewardsStore((s) => s.doffa);
   const doffaClaimed = useRewardsStore((s) => s.doffaClaimed);
   const address = useWalletStore((s) => s.address);
@@ -64,7 +65,7 @@ export function ProfileScreen({ onBack, navigate }: Props) {
       {/* балансы */}
       <div className="mt-4 grid grid-cols-3 gap-3">
         {[
-          { label: 'Cups', value: cups, cls: 'text-emerald-300', hint: 'энергия' },
+          { label: 'Зёрна', value: beans, cls: 'text-emerald-300', hint: 'энергия' },
           { label: 'DOFFA', value: doffa, cls: 'text-gold-300', hint: 'награда' },
           { label: 'К выводу', value: doffaClaimed, cls: 'text-white/85', hint: 'заявки' },
         ].map((c) => (

@@ -14,7 +14,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-/** Стоимость входа в матч (зёрна). Должна совпадать с серверной CUPS_ENTRY_FEE. */
+/** Стоимость входа в матч (зёрна). Должна совпадать с серверной BEANS_ENTRY_FEE. */
 export const MATCH_ENTRY_COST = 100;
 /** Максимум энергии. */
 export const ENERGY_MAX = 1000;
@@ -27,6 +27,10 @@ const COMBO_WINDOW_MS = 450;
 /** На каждые N тапов серии — +1 к множителю (кап COMBO_MAX). */
 const COMBO_STEP = 12;
 const COMBO_MAX = 5;
+/** Тренировочные зёрна за любую офлайн-партию против ботов. */
+export const TRAINING_BEANS_PER_GAME = 10;
+/** Тренировочные зёрна сверху за офлайн-победу. */
+export const TRAINING_BEANS_PER_WIN = 25;
 
 /** Результат одного тапа — для визуального отклика экрана. */
 export interface TapResult {
@@ -42,6 +46,15 @@ export interface TapResult {
   empty: boolean;
 }
 
+/** Запись в локальной истории зёрен (тренировка/вход в матч/возврат). */
+export interface BeansEntry {
+  id: number;
+  date: number;
+  kind: 'training' | 'entryFee' | 'refund';
+  amount: number;
+  note: string;
+}
+
 interface BeansState {
   /** Баланс зёрен (кэш; истина — сервер). */
   beans: number;
@@ -55,11 +68,21 @@ interface BeansState {
   combo: number;
   /** Всего тапов за всё время (для будущих заданий/статистики). */
   totalTaps: number;
+  /** Зёрна последней офлайн-тренировки — для оверлея результата. */
+  lastTrainingBeans: number;
+  /** Локальная история начислений/списаний (кэш; сервер — этап 3+). */
+  history: BeansEntry[];
 
   /** Пересчитать восстановленную энергию (idempotent, безопасно звать часто). */
   regen: () => void;
   /** Тап по маскоту. Возвращает результат для анимации. */
   tap: () => TapResult;
+  /**
+   * Офлайн-тренировка против ботов: начисляет НЕБОЛЬШОЕ количество зёрен.
+   * Пока не подключена серверная сверка (см. syncFromServer) — оптимистичный
+   * клиентский кэш, как и обычные тапы. Возвращает начисленную сумму.
+   */
+  awardTraining: (won: boolean) => number;
   /** Хватает ли зёрен на вход в матч. */
   canEnterMatch: () => boolean;
   /** Списать вход в матч (вернёт false, если не хватает). Сервер продублирует. */
@@ -68,6 +91,10 @@ interface BeansState {
    *  перезаписать баланс/энергию значениями, которым доверяет бэкенд. */
   syncFromServer: (data: Partial<Pick<BeansState, 'beans' | 'energy'>>) => void;
   reset: () => void;
+}
+
+function beansEntry(kind: BeansEntry['kind'], amount: number, note: string): BeansEntry {
+  return { id: Date.now() + Math.floor(Math.random() * 1000), date: Date.now(), kind, amount, note };
 }
 
 /** Сколько энергии восстановилось с прошлой метки (без мутаций). */
@@ -92,6 +119,8 @@ export const useBeansStore = create<BeansState>()(
       lastTapTs: 0,
       combo: 0,
       totalTaps: 0,
+      lastTrainingBeans: 0,
+      history: [],
 
       regen: () => {
         const s = get();
@@ -129,6 +158,19 @@ export const useBeansStore = create<BeansState>()(
         return { gained, combo, multiplier, golden, empty: false };
       },
 
+      awardTraining: (won) => {
+        const gain = TRAINING_BEANS_PER_GAME + (won ? TRAINING_BEANS_PER_WIN : 0);
+        set((s) => ({
+          beans: s.beans + gain,
+          lastTrainingBeans: gain,
+          history: [
+            beansEntry('training', gain, won ? 'Тренировка · победа' : 'Тренировка'),
+            ...s.history,
+          ].slice(0, 50),
+        }));
+        return gain;
+      },
+
       canEnterMatch: () => get().beans >= MATCH_ENTRY_COST,
 
       spendEntry: () => {
@@ -146,7 +188,16 @@ export const useBeansStore = create<BeansState>()(
         })),
 
       reset: () =>
-        set({ beans: 0, energy: ENERGY_MAX, lastEnergyTs: Date.now(), lastTapTs: 0, combo: 0, totalTaps: 0 }),
+        set({
+          beans: 0,
+          energy: ENERGY_MAX,
+          lastEnergyTs: Date.now(),
+          lastTapTs: 0,
+          combo: 0,
+          totalTaps: 0,
+          lastTrainingBeans: 0,
+          history: [],
+        }),
     }),
     { name: 'doffa-crazy8-beans-v1' },
   ),

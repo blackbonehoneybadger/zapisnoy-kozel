@@ -11,7 +11,7 @@ import {
 import { decideBotMove } from '../game/bots';
 import { currentSettings } from './settingsStore';
 import { useStatsStore } from './statsStore';
-import { useRewardsStore } from './rewardsStore';
+import { useBeansStore } from './beansStore';
 import {
   drawCardSound,
   loseSound,
@@ -102,8 +102,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         players: next.players.length,
         flewAway: human?.busted ?? false,
       });
-      // Офлайн-тренировка против ботов: только тренировочные Cups, без DOFFA.
-      useRewardsStore.getState().awardTraining(won);
+      // Офлайн-тренировка против ботов: только тренировочные зёрна, без DOFFA.
+      useBeansStore.getState().awardTraining(won);
       if (won) {
         winSound();
         haptics.win();
