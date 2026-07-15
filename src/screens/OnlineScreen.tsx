@@ -7,18 +7,24 @@ import { WalletButton } from '../components/WalletButton';
 import { OnlineGameScreen } from './OnlineGameScreen';
 import { useOnlineStore } from '../net/onlineStore';
 import { useWalletStore } from '../solana/walletStore';
+import { useBeansStore, MATCH_ENTRY_COST } from '../store/beansStore';
 import { SOL_BETTING_ENABLED } from '../config/features';
 import type { LobbyTable, OnlineUser } from '../net/protocol';
+import type { Screen } from '../App';
+
+/** Заявленная награда за победу — визуальный ориентир (см. server/src/config.ts DOFFA_REWARD_PER_WIN). */
+const DOFFA_REWARD_PER_WIN_DISPLAY = 10;
 
 interface Props {
   onBack: () => void;
+  navigate: (s: Screen) => void;
 }
 
 function short(addr: string): string {
   return addr.length <= 9 ? addr : `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
-export function OnlineScreen({ onBack }: Props) {
+export function OnlineScreen({ onBack, navigate }: Props) {
   const view = useOnlineStore((s) => s.view);
   const connect = useOnlineStore((s) => s.connect);
   const notice = useOnlineStore((s) => s.notice);
@@ -37,7 +43,7 @@ export function OnlineScreen({ onBack }: Props) {
   return (
     <div className="relative min-h-[100dvh]">
       {view === 'auth' && <WalletConnectView onBack={onBack} />}
-      {view === 'lobby' && <LobbyView onBack={onBack} />}
+      {view === 'lobby' && <LobbyView onBack={onBack} navigate={navigate} />}
       {view === 'table' && <WaitingRoom />}
       {view === 'game' && <OnlineGameScreen />}
 
@@ -184,7 +190,7 @@ function SolMark() {
 }
 
 // ─── Лобби ─────────────────────────────────────────────────────────
-function LobbyView({ onBack }: { onBack: () => void }) {
+function LobbyView({ onBack, navigate }: { onBack: () => void; navigate: (s: Screen) => void }) {
   const lobby = useOnlineStore((s) => s.lobby);
   const user = useOnlineStore((s) => s.user);
   const online = useOnlineStore((s) => s.online);
@@ -195,6 +201,8 @@ function LobbyView({ onBack }: { onBack: () => void }) {
   const removeFriend = useOnlineStore((s) => s.removeFriend);
   const logout = useOnlineStore((s) => s.logout);
   const balance = useWalletStore((s) => s.balance);
+  const beans = useBeansStore((s) => s.beans);
+  const canEnter = useBeansStore((s) => s.canEnterMatch());
   const [creating, setCreating] = useState(false);
   const [joinTarget, setJoinTarget] = useState<LobbyTable | null>(null);
   const [editName, setEditName] = useState(false);
@@ -244,6 +252,27 @@ function LobbyView({ onBack }: { onBack: () => void }) {
         </div>
       </button>
 
+      {/* стоимость входа / баланс зёрен / возможная награда */}
+      <div className="mb-4 grid grid-cols-3 gap-2.5">
+        <EntryStat label="Вход в матч" value={`${MATCH_ENTRY_COST}`} hint="зёрен" tone="amber" />
+        <EntryStat label="Ваш баланс" value={`${beans}`} hint="зёрен" tone={canEnter ? 'cream' : 'wine'} />
+        <EntryStat label="Награда" value={`до ${DOFFA_REWARD_PER_WIN_DISPLAY}`} hint="DOFFA" tone="forest" />
+      </div>
+      {!canEnter && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 rounded-2xl border border-wine-600/25 bg-wine-600/5 px-4 py-3"
+        >
+          <p className="mb-2 text-xs text-wine-400/80">
+            Недостаточно зёрен для входа в матч.
+          </p>
+          <PremiumButton full variant="gold" onClick={() => navigate('beans')}>
+            Накопить зёрна
+          </PremiumButton>
+        </motion.div>
+      )}
+
       <div className="flex-1 space-y-2.5 overflow-y-auto no-scrollbar pb-2">
         <SectionLabel>Открытые столы</SectionLabel>
         {lobby.length === 0 && (
@@ -260,11 +289,11 @@ function LobbyView({ onBack }: { onBack: () => void }) {
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             transition={{ delay: Math.min(i * 0.06, 0.5), ease: [0.22, 1, 0.36, 1] }}
             onClick={() => {
-              if (tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers) return;
+              if (tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers || !canEnter) return;
               if (tbl.hasPassword) setJoinTarget(tbl);
               else joinTable(tbl.id);
             }}
-            disabled={tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers}
+            disabled={tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers || !canEnter}
             className="flex w-full items-center justify-between rounded-2xl glass px-4 py-3.5 text-left transition-colors hover:bg-white/[0.05] disabled:opacity-45"
           >
             <span className="flex min-w-0 flex-col">
@@ -313,7 +342,7 @@ function LobbyView({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="pt-4">
-        <PremiumButton full onClick={() => setCreating(true)}>
+        <PremiumButton full onClick={() => setCreating(true)} disabled={!canEnter}>
           Создать стол
         </PremiumButton>
       </div>
@@ -330,6 +359,34 @@ function LobbyView({ onBack }: { onBack: () => void }) {
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p className="px-1 pt-3 text-[11px] uppercase tracking-[0.25em] text-white/35">{children}</p>
+  );
+}
+
+function EntryStat({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone: 'amber' | 'cream' | 'forest' | 'wine';
+}) {
+  const color =
+    tone === 'amber'
+      ? 'text-gold-300'
+      : tone === 'forest'
+        ? 'text-emerald-300'
+        : tone === 'wine'
+          ? 'text-wine-400'
+          : 'text-[#f3efe6]';
+  return (
+    <div className="glass rounded-2xl px-3 py-3 text-center">
+      <div className="text-[10px] uppercase tracking-wide text-white/40">{label}</div>
+      <div className={`mt-0.5 font-display text-lg ${color}`}>{value}</div>
+      <div className="text-[10px] text-white/35">{hint}</div>
+    </div>
   );
 }
 

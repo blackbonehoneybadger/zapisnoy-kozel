@@ -1,12 +1,14 @@
 // Зёрна — внутренняя игровая валюта DOFFA (НЕ криптовалюта, не выводится).
 // Копятся тапами по маскоту-чашке и тратятся на вход в матчи.
 //
-// ВАЖНО (безопасность/античит): истинный баланс зёрен должен жить на СЕРВЕРЕ.
-// Этот стор — только КЭШ интерфейса для отзывчивости тапалки. Клиент не должен
-// быть источником истины: локальный тап начисляет зерно оптимистично, а сервер
-// (когда будет подключён `syncFromServer`) валидирует и перезаписывает баланс,
-// ограничивая накрутку (лимит энергии + серверная сверка). Пока сервер не готов —
-// работаем локально, но архитектура уже разделяет «оптимистичный кэш» и «истину».
+// ВАЖНО (безопасность/античит): истинный баланс зёрен живёт на СЕРВЕРЕ
+// (server/src/services/beansService.ts). Этот стор — оптимистичный КЭШ для
+// отзывчивости тапалки: тап начисляет зерно локально сразу же, а
+// накопленная с прошлой сверки партия (см. `takePendingSync`) периодически
+// отправляется на сервер (см. src/screens/BeansScreen.tsx, net/onlineStore.ts
+// `syncBeans`) — сервер урезает её до правдоподобного максимума по своим
+// часам и присылает авторитетный баланс через `syncFromServer`. Работает и
+// без подключённого кошелька (полностью офлайн), просто без серверной сверки.
 //
 // Экономика v1 (легко расширяется под комбо/бонусы/задания/множители):
 //   1 тап = +1 зерно, −1 энергия. Энергия ограничена и восстанавливается со временем.
@@ -27,10 +29,6 @@ const COMBO_WINDOW_MS = 450;
 /** На каждые N тапов серии — +1 к множителю (кап COMBO_MAX). */
 const COMBO_STEP = 12;
 const COMBO_MAX = 5;
-/** Тренировочные зёрна за любую офлайн-партию против ботов. */
-export const TRAINING_BEANS_PER_GAME = 10;
-/** Тренировочные зёрна сверху за офлайн-победу. */
-export const TRAINING_BEANS_PER_WIN = 25;
 
 /** Результат одного тапа — для визуального отклика экрана. */
 export interface TapResult {
@@ -68,26 +66,35 @@ interface BeansState {
   combo: number;
   /** Всего тапов за всё время (для будущих заданий/статистики). */
   totalTaps: number;
-  /** Зёрна последней офлайн-тренировки — для оверлея результата. */
+  /** Зёрна последней офлайн-тренировки — для оверлея результата (только после подтверждения сервера). */
   lastTrainingBeans: number;
   /** Локальная история начислений/списаний (кэш; сервер — этап 3+). */
   history: BeansEntry[];
+  /** Тапов с прошлой сверки с сервером (см. src/screens/BeansScreen.tsx). */
+  pendingTapped: number;
+  /** Зёрен насчитано локально с прошлой сверки с сервером. */
+  pendingGained: number;
 
   /** Пересчитать восстановленную энергию (idempotent, безопасно звать часто). */
   regen: () => void;
   /** Тап по маскоту. Возвращает результат для анимации. */
   tap: () => TapResult;
+  /** Снимает и сбрасывает накопленные с прошлой сверки тап/зерно-счётчики. */
+  takePendingSync: () => { tapped: number; gained: number };
   /**
-   * Офлайн-тренировка против ботов: начисляет НЕБОЛЬШОЕ количество зёрен.
-   * Пока не подключена серверная сверка (см. syncFromServer) — оптимистичный
-   * клиентский кэш, как и обычные тапы. Возвращает начисленную сумму.
+   * Применяет ПОДТВЕРЖДЁННЫЙ сервером результат запроса тренировочных зёрен
+   * (см. beans:awardTraining в net/onlineStore.ts). `granted` — сколько
+   * реально начислено (0, если сервер отказал/rate-limit) — клиент никогда
+   * не решает эту сумму сам.
    */
-  awardTraining: (won: boolean) => number;
+  applyTrainingResult: (granted: number, beans: number, energy: number) => void;
+  /** Сбрасывает витрину последней тренировочной награды перед новой офлайн-партией. */
+  resetLastTraining: () => void;
   /** Хватает ли зёрен на вход в матч. */
   canEnterMatch: () => boolean;
   /** Списать вход в матч (вернёт false, если не хватает). Сервер продублирует. */
   spendEntry: () => boolean;
-  /** Синхронизация с сервером (заготовка): единственный легитимный способ
+  /** Синхронизация с сервером: единственный легитимный способ
    *  перезаписать баланс/энергию значениями, которым доверяет бэкенд. */
   syncFromServer: (data: Partial<Pick<BeansState, 'beans' | 'energy'>>) => void;
   reset: () => void;
@@ -121,6 +128,8 @@ export const useBeansStore = create<BeansState>()(
       totalTaps: 0,
       lastTrainingBeans: 0,
       history: [],
+      pendingTapped: 0,
+      pendingGained: 0,
 
       regen: () => {
         const s = get();
@@ -154,22 +163,31 @@ export const useBeansStore = create<BeansState>()(
           lastTapTs: now,
           combo,
           totalTaps: s.totalTaps + 1,
+          pendingTapped: s.pendingTapped + 1,
+          pendingGained: s.pendingGained + gained,
         });
         return { gained, combo, multiplier, golden, empty: false };
       },
 
-      awardTraining: (won) => {
-        const gain = TRAINING_BEANS_PER_GAME + (won ? TRAINING_BEANS_PER_WIN : 0);
-        set((s) => ({
-          beans: s.beans + gain,
-          lastTrainingBeans: gain,
-          history: [
-            beansEntry('training', gain, won ? 'Тренировка · победа' : 'Тренировка'),
-            ...s.history,
-          ].slice(0, 50),
-        }));
-        return gain;
+      takePendingSync: () => {
+        const { pendingTapped, pendingGained } = get();
+        set({ pendingTapped: 0, pendingGained: 0 });
+        return { tapped: pendingTapped, gained: pendingGained };
       },
+
+      applyTrainingResult: (granted, beans, energy) =>
+        set((s) => ({
+          beans,
+          energy,
+          lastEnergyTs: Date.now(),
+          lastTrainingBeans: granted,
+          history:
+            granted > 0
+              ? [beansEntry('training', granted, 'Тренировка'), ...s.history].slice(0, 50)
+              : s.history,
+        })),
+
+      resetLastTraining: () => set({ lastTrainingBeans: 0 }),
 
       canEnterMatch: () => get().beans >= MATCH_ENTRY_COST,
 
@@ -197,6 +215,8 @@ export const useBeansStore = create<BeansState>()(
           totalTaps: 0,
           lastTrainingBeans: 0,
           history: [],
+          pendingTapped: 0,
+          pendingGained: 0,
         }),
     }),
     { name: 'doffa-crazy8-beans-v1' },

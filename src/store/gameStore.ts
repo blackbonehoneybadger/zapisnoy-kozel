@@ -12,6 +12,7 @@ import { decideBotMove } from '../game/bots';
 import { currentSettings } from './settingsStore';
 import { useStatsStore } from './statsStore';
 import { useBeansStore } from './beansStore';
+import { useOnlineStore } from '../net/onlineStore';
 import {
   drawCardSound,
   loseSound,
@@ -103,7 +104,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         flewAway: human?.busted ?? false,
       });
       // Офлайн-тренировка против ботов: только тренировочные зёрна, без DOFFA.
-      useBeansStore.getState().awardTraining(won);
+      // Сумму решает ИСКЛЮЧИТЕЛЬНО сервер (см. beans:awardTraining в
+      // onlineStore) — если кошелёк не подключён/сервер недоступен, зёрна
+      // не начисляются вовсе, а не выдумываются на клиенте.
+      useOnlineStore.getState().requestTrainingAward(won);
       if (won) {
         winSound();
         haptics.win();
@@ -142,6 +146,9 @@ export const useGameStore = create<GameStore>((set, get) => {
     recorded: false,
     start: () => {
       clearBotTimer();
+      // Сбрасываем витрину прошлой тренировочной награды — иначе при офлайн
+      // сервере оверлей мог бы показать устаревшее число из прошлой партии.
+      useBeansStore.getState().resetLastTraining();
       const state = createInitialState(currentSettings());
       set({ game: state, recorded: false });
       scheduleBot();

@@ -28,12 +28,22 @@ import {
   verifyPayment,
   verifySignature,
 } from './solana.js';
-import { SOL_BETTING_ENABLED } from './config';
+import { SOL_BETTING_ENABLED, BEANS_ENTRY_FEE } from './config';
+import { createEconomy } from './services';
+import type { BeansState } from './services/beansService';
 
 const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
 
 const PORT = Number(process.env.PORT ?? 8080);
+
+// Доменная экономика DOFFA: зёрна, награды, заявки на вывод (см. services/).
+const economy = createEconomy();
+console.log(`Экономика DOFFA: ${economy.summary}`);
+
+// Плата за вход, списанная при создании/входе за стол — до старта партии
+// возвращается при выходе (см. table:leave / ws close), после старта сгорает.
+const entryCharges = new Map<string, { tableId: string; amount: number }>();
 
 // Использованные подписи платежей — защита от повторного зачёта одной транзакции.
 const USED_SIGS_PATH = resolve(here, '..', 'data', 'used_sigs.json');
@@ -97,6 +107,25 @@ function send(ws: WebSocket, msg: ServerMessage): void {
 
 function sendToUser(userId: string, msg: ServerMessage): void {
   byUser.get(userId)?.forEach((c) => send(c.ws, msg));
+}
+
+function beansStateMsg(s: BeansState): ServerMessage {
+  return { t: 'beans:state', beans: s.beans, energy: s.energy };
+}
+
+/**
+ * Возвращает плату за вход, если игрок покинул стол ДО старта партии
+ * (матч не состоялся). Если партия уже шла — плата сгорает по правилам
+ * (сознательный выход после начала). Идемпотентно: одна плата возвращается
+ * не более одного раза (запись сразу удаляется из entryCharges).
+ */
+async function settleEntryOnLeave(userId: string, wasPlaying: boolean): Promise<void> {
+  const charge = entryCharges.get(userId);
+  if (!charge) return;
+  entryCharges.delete(userId);
+  if (wasPlaying) return;
+  const state = await economy.beans.refundEntry(userId, userId, charge.amount);
+  sendToUser(userId, beansStateMsg(state));
 }
 
 function bindUser(conn: Conn, userId: string, name: string): void {
@@ -171,8 +200,49 @@ function pushGame(table: lobby.Table): void {
     if (!seat.userId) continue;
     sendToUser(seat.userId, { t: 'game', state: redactFor(table.game, i), youSeat: i });
   }
-  if (table.game.phase === 'gameOver' && table.betLamports && table.betLamports > 0) {
-    void handlePayout(table);
+  if (table.game.phase === 'gameOver') {
+    // DOFFA-награда — за КАЖДЫЙ подтверждённый онлайн-матч (вход всегда за
+    // зёрна), а не только за столы со ставкой SOL.
+    void handleMatchReward(table);
+    if (table.betLamports && table.betLamports > 0) {
+      void handlePayout(table);
+    }
+  }
+}
+
+/**
+ * Фиксирует результат матча в доменной экономике DOFFA и уведомляет
+ * победителя о подтверждённой сервером сумме награды (0, если реванш не
+ * дал результата или награда не назначена). Клиент никогда не считает эту
+ * сумму сам — см. src/screens/OnlineGameScreen.tsx.
+ */
+async function handleMatchReward(table: lobby.Table): Promise<void> {
+  const game = table.game;
+  if (!game || table.rewardRecorded) return;
+  const candidates = table.seats
+    .map((seat, i) => ({ seat, player: game.players[i] }))
+    .filter(({ player, seat }) => !player.busted && seat.userId && !seat.isBot);
+  if (candidates.length === 0) return;
+  candidates.sort((a, b) => a.player.score - b.player.score);
+  const winner = candidates[0];
+  if (!winner.seat.userId) return;
+  table.rewardRecorded = true;
+
+  const humanIds = table.seats.filter((s) => s.userId && !s.isBot).map((s) => s.userId as string);
+  const matchId = `${table.id}:${table.matchStartedAt ?? game.roundNumber}`;
+  try {
+    const { reward } = await economy.rewards.recordMatchResult({
+      matchId,
+      players: humanIds,
+      winnerId: winner.seat.userId,
+      winnerWallet: winner.seat.walletAddress ?? winner.seat.userId,
+      startedAt: table.matchStartedAt ?? Date.now(),
+      finishedAt: Date.now(),
+      beansEntryFee: BEANS_ENTRY_FEE,
+    });
+    sendToUser(winner.seat.userId, { t: 'reward:match', matchId, amount: reward?.amount ?? 0 });
+  } catch (e) {
+    console.error('Не удалось записать результат матча:', e);
   }
 }
 
@@ -289,6 +359,7 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       token: tokenFor(account.address),
       user: { id: account.address, name: account.name },
     });
+    send(conn.ws, beansStateMsg(await economy.beans.getState(account.address, account.address)));
     pushFriends(account.address);
     pushPresence();
     return;
@@ -307,6 +378,7 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       token: tokenFor(account.address),
       user: { id: account.address, name: account.name },
     });
+    send(conn.ws, beansStateMsg(await economy.beans.getState(account.address, account.address)));
     pushFriends(account.address);
     const table = lobby.tableOf(account.address);
     if (table) {
@@ -360,6 +432,13 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       // Выключена по умолчанию: игнорируем betLamports, стол создаётся без ставки.
       const wantsBet = !!msg.betLamports && msg.betLamports > 0;
       const betLamports = wantsBet && SOL_BETTING_ENABLED ? msg.betLamports : undefined;
+
+      // Вход в онлайн-матч — за зёрна. Списываем ДО создания стола; если стол
+      // не создался по другой причине, возвращаем деньги немедленно.
+      const charged = await economy.beans.chargeEntry(user.id, user.id, BEANS_ENTRY_FEE);
+      if (!charged) return send(conn.ws, { t: 'error', message: 'Недостаточно зёрен' });
+      send(conn.ws, beansStateMsg(charged));
+
       const res = lobby.createTable(
         user,
         msg.name,
@@ -368,7 +447,11 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
         betLamports,
         betLamports ? SERVER_WALLET : undefined,
       );
-      if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
+      if (!res.ok || !res.table) {
+        send(conn.ws, beansStateMsg(await economy.beans.refundEntry(user.id, user.id, BEANS_ENTRY_FEE)));
+        return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
+      }
+      entryCharges.set(user.id, { tableId: res.table.id, amount: BEANS_ENTRY_FEE });
       conn.inLobby = false;
       pushTable(res.table);
       pushLobby();
@@ -377,8 +460,16 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     }
 
     case 'table:join': {
+      const charged = await economy.beans.chargeEntry(user.id, user.id, BEANS_ENTRY_FEE);
+      if (!charged) return send(conn.ws, { t: 'error', message: 'Недостаточно зёрен' });
+      send(conn.ws, beansStateMsg(charged));
+
       const res = lobby.joinTable(user, msg.tableId, msg.password);
-      if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
+      if (!res.ok || !res.table) {
+        send(conn.ws, beansStateMsg(await economy.beans.refundEntry(user.id, user.id, BEANS_ENTRY_FEE)));
+        return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
+      }
+      entryCharges.set(user.id, { tableId: res.table.id, amount: BEANS_ENTRY_FEE });
       conn.inLobby = false;
       pushTable(res.table);
       pushLobby();
@@ -387,7 +478,9 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     }
 
     case 'table:leave': {
+      const wasPlaying = lobby.tableOf(user.id)?.status === 'playing';
       const table = lobby.leaveTable(user.id);
+      await settleEntryOnLeave(user.id, wasPlaying);
       send(conn.ws, { t: 'table:left' });
       if (table) {
         pushTable(table);
@@ -414,6 +507,10 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       }
       const res = lobby.startGame(user.id);
       if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
+      // Партия началась — плата за вход сгорает (больше не возвращается при выходе).
+      for (const seat of res.table.seats) {
+        if (seat.userId) entryCharges.delete(seat.userId);
+      }
       pushTable(res.table);
       pushGame(res.table);
       pushLobby();
@@ -542,6 +639,29 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       }
       break;
     }
+
+    case 'beans:sync': {
+      const state = await economy.beans.applyTapSync(
+        user.id,
+        user.id,
+        msg.tapped,
+        msg.claimedGain,
+        msg.elapsedMs,
+      );
+      send(conn.ws, beansStateMsg(state));
+      break;
+    }
+
+    case 'beans:awardTraining': {
+      const result = await economy.beans.awardTraining(user.id, user.id, msg.won);
+      send(conn.ws, {
+        t: 'beans:trainingResult',
+        granted: result.granted,
+        beans: result.beans,
+        energy: result.energy,
+      });
+      break;
+    }
   }
 }
 
@@ -592,7 +712,9 @@ wss.on('connection', (ws) => {
       set?.delete(conn);
       if (set && set.size === 0) {
         byUser.delete(conn.userId);
+        const wasPlaying = lobby.tableOf(conn.userId)?.status === 'playing';
         const table = lobby.leaveTable(conn.userId);
+        void settleEntryOnLeave(conn.userId, wasPlaying);
         if (table) {
           pushTable(table);
           if (table.game) {

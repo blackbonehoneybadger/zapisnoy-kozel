@@ -50,7 +50,11 @@ export const BEANS_ENTRY_FEE = toInt(process.env.BEANS_ENTRY_FEE ?? process.env.
 export const SOL_BETTING_ENABLED = (process.env.SOL_BETTING_ENABLED ?? 'false').trim() === 'true';
 
 function toInt(raw: string | undefined, fallback: number): number {
-  const n = Number((raw ?? '').trim());
+  const trimmed = (raw ?? '').trim();
+  // Number('') === 0 (не NaN) — без этой проверки пустая/отсутствующая
+  // переменная окружения тихо давала 0 вместо fallback на ЛЮБом toInt(...).
+  if (trimmed === '') return fallback;
+  const n = Number(trimmed);
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 }
 

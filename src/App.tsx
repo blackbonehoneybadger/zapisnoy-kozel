@@ -70,7 +70,9 @@ export default function App() {
             {screen === 'rules' && <RulesScreen onBack={() => setScreen('home')} />}
             {screen === 'stats' && <StatsScreen onBack={() => setScreen('home')} />}
             {screen === 'settings' && <SettingsScreen onBack={() => setScreen('home')} />}
-            {screen === 'online' && <OnlineScreen onBack={() => setScreen('home')} />}
+            {screen === 'online' && (
+              <OnlineScreen onBack={() => setScreen('home')} navigate={setScreen} />
+            )}
             {screen === 'claim' && <ClaimScreen onBack={() => setScreen('home')} />}
             {screen === 'rewards' && <RewardsScreen onBack={() => setScreen('profile')} />}
             {screen === 'profile' && (

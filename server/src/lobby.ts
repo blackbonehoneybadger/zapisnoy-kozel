@@ -35,6 +35,10 @@ interface Table {
   potLamports?: number;
   /** Сколько раз пытались выплатить банк (для авто-повтора при сбое RPC). */
   payoutAttempts?: number;
+  /** Метка времени старта текущей партии — часть уникального matchId для наград. */
+  matchStartedAt?: number;
+  /** Защита от повторной записи результата матча (idempotent и так, но не шлём дважды). */
+  rewardRecorded?: boolean;
 }
 
 // Здравый предел ставки (1000 SOL), чтобы исключить абсурдные/переполненные значения.
@@ -246,6 +250,8 @@ export function startGame(userId: string): MutationResult {
   table.status = 'playing';
   table.paidOut = false; // новая партия — разрешаем новую выплату
   table.payoutAttempts = 0; // сбрасываем счётчик попыток выплаты
+  table.matchStartedAt = Date.now();
+  table.rewardRecorded = false; // новая партия — разрешаем новую запись награды
   // Фиксируем банк до того, как кто-то успеет выйти.
   if (table.betLamports) {
     table.potLamports = table.betLamports * seats.filter((s) => s.userId && !s.isBot).length;

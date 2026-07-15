@@ -2,10 +2,12 @@
 // чашке и копит зёрна (внутренняя валюта для входа в матчи). Мотив, палитра и
 // анимации — в бренде doffa.coffee (эспрессо/крем/золото/медь/лес, тёплое свечение).
 //
-// Что моковое сейчас: баланс зёрен и энергия живут в localStorage-кэше
-// (beansStore). Истинный баланс — будущий серверный (beansStore.syncFromServer +
-// WS-команды). Экономика v1: 1 тап = +1 зерно −1 энергия, комбо-множитель,
-// редкие золотые зёрна. Легко расширяется под задания/бонусы/множители.
+// Тап начисляет зерно локально сразу (отзывчивость), а накопленная с прошлой
+// сверки партия периодически уходит на сервер (см. syncBeans в net/onlineStore),
+// который урезает её до правдоподобного максимума и присылает авторитетный
+// баланс — единственную истину (см. store/beansStore.ts). Работает и без
+// подключённого кошелька — просто без серверной сверки (полностью локально).
+// Экономика v1: 1 тап = +1 зерно −1 энергия, комбо-множитель, редкие золотые зёрна.
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PremiumButton } from '../components/PremiumButton';
@@ -17,6 +19,7 @@ import {
   MATCH_ENTRY_COST,
   ENERGY_MAX,
 } from '../store/beansStore';
+import { useOnlineStore } from '../net/onlineStore';
 import type { Screen } from '../App';
 
 interface Props {
@@ -42,6 +45,7 @@ export function BeansScreen({ navigate, onPlay }: Props) {
   const tap = useBeansStore((s) => s.tap);
   const regen = useBeansStore((s) => s.regen);
   const canEnter = useBeansStore((s) => s.canEnterMatch());
+  const syncBeans = useOnlineStore((s) => s.syncBeans);
 
   const [tapSignal, setTapSignal] = useState(0);
   const [bursts, setBursts] = useState<Burst[]>([]);
@@ -58,6 +62,16 @@ export function BeansScreen({ navigate, onPlay }: Props) {
     const t = setInterval(regen, 1000);
     return () => clearInterval(t);
   }, [regen]);
+
+  // Сверка тапалки с сервером — раз в 4 сек и при уходе с экрана (flush),
+  // если нет подключённого кошелька/сервера — тихо no-op (см. syncBeans).
+  useEffect(() => {
+    const t = setInterval(syncBeans, 4000);
+    return () => {
+      clearInterval(t);
+      syncBeans();
+    };
+  }, [syncBeans]);
 
   const handleTap = () => {
     const res = tap();

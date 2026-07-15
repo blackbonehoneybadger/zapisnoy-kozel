@@ -25,6 +25,10 @@ export interface DoffaUser {
   walletAddress?: string;
   /** Баланс зёрен — внутренняя игровая энергия (авторитетно на сервере). */
   beansBalance: number;
+  /** Текущая энергия тапалки (авторитетно на сервере). */
+  energy: number;
+  /** Метка времени последнего пересчёта регенерации энергии. */
+  lastEnergyTs: number;
   /** Накопленный доступный DOFFA (сумма available-наград). */
   pendingDoffa: number;
   /** Суммарно выплаченный DOFFA. */
