@@ -114,7 +114,8 @@ export function validateRewardSplit(): void {
   }
 }
 
-function toInt(raw: string | undefined, fallback: number): number {
+/** Экспортирован для юнит-тестов (config.test.ts) — сам парсинг не зависит от конкретной переменной. */
+export function toInt(raw: string | undefined, fallback: number): number {
   const trimmed = (raw ?? '').trim();
   // Number('') === 0 (не NaN) — без этой проверки пустая/отсутствующая
   // переменная окружения тихо давала 0 вместо fallback на ЛЮБом toInt(...).

@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -73,5 +74,13 @@ export default defineConfig({
     sourcemap: false,
     minify: 'esbuild',
     target: 'es2020',
+  },
+  test: {
+    environment: 'node',
+    // server/ — отдельный npm-пакет со своим vitest.config.ts (никакого
+    // vite-plugin-node-polyfills там нет и не должно быть); без исключения
+    // корневой `vitest run` подхватил бы server/**/*.test.ts через этот же
+    // конфиг и упал на резолвинге Node-полифиллов в чисто серверном коде.
+    exclude: ['**/node_modules/**', 'server/**'],
   },
 });

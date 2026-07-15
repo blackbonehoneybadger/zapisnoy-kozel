@@ -5,8 +5,11 @@
 // UI ставок скрыт из создания стола/онбординга/комнаты ожидания. Сервер
 // независимо игнорирует betLamports, если такой же флаг у него выключен
 // (server/src/config.ts) — клиентский флаг только прячет интерфейс, не
-// заменяет серверную проверку. См. docs/SOL_BETTING_LEGACY.md.
-export const SOL_BETTING_ENABLED = (import.meta.env.VITE_SOL_BETTING_ENABLED ?? 'false').trim() === 'true';
+// заменяет серверную проверку. VITE_ENABLE_SOL_BETS — актуальное имя
+// переменной; VITE_SOL_BETTING_ENABLED сохранён как алиас для обратной
+// совместимости. См. docs/SOL_BETTING_LEGACY.md.
+export const SOL_BETTING_ENABLED =
+  (import.meta.env.VITE_ENABLE_SOL_BETS ?? import.meta.env.VITE_SOL_BETTING_ENABLED ?? 'false').trim() === 'true';
 
 // ENABLE_CRAZY8_CLASSIC — старый флагманский режим DOFFA Crazy 8 (карточная
 // игра, офлайн-боты и онлайн-лобби). Продукт переименован в DOFFA Games,
