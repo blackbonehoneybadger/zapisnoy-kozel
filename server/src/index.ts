@@ -132,7 +132,7 @@ function sendToUser(userId: string, msg: ServerMessage): void {
 
 // DOFFA Bean Duel — авторитетный PvP-матч шлёт сообщения игрокам напрямую
 // (тиковый цикл, не привязан к синхронной обработке входящего сообщения).
-initDuel(sendToUser);
+initDuel(sendToUser, economy.beans);
 
 function beansStateMsg(s: BeansState): ServerMessage {
   return { t: 'beans:state', beans: s.beans, energy: s.energy };
@@ -689,11 +689,11 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     }
 
     case 'duel:queue':
-      queueForDuel(user.id);
+      await queueForDuel(user.id);
       break;
 
     case 'duel:cancelQueue':
-      cancelDuelQueue(user.id);
+      await cancelDuelQueue(user.id);
       break;
 
     case 'duel:input':
@@ -701,7 +701,7 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       break;
 
     case 'duel:leave':
-      leaveDuelMatch(user.id);
+      await leaveDuelMatch(user.id);
       break;
   }
 }
@@ -757,7 +757,7 @@ wss.on('connection', (ws) => {
       set?.delete(conn);
       if (set && set.size === 0) {
         byUser.delete(conn.userId);
-        leaveDuelMatch(conn.userId); // техническое поражение в активном Bean Duel, если был
+        void leaveDuelMatch(conn.userId); // техническое поражение в активном Bean Duel, если был
         const wasPlaying = lobby.tableOf(conn.userId)?.status === 'playing';
         const table = lobby.leaveTable(conn.userId);
         void settleEntryOnLeave(conn.userId, wasPlaying);

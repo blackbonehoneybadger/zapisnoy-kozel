@@ -9,6 +9,9 @@
 // FighterId('player'|'bot') здесь — просто ярлыки первого/второго слота
 // матча, а НЕ признак бота: stepDuelPvP не запускает никакого ИИ, оба
 // слота ведут реальные игроки.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import {
   createInitialState,
   stepDuelPvP,
@@ -18,9 +21,13 @@ import {
   type Vec2,
 } from '../../src/games/bean-duel/engine';
 import type { ServerMessage } from './protocol';
+import { BEAN_DUEL_ENTRY_FEE } from './config';
+import type { BeansService, BeansState } from './services/beansService';
 
 const TICK_MS = 50; // 20 тиков/сек — частота авторитетной симуляции
 const SIDES: FighterId[] = ['player', 'bot'];
+/** Матчи короче этого — подозрительны (слив/фарм), помечаются в журнале для будущего ревью. */
+const SUSPICIOUSLY_SHORT_MS = 4_000;
 
 interface DuelMatch {
   id: string;
@@ -29,6 +36,7 @@ interface DuelMatch {
   input: Record<FighterId, DuelInput>;
   timer: ReturnType<typeof setInterval>;
   lastTickAt: number;
+  startedAt: number;
   finished: boolean;
 }
 
@@ -36,13 +44,69 @@ const neutralInput = (): DuelInput => ({ target: null, dashPressed: false, throw
 
 const matches = new Map<string, DuelMatch>();
 const matchByUser = new Map<string, string>();
-/** FIFO очередь ожидания соперника (см. Этап 7 для анти-фарм лимитов поверх этого). */
+/**
+ * FIFO очередь ожидания соперника. Игрок не может встретить сам себя:
+ * queueForDuel не ставит повторно уже стоящего в очереди/играющего
+ * пользователя (см. проверку ниже) — вторая попытка того же userId просто
+ * игнорируется, а не создаёт матч с самим собой.
+ */
 const queue: string[] = [];
 
 let sendFn: (userId: string, msg: ServerMessage) => void = () => {};
-/** Вызывается один раз при старте сервера — внедряет функцию отправки сообщений (см. index.ts). */
-export function initDuel(send: (userId: string, msg: ServerMessage) => void): void {
+let beansFn: BeansService | null = null;
+/** Вызывается один раз при старте сервера — внедряет отправку сообщений и сервис зёрен (см. index.ts). */
+export function initDuel(send: (userId: string, msg: ServerMessage) => void, beans: BeansService): void {
   sendFn = send;
+  beansFn = beans;
+}
+
+// ─── Журнал матчей (анти-фарм: см. requirement — "keep a match event log") ─
+const here = dirname(fileURLToPath(import.meta.url));
+const JOURNAL_PATH = resolve(here, '..', 'data', 'duel_matches.json');
+
+interface DuelMatchEvent {
+  matchId: string;
+  players: [string, string];
+  winner: FighterId | 'draw';
+  durationMs: number;
+  startedAt: number;
+  finishedAt: number;
+  suspiciouslyShort: boolean;
+}
+
+function loadJournal(): DuelMatchEvent[] {
+  try {
+    return existsSync(JOURNAL_PATH) ? (JSON.parse(readFileSync(JOURNAL_PATH, 'utf8')) as DuelMatchEvent[]) : [];
+  } catch (e) {
+    console.error('Не удалось прочитать журнал матчей Bean Duel:', e);
+    return [];
+  }
+}
+
+function appendJournal(event: DuelMatchEvent): void {
+  try {
+    mkdirSync(dirname(JOURNAL_PATH), { recursive: true });
+    const journal = loadJournal();
+    journal.push(event);
+    // Ограничиваем размер файла — храним последние 5000 записей, этого
+    // достаточно для анти-фарм проверок на скользящем окне (см. Этап 8+).
+    const trimmed = journal.length > 5000 ? journal.slice(-5000) : journal;
+    writeFileSync(JOURNAL_PATH, JSON.stringify(trimmed));
+  } catch (e) {
+    console.error('Не удалось записать журнал матчей Bean Duel:', e);
+  }
+}
+
+/**
+ * Сколько матчей сыграно между этими двумя игроками за последние `windowMs`
+ * (по умолчанию сутки) — основа для будущего лимита повторных наградных
+ * встреч с одним соперником (см. Этап 8: расчёт наград).
+ */
+export function recentMatchCountBetween(userA: string, userB: string, windowMs = 24 * 60 * 60 * 1000): number {
+  const since = Date.now() - windowMs;
+  return loadJournal().filter(
+    (e) => e.finishedAt >= since && ((e.players[0] === userA && e.players[1] === userB) || (e.players[0] === userB && e.players[1] === userA)),
+  ).length;
 }
 
 let matchCounter = 0;
@@ -61,30 +125,61 @@ function opponentSide(side: FighterId): FighterId {
   return side === 'player' ? 'bot' : 'player';
 }
 
+function beansStateMsg(s: BeansState): ServerMessage {
+  return { t: 'beans:state', beans: s.beans, energy: s.energy };
+}
+
+/** Сумма, списанная за вход, для каждого игрока, ожидающего соперника в очереди. */
+const queueCharges = new Map<string, number>();
+
 /**
- * Ставит игрока в очередь на матч Bean Duel. Если уже есть ожидающий
- * соперник — сразу создаёт матч и уведомляет обоих через duel:matchFound.
- * Игрок, уже находящийся в очереди или в активном матче, повторно не
- * ставится (идемпотентно).
+ * Ставит игрока в очередь на матч Bean Duel. Списывает плату за вход
+ * (BEAN_DUEL_ENTRY_FEE зёрен) атомарно ДО постановки в очередь — недостаток
+ * зёрен отклоняет запрос ошибкой. Если уже есть ожидающий соперник — сразу
+ * создаёт матч и уведомляет обоих через duel:matchFound (плата обоих
+ * сгорает — билет на вход, не возвращается после начала матча). Игрок, уже
+ * находящийся в очереди или в активном матче, повторно не ставится
+ * (идемпотентно) — тем самым исключена встреча с самим собой.
  */
-export function queueForDuel(userId: string): void {
-  if (matchByUser.has(userId) || queue.includes(userId)) return;
+export async function queueForDuel(userId: string): Promise<void> {
+  if (matchByUser.has(userId) || queue.includes(userId) || !beansFn) return;
+
+  const charged = await beansFn.chargeEntry(userId, userId, BEAN_DUEL_ENTRY_FEE);
+  if (!charged) {
+    sendFn(userId, { t: 'error', message: 'Недостаточно зёрен для входа в Bean Duel' });
+    return;
+  }
+  sendFn(userId, beansStateMsg(charged));
 
   const opponent = queue.shift();
   if (!opponent) {
     queue.push(userId);
+    queueCharges.set(userId, BEAN_DUEL_ENTRY_FEE);
     sendFn(userId, { t: 'duel:queued' });
     return;
   }
+  queueCharges.delete(opponent); // соперник переходит в матч — плата сгорает, билет использован
   createMatch(opponent, userId);
 }
 
-export function cancelQueue(userId: string): void {
+/**
+ * Убирает игрока из очереди, если он там есть, и возвращает плату за вход
+ * (матч не состоялся — техническая отмена, требование: "если матч не
+ * найден... зёрна возвращаются"). Не действует на уже начавшийся матч —
+ * там выход/разрыв соединения обрабатывает leaveMatch (техническое
+ * поражение, без возврата — билет уже использован).
+ */
+export async function cancelQueue(userId: string): Promise<void> {
   const idx = queue.indexOf(userId);
-  if (idx >= 0) {
-    queue.splice(idx, 1);
-    sendFn(userId, { t: 'duel:cancelled' });
+  if (idx < 0) return;
+  queue.splice(idx, 1);
+  const amount = queueCharges.get(userId);
+  queueCharges.delete(userId);
+  if (amount && beansFn) {
+    const state = await beansFn.refundEntry(userId, userId, amount);
+    sendFn(userId, beansStateMsg(state));
   }
+  sendFn(userId, { t: 'duel:cancelled' });
 }
 
 function createMatch(userA: string, userB: string): void {
@@ -95,6 +190,7 @@ function createMatch(userA: string, userB: string): void {
     state: createInitialState(),
     input: { player: neutralInput(), bot: neutralInput() },
     lastTickAt: Date.now(),
+    startedAt: Date.now(),
     finished: false,
     timer: setInterval(() => tick(id), TICK_MS),
   };
@@ -151,21 +247,35 @@ function finishMatch(match: DuelMatch): void {
   // phase === 'over' гарантирует, что движок выставил winner (см. engine.ts
   // resolveStep) — 'draw' здесь чисто типовой fallback, на практике не достижим.
   const winner = match.state.winner ?? 'draw';
+  const finishedAt = Date.now();
   for (const side of SIDES) {
     const you = match.userIds[side];
     matchByUser.delete(you);
     sendFn(you, { t: 'duel:result', matchId: match.id, winner, youWon: winner === side });
   }
   matches.delete(match.id);
+
+  const durationMs = finishedAt - match.startedAt;
+  appendJournal({
+    matchId: match.id,
+    players: [match.userIds.player, match.userIds.bot],
+    winner,
+    durationMs,
+    startedAt: match.startedAt,
+    finishedAt,
+    suspiciouslyShort: durationMs < SUSPICIOUSLY_SHORT_MS,
+  });
 }
 
 /**
  * Игрок явно вышел или отключился до конца матча — техническое поражение:
  * сопернику засчитывается победа сервером (клиент соперника не может
- * подделать этот исход — событие приходит только отсюда).
+ * подделать этот исход — событие приходит только отсюда). Если игрок был
+ * только в очереди (матч ещё не начался) — просто отменяет очередь с
+ * возвратом платы (см. cancelQueue), поражение не засчитывается.
  */
-export function leaveMatch(userId: string): void {
-  cancelQueue(userId);
+export async function leaveMatch(userId: string): Promise<void> {
+  await cancelQueue(userId);
   const matchId = matchByUser.get(userId);
   if (!matchId) return;
   const match = matches.get(matchId);

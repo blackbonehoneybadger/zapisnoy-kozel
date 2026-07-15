@@ -37,8 +37,15 @@ export const DOFFA_MIN_HOT_WALLET_BALANCE = toInt(process.env.DOFFA_MIN_HOT_WALL
 /** Награда DOFFA за подтверждённую сервером онлайн-победу (единицы токена). */
 export const DOFFA_REWARD_PER_WIN = toInt(process.env.DOFFA_REWARD_PER_WIN, 10);
 
-/** Стоимость входа в онлайн-матч за зёрна (beans). */
+/** Стоимость входа в онлайн-матч Crazy 8 за зёрна (beans). */
 export const BEANS_ENTRY_FEE = toInt(process.env.BEANS_ENTRY_FEE ?? process.env.CUPS_ENTRY_FEE, 100);
+
+/**
+ * Стоимость входа в матч DOFFA Bean Duel за зёрна — билет на вход, НЕ ставка
+ * между игроками (проигравший не передаёт зёрна победителю). Отдельная от
+ * BEANS_ENTRY_FEE константа: разные режимы, независимая настройка цены.
+ */
+export const BEAN_DUEL_ENTRY_FEE = toInt(process.env.BEAN_DUEL_ENTRY_FEE, 100);
 
 /**
  * Legacy-механика ставок SOL (стол на реальные деньги вместо зёрен) — см.
@@ -66,6 +73,7 @@ export function rewardConfigSummary(): string {
     `pool=${DOFFA_REWARD_POOL_INITIAL}`,
     `perWin=${DOFFA_REWARD_PER_WIN}`,
     `beansEntry=${BEANS_ENTRY_FEE}`,
+    `beanDuelEntry=${BEAN_DUEL_ENTRY_FEE}`,
     `dailyLimit=${DOFFA_DAILY_REWARD_LIMIT || '∞'}`,
     `solBetting=${SOL_BETTING_ENABLED ? 'ON (legacy)' : 'off'}`,
   ].join(' · ');
