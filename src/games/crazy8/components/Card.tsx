@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import type { Card as CardType, Rank } from '../game/types';
-import { SUIT_IS_RED } from '../game/deck';
+import type { Card as CardType, Rank } from '../engine/types';
+import { SUIT_IS_RED } from '../engine/deck';
 import { SuitIcon } from './SuitIcon';
 
 // Портреты карт-фигур (Higgsfield, винтажная гравюра в теме «история кофе»):

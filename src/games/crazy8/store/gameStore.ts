@@ -1,18 +1,18 @@
 // Связующее звено между движком и UI: хранит активную партию,
 // проигрывает звуки, ведёт ботов по таймеру и пишет статистику.
 import { create } from 'zustand';
-import type { GameState, MoveAction, Suit } from '../game/types';
+import type { GameState, MoveAction, Suit } from '../engine/types';
 import {
   applyMove,
   createInitialState,
   getCurrentPlayer,
   startNextRound,
-} from '../game/engine';
-import { decideBotMove } from '../game/bots';
-import { currentSettings } from './settingsStore';
+} from '../engine/engine';
+import { decideBotMove } from '../engine/bots';
+import { currentSettings } from '../../../store/settingsStore';
 import { useStatsStore } from './statsStore';
-import { useBeansStore } from './beansStore';
-import { useOnlineStore } from '../net/onlineStore';
+import { useBeansStore } from '../../../store/beansStore';
+import { useOnlineStore } from '../../../net/onlineStore';
 import {
   drawCardSound,
   loseSound,
@@ -20,8 +20,8 @@ import {
   playCardSound,
   specialSound,
   winSound,
-} from '../game/sound';
-import { haptics } from '../game/haptics';
+} from '../../../lib/sound';
+import { haptics } from '../../../lib/haptics';
 
 interface GameStore {
   game: GameState | null;

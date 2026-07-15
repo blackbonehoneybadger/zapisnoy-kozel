@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Записной Козёл</string>
-    <string name="title_activity_main">Записной Козёл</string>
+    <string name="app_name">DOFFA Games</string>
+    <string name="title_activity_main">DOFFA Games</string>
     <string name="package_name">com.zapisnoy.kozel</string>
     <string name="custom_url_scheme">com.zapisnoy.kozel</string>
 </resources>

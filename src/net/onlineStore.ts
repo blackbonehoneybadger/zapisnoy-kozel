@@ -1,7 +1,7 @@
 // Сетевое хранилище: WebSocket-соединение с онлайн-сервером, вход через
 // кошелёк Solana, лобби, присутствие, друзья, приглашения, стол и партия.
 import { create } from 'zustand';
-import type { GameState, MoveAction, Suit } from '../game/types';
+import type { GameState, MoveAction, Suit } from '../games/crazy8/engine/types';
 import type {
   ClientMessage,
   LobbyTable,
@@ -23,7 +23,7 @@ const TOKEN_KEY = 'doffa-crazy8.token';
 
 // Текст входа — должен побайтово совпадать с сервером (server/src/index.ts).
 function authMessage(nonce: string): string {
-  return `DOFFA Crazy 8 — вход\nNonce: ${nonce}`;
+  return `DOFFA Games — вход\nNonce: ${nonce}`;
 }
 
 export type OnlineView = 'auth' | 'lobby' | 'table' | 'game';

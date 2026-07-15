@@ -13,7 +13,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { PremiumButton } from '../components/PremiumButton';
 import { DoffaMascot } from '../components/DoffaMascot';
 import { DoffaEmblem } from '../components/DoffaEmblem';
-import { haptics } from '../game/haptics';
+import { haptics } from '../lib/haptics';
 import {
   useBeansStore,
   MATCH_ENTRY_COST,

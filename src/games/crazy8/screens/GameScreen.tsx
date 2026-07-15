@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Card as CardType, GameState, Suit } from '../game/types';
-import { canPlayCard, hasPlayableCard } from '../game/rules';
-import { SUITS, SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../game/deck';
-import { getTakeLabel } from '../game/labels';
+import type { Card as CardType, GameState, Suit } from '../engine/types';
+import { canPlayCard, hasPlayableCard } from '../engine/rules';
+import { SUITS, SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../engine/deck';
+import { getTakeLabel } from '../engine/labels';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
-import { PremiumButton } from '../components/PremiumButton';
-import { RewardOverlay } from '../components/RewardOverlay';
-import { DoffaEmblem } from '../components/DoffaEmblem';
+import { PremiumButton } from '../../../components/PremiumButton';
+import { RewardOverlay } from '../../../components/RewardOverlay';
+import { DoffaEmblem } from '../../../components/DoffaEmblem';
 import { useGameStore } from '../store/gameStore';
-import { useBeansStore } from '../store/beansStore';
+import { useBeansStore } from '../../../store/beansStore';
 
 interface Props {
   onExit: () => void;

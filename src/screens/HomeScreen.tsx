@@ -5,7 +5,7 @@
 import { motion } from 'framer-motion';
 import { Hero3DCard } from '../components/Hero3DCard';
 import { PremiumButton } from '../components/PremiumButton';
-import { haptics } from '../game/haptics';
+import { haptics } from '../lib/haptics';
 import { useBeansStore } from '../store/beansStore';
 import { useRewardsStore } from '../store/rewardsStore';
 import { ENABLE_CRAZY8_CLASSIC } from '../config/features';

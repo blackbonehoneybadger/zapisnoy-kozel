@@ -1,9 +1,9 @@
 // Лобби и столы (в памяти). Один источник правды о том, кто где сидит и
 // какая партия идёт. Сокеты и рассылку обновлений берёт на себя index.ts.
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import type { GameSettings, GameState, MoveAction } from '../../src/game/types';
-import { applyMove, startNextRound } from '../../src/game/engine';
-import { decideBotMove } from '../../src/game/bots';
+import type { GameSettings, GameState, MoveAction } from '../../src/games/crazy8/engine/types';
+import { applyMove, startNextRound } from '../../src/games/crazy8/engine/engine';
+import { decideBotMove } from '../../src/games/crazy8/engine/bots';
 import { createMatch, type SeatAssignment } from './match';
 import type { LobbyTable, TableView } from './protocol';
 

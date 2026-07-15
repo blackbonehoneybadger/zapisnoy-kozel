@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { PremiumButton } from '../components/PremiumButton';
 import { WalletButton } from '../components/WalletButton';
 import { DoffaEmblem } from '../components/DoffaEmblem';
-import { useStatsStore } from '../store/statsStore';
+import { useStatsStore } from '../games/crazy8/store/statsStore';
 import { useBeansStore } from '../store/beansStore';
 import { useRewardsStore } from '../store/rewardsStore';
 import { useWalletStore } from '../solana/walletStore';

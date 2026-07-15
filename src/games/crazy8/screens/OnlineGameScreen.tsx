@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Card as CardType, GameState, Suit } from '../game/types';
-import { canPlayCard, hasPlayableCard } from '../game/rules';
-import { SUITS, SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../game/deck';
-import { getTakeLabel } from '../game/labels';
+import type { Card as CardType, GameState, Suit } from '../engine/types';
+import { canPlayCard, hasPlayableCard } from '../engine/rules';
+import { SUITS, SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../engine/deck';
+import { getTakeLabel } from '../engine/labels';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
-import { PremiumButton } from '../components/PremiumButton';
-import { RewardOverlay } from '../components/RewardOverlay';
-import { DoffaEmblem } from '../components/DoffaEmblem';
+import { PremiumButton } from '../../../components/PremiumButton';
+import { RewardOverlay } from '../../../components/RewardOverlay';
+import { DoffaEmblem } from '../../../components/DoffaEmblem';
 import {
   drawCardSound,
   loseSound,
@@ -17,9 +17,9 @@ import {
   playCardSound,
   specialSound,
   winSound,
-} from '../game/sound';
-import { haptics } from '../game/haptics';
-import { useOnlineStore } from '../net/onlineStore';
+} from '../../../lib/sound';
+import { haptics } from '../../../lib/haptics';
+import { useOnlineStore } from '../../../net/onlineStore';
 
 function playEvent(state: GameState): void {
   const evt = state.lastEvent;

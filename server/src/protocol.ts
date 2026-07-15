@@ -1,5 +1,5 @@
 // Протокол WebSocket (зеркало server/src/protocol.ts).
-import type { GameState, MoveAction } from '../../src/game/types';
+import type { GameState, MoveAction } from '../../src/games/crazy8/engine/types';
 
 export interface PublicUser {
   id: string; // адрес кошелька Solana

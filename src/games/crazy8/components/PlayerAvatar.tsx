@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import type { Player } from '../game/types';
-import { DoffaEmblem } from './DoffaEmblem';
+import type { Player } from '../engine/types';
+import { DoffaEmblem } from '../../../components/DoffaEmblem';
 
 interface Props {
   player: Player;

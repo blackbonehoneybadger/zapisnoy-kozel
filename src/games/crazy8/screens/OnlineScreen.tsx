@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { DoffaEmblem } from '../components/DoffaEmblem';
-import { PremiumButton } from '../components/PremiumButton';
-import { WalletButton } from '../components/WalletButton';
+import { DoffaEmblem } from '../../../components/DoffaEmblem';
+import { PremiumButton } from '../../../components/PremiumButton';
+import { WalletButton } from '../../../components/WalletButton';
 import { OnlineGameScreen } from './OnlineGameScreen';
-import { useOnlineStore } from '../net/onlineStore';
-import { useWalletStore } from '../solana/walletStore';
-import { useBeansStore, MATCH_ENTRY_COST } from '../store/beansStore';
-import { SOL_BETTING_ENABLED } from '../config/features';
-import type { LobbyTable, OnlineUser } from '../net/protocol';
-import type { Screen } from '../App';
+import { useOnlineStore } from '../../../net/onlineStore';
+import { useWalletStore } from '../../../solana/walletStore';
+import { useBeansStore, MATCH_ENTRY_COST } from '../../../store/beansStore';
+import { SOL_BETTING_ENABLED } from '../../../config/features';
+import type { LobbyTable, OnlineUser } from '../../../net/protocol';
+import type { Screen } from '../../../App';
 
 /** Заявленная награда за победу — визуальный ориентир (см. server/src/config.ts DOFFA_REWARD_PER_WIN). */
 const DOFFA_REWARD_PER_WIN_DISPLAY = 10;

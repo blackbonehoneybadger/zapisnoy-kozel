@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { GameEventFlag, GameState, Player } from '../game/types';
-import { SUIT_SYMBOL } from '../game/deck';
-import { topCard } from '../game/rules';
-import { actionLabel } from '../game/labels';
+import type { GameEventFlag, GameState, Player } from '../engine/types';
+import { SUIT_SYMBOL } from '../engine/deck';
+import { topCard } from '../engine/rules';
+import { actionLabel } from '../engine/labels';
 import { Card } from './Card';
-import { DoffaEmblem } from './DoffaEmblem';
+import { DoffaEmblem } from '../../../components/DoffaEmblem';
 
 interface Props {
   state: GameState;

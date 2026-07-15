@@ -1,4 +1,4 @@
-// Онлайн-сервер «DOFFA Crazy 8»: WebSocket, вход через кошелёк Solana,
+// Онлайн-сервер DOFFA Games: WebSocket, вход через кошелёк Solana,
 // лобби, столы, авторитетная игра, ставки и выплаты. Запуск: npm run start.
 import { createServer } from 'node:http';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -68,7 +68,7 @@ function releaseSig(sig: string): void {
 
 // Текст, который кошелёк подписывает для входа. Должен совпадать с клиентом.
 function authMessage(nonce: string): string {
-  return `DOFFA Crazy 8 — вход\nNonce: ${nonce}`;
+  return `DOFFA Games — вход\nNonce: ${nonce}`;
 }
 
 interface Conn {
@@ -214,7 +214,7 @@ function pushGame(table: lobby.Table): void {
  * Фиксирует результат матча в доменной экономике DOFFA и уведомляет
  * победителя о подтверждённой сервером сумме награды (0, если реванш не
  * дал результата или награда не назначена). Клиент никогда не считает эту
- * сумму сам — см. src/screens/OnlineGameScreen.tsx.
+ * сумму сам — см. src/games/crazy8/screens/OnlineGameScreen.tsx.
  */
 async function handleMatchReward(table: lobby.Table): Promise<void> {
   const game = table.game;
@@ -673,7 +673,7 @@ const http = createServer((req, res) => {
     return;
   }
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-  res.end('DOFFA Crazy 8 — онлайн-сервер. Подключение по WebSocket.');
+  res.end('DOFFA Games — онлайн-сервер. Подключение по WebSocket.');
 });
 
 const wss = new WebSocketServer({ server: http });
@@ -731,5 +731,5 @@ wss.on('connection', (ws) => {
 });
 
 http.listen(PORT, () => {
-  console.log(`Сервер «DOFFA Crazy 8» слушает порт ${PORT}`);
+  console.log(`Сервер DOFFA Games слушает порт ${PORT}`);
 });

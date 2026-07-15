@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Duelist } from './Duelist';
 import { PremiumButton } from '../../components/PremiumButton';
-import { haptics } from '../../game/haptics';
+import { haptics } from '../../lib/haptics';
 import {
   ARENA,
   DASH_COOLDOWN_MS,

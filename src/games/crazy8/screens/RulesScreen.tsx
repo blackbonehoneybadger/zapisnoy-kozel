@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
-import { useScrollReveal, useScrubParallax } from '../fx/useScrollReveal';
-import { RuleCard } from '../components/RuleCard';
+import { useScrollReveal, useScrubParallax } from '../../../fx/useScrollReveal';
+import { RuleCard } from '../../../components/RuleCard';
 import { Card } from '../components/Card';
-import { CARD_POINTS } from '../game/scoring';
-import { RANKS } from '../game/deck';
-import type { Card as CardType } from '../game/types';
+import { CARD_POINTS } from '../engine/scoring';
+import { RANKS } from '../engine/deck';
+import type { Card as CardType } from '../engine/types';
 
 interface Props {
   onBack: () => void;

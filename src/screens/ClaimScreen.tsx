@@ -7,7 +7,7 @@ import { Confetti } from '../components/WinFx';
 import { useBeansStore } from '../store/beansStore';
 import { useRewardsStore } from '../store/rewardsStore';
 import { useWalletStore } from '../solana/walletStore';
-import { haptics } from '../game/haptics';
+import { haptics } from '../lib/haptics';
 
 interface Props {
   onBack: () => void;
