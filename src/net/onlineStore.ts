@@ -12,6 +12,7 @@ import type {
 } from './protocol';
 import { useWalletStore } from '../features/wallet/walletStore';
 import { useBeansStore } from '../features/beans/beansStore';
+import { useRewardsStore } from '../features/rewards/rewardsStore';
 
 // Адрес сервера задаётся на сборке: VITE_SERVER_URL=wss://your-host.
 // trim() обязателен: значение из панели Vercel может прийти с \n на конце.
@@ -54,6 +55,12 @@ interface OnlineStore {
   betRequired: boolean;
   /** Сумма DOFFA за последнюю победу — приходит ТОЛЬКО от сервера (этап 3+). */
   lastReward: number | null;
+  /** Заявка на Claim в процессе — блокирует повторное нажатие до ответа сервера. */
+  claimBusy: boolean;
+  /** Причина отказа последнего Claim (сообщение сервера), если был. */
+  claimError: string | null;
+  /** true — последний успешный Claim прошёл в тестовом режиме (реальные выплаты ещё выключены). */
+  lastClaimTestMode: boolean;
 
   connect: () => void;
   connectWallet: () => Promise<void>;
@@ -84,6 +91,17 @@ interface OnlineStore {
    * (сервер — единственный источник этой суммы).
    */
   requestTrainingAward: (won: boolean) => void;
+  /** Запрашивает актуальный список наград DOFFA к получению (reward:list). */
+  requestRewards: () => void;
+  /** Запрашивает историю наград/заявок (reward:history). */
+  requestRewardHistory: () => void;
+  /**
+   * Реальный Claim награды: сервер проверяет матч/лимиты/статус заново и
+   * либо переводит DOFFA (в тестовом режиме — mock-подпись), либо
+   * отказывает. Клиент никогда не решает исход сам — только показывает
+   * результат reward:claimResult.
+   */
+  claimReward: (rewardId: string, walletAddress: string) => void;
 }
 
 let socket: WebSocket | null = null;
@@ -97,6 +115,10 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 // Метка последней сверки тапалки — elapsedMs считаем по факту, не предполагаем
 // фиксированный интервал (вкладка могла быть в фоне/throttled).
 let lastBeansSyncTs = Date.now();
+// Что именно сейчас в процессе получения — сервер не эхо́ит rewardId/amount/
+// wallet обратно в reward:claimResult, поэтому запоминаем локально (тот же
+// приём, что и pendingAuth выше).
+let pendingClaim: { rewardId: string; amount: number; wallet: string } | null = null;
 
 export const useOnlineStore = create<OnlineStore>((set, get) => {
   function sendMsg(msg: ClientMessage): void {
@@ -209,7 +231,31 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         useBeansStore.getState().applyTrainingResult(msg.granted, msg.beans, msg.energy);
         break;
       case 'reward:match':
-        if (msg.amount > 0) set({ lastReward: msg.amount });
+        if (msg.amount > 0) {
+          set({ lastReward: msg.amount });
+          // Новая награда появилась на сервере — подтягиваем актуальный
+          // список, чтобы она сразу была видна на экране получения.
+          sendMsg({ t: 'reward:list' });
+        }
+        break;
+      case 'reward:list':
+        useRewardsStore.getState().setAvailable(msg.rewards);
+        break;
+      case 'reward:claimResult':
+        set({
+          claimBusy: false,
+          claimError: msg.ok ? null : (msg.message ?? 'Не удалось получить награду'),
+          lastClaimTestMode: msg.testMode,
+        });
+        if (msg.ok) {
+          const pending = pendingClaim;
+          if (pending) useRewardsStore.getState().markClaimed(pending.rewardId, pending.amount, pending.wallet);
+          sendMsg({ t: 'reward:history' });
+        }
+        pendingClaim = null;
+        break;
+      case 'reward:history':
+        useRewardsStore.getState().setServerHistory(msg.items);
         break;
     }
   }
@@ -232,6 +278,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     serverWallet: null,
     betRequired: false,
     lastReward: null,
+    claimBusy: false,
+    claimError: null,
+    lastClaimTestMode: false,
 
     connect: () => {
       if (socket && socket.readyState <= WebSocket.OPEN) return;
@@ -413,5 +462,48 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       if (get().status !== 'connected' || !get().user) return;
       sendMsg({ t: 'beans:awardTraining', won });
     },
+
+    requestRewards: () => {
+      if (get().status !== 'connected' || !get().user) return;
+      sendMsg({ t: 'reward:list' });
+    },
+
+    requestRewardHistory: () => {
+      if (get().status !== 'connected' || !get().user) return;
+      sendMsg({ t: 'reward:history' });
+    },
+
+    claimReward: (rewardId: string, walletAddress: string) => {
+      if (get().status !== 'connected' || !get().user || get().claimBusy) return;
+      const reward = useRewardsStore.getState().available.find((r) => r.id === rewardId);
+      if (!reward) return;
+      pendingClaim = { rewardId, amount: reward.amount, wallet: walletAddress };
+      set({ claimBusy: true, claimError: null });
+      sendMsg({
+        t: 'reward:claim',
+        rewardId,
+        walletAddress,
+        // Ключ идемпотентности: новый на каждую ПОПЫТКУ (не на награду) — повтор
+        // с тем же ключом должен быть невозможен со стороны этого клиента,
+        // случайный ID достаточно уникален для одного пользователя.
+        idempotencyKey: `${rewardId}:${crypto.randomUUID()}`,
+      });
+    },
   };
+});
+
+// Мост «кошелёк подключён → онлайн-сессия сервера». Раньше только Crazy8-
+// лобби (games/crazy8/screens/OnlineScreen.tsx) вызывало connectWallet() и
+// заводило WS-сессию — экранам зёрен/наград она тоже нужна (beans:sync,
+// reward:list/history/claim), но сами они кошельком не управляют.
+// Подписываемся здесь один раз: как только адрес кошелька появляется (с
+// любого экрана — Профиль, Claim, Crazy8-лобби), тихо устанавливаем
+// онлайн-сессию, если её ещё нет.
+useWalletStore.subscribe((state, prevState) => {
+  if (state.address && !prevState.address) {
+    const online = useOnlineStore.getState();
+    if (online.status !== 'connected' && online.status !== 'connecting' && !online.busy) {
+      void useOnlineStore.getState().connectWallet();
+    }
+  }
 });

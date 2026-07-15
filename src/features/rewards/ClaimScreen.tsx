@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PremiumButton } from '../../components/shared/PremiumButton';
 import { WalletButton } from '../../components/shared/WalletButton';
@@ -7,6 +7,7 @@ import { Confetti } from '../../components/shared/WinFx';
 import { useBeansStore } from '../beans/beansStore';
 import { useRewardsStore } from './rewardsStore';
 import { useWalletStore } from '../wallet/walletStore';
+import { useOnlineStore } from '../../net/onlineStore';
 import { haptics } from '../../lib/haptics';
 
 interface Props {
@@ -14,30 +15,63 @@ interface Props {
 }
 
 /**
- * Экран получения DOFFA. Накопленную награду можно закрепить за подключённым
- * Solana-кошельком — создаётся заявка на вывод. Экран честен с игроком:
- * сам токен в сеть отправляет команда DOFFA по заявкам, игра ключами не владеет.
+ * Экран получения DOFFA. Список наград к получению и сам Claim — ТОЛЬКО с
+ * сервера (reward:list/reward:claim): клиент не считает и не подтверждает
+ * сумму сам. Токен в сеть отправляет команда DOFFA по заявкам — игра
+ * ключами не владеет (см. server/src/services/claimService.ts).
  */
 export function ClaimScreen({ onBack }: Props) {
   const doffa = useRewardsStore((s) => s.doffa);
   const doffaClaimed = useRewardsStore((s) => s.doffaClaimed);
+  const available = useRewardsStore((s) => s.available);
   const beans = useBeansStore((s) => s.beans);
-  const claim = useRewardsStore((s) => s.claim);
   const address = useWalletStore((s) => s.address);
+
+  const status = useOnlineStore((s) => s.status);
+  const user = useOnlineStore((s) => s.user);
+  const claimBusy = useOnlineStore((s) => s.claimBusy);
+  const claimError = useOnlineStore((s) => s.claimError);
+  const lastClaimTestMode = useOnlineStore((s) => s.lastClaimTestMode);
+  const requestRewards = useOnlineStore((s) => s.requestRewards);
+  const claimReward = useOnlineStore((s) => s.claimReward);
 
   const [justClaimed, setJustClaimed] = useState<number | null>(null);
   // Растровая монета DOFFA (генерация Higgsfield). Пока файла нет в
   // public/art — молча показываем векторную эмблему, код менять не нужно.
   const [coinArtOk, setCoinArtOk] = useState(true);
+  // Сумма отправленной на Claim заявки — известна ДО ответа сервера
+  // (нужна, чтобы показать подтверждение, когда claimBusy станет false).
+  const pendingAmountRef = useRef<number | null>(null);
+  const wasClaimBusyRef = useRef(false);
+
+  // Подтягиваем актуальный список наград при входе на экран (и при
+  // появлении сессии, если кошелёк подключился уже здесь).
+  useEffect(() => {
+    if (status === 'connected' && user) requestRewards();
+  }, [status, user, requestRewards]);
 
   const handleClaim = () => {
-    if (!address || doffa <= 0) return;
-    const amount = claim(address);
-    if (amount > 0) {
-      haptics.win();
-      setJustClaimed(amount);
-    }
+    if (!address || doffa <= 0 || claimBusy) return;
+    const oldest = [...available].sort((a, b) => a.createdAt - b.createdAt)[0];
+    if (!oldest) return;
+    pendingAmountRef.current = oldest.amount;
+    claimReward(oldest.id, address);
   };
+
+  // claimBusy: true -> false с claimError=null означает сервер подтвердил
+  // Claim (см. reward:claimResult в net/onlineStore.ts) — показываем
+  // подтверждение с суммой, которую мы отправляли на получение.
+  useEffect(() => {
+    if (wasClaimBusyRef.current && !claimBusy && !claimError && pendingAmountRef.current !== null) {
+      haptics.win();
+      setJustClaimed(pendingAmountRef.current);
+      pendingAmountRef.current = null;
+      const timer = setTimeout(() => setJustClaimed(null), 6000);
+      wasClaimBusyRef.current = claimBusy;
+      return () => clearTimeout(timer);
+    }
+    wasClaimBusyRef.current = claimBusy;
+  }, [claimBusy, claimError]);
 
   return (
     <div className="relative min-h-[100dvh] px-5 pt-4 safe-top safe-bottom">
@@ -117,16 +151,20 @@ export function ClaimScreen({ onBack }: Props) {
         <PremiumButton
           full
           variant="gold"
-          disabled={!address || doffa <= 0}
+          disabled={!address || doffa <= 0 || claimBusy}
           onClick={handleClaim}
         >
-          {doffa > 0 ? `Забрать ${doffa} DOFFA` : 'Пока нечего забирать'}
+          {claimBusy ? 'Получаем…' : doffa > 0 ? `Забрать ${doffa} DOFFA` : 'Пока нечего забирать'}
         </PremiumButton>
 
         {!address && doffa > 0 && (
           <p className="px-2 text-center text-xs text-white/40">
             Подключите кошелёк, чтобы закрепить награду за собой.
           </p>
+        )}
+
+        {claimError && (
+          <p className="px-2 text-center text-xs text-wine-400">{claimError}</p>
         )}
 
         <p className="px-2 text-center text-[11px] leading-relaxed text-white/30">
@@ -152,6 +190,11 @@ export function ClaimScreen({ onBack }: Props) {
                 {address ? `${address.slice(0, 4)}…${address.slice(-4)}` : ''}
               </span>
             </p>
+            {lastClaimTestMode && (
+              <p className="mt-2 text-[11px] text-white/30">
+                Тестовый режим — реальные выплаты DOFFA пока не активированы.
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

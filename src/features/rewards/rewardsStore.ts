@@ -1,83 +1,91 @@
-// Награда DOFFA — единственная сущность в этом сторе (этап 2+).
+// Награда DOFFA — единственная сущность в этом сторе.
 //
-// Зёрна (внутренняя игровая энергия, НЕ криптовалюта) больше не хранятся
-// здесь — единственный источник истины по зёрнам см. store/beansStore.ts.
-// Этот стор отвечает ТОЛЬКО за DOFFA: клиент НИКОГДА не начисляет DOFFA сам.
-// Поле `doffa` (доступно к получению) заполняется ТОЛЬКО сервером после
-// подтверждённой онлайн-победы (этап 3+). До подключения серверной
-// экономики оно остаётся 0.
+// Зёрна (внутренняя игровая энергия, НЕ криптовалюта) не хранятся здесь —
+// единственный источник истины по зёрнам см. features/beans/beansStore.ts.
+// Этот стор отвечает ТОЛЬКО за DOFFA: клиент НИКОГДА не начисляет и не
+// подтверждает DOFFA сам. `available` (список наград к получению) и
+// `history` заполняются ТОЛЬКО ответами сервера (reward:list/reward:history,
+// см. net/onlineStore.ts) — реальный Claim тоже выполняет сервер
+// (reward:claim → reward:claimResult), здесь только отражение его исхода.
 //
-// localStorage здесь — только КЭШ интерфейса. Истинный баланс (этап 3+) живёт
-// на сервере; клиент будет синхронизировать его через `setServerRewards`.
+// localStorage — только КЭШ интерфейса (мгновенный рендер до первого ответа
+// сервера после переподключения); источник истины всегда живёт на сервере.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface RewardEntry {
-  id: number;
+  id: string;
   date: number; // timestamp
   kind: 'doffa' | 'claim';
   amount: number;
   note: string;
 }
 
+/** Награда за один матч Bean Duel, ожидающая получения (см. server/src/domain/types.ts Reward). */
+export interface AvailableReward {
+  id: string;
+  matchId: string;
+  amount: number;
+  status: 'none' | 'available' | 'processing' | 'sent' | 'failed' | 'review';
+  createdAt: number;
+}
+
 export interface RewardsState {
-  /** Доступный к получению DOFFA. Заполняется ТОЛЬКО сервером. */
+  /** Сумма доступных к получению наград (сумма amount из available). Только для чтения — считается из available. */
   doffa: number;
-  /** DOFFA, по которому создана заявка на вывод (кэш серверного статуса). */
+  /** DOFFA, по которому создана заявка на вывод (кэш последнего успешного Claim). */
   doffaClaimed: number;
   /** Кошелёк последней заявки. */
   claimWallet: string | null;
   history: RewardEntry[];
+  /** Список отдельных наград к получению — приходит с сервера (reward:list). */
+  available: AvailableReward[];
+
+  /** Заменяет список доступных наград данными сервера и пересчитывает `doffa`. */
+  setAvailable: (list: AvailableReward[]) => void;
+  /** Заменяет историю данными сервера (reward:history) — реальные Claim/награды, не локальная выдумка. */
+  setServerHistory: (items: { id: string; date: number; kind: 'doffa' | 'claim'; amount: number; note: string }[]) => void;
   /**
-   * Синхронизация с сервером (этап 3+): единственный легитимный способ
-   * изменить баланс DOFFA на клиенте. Пока сервер не шлёт эти данные —
-   * не вызывается.
+   * Применяет исход успешного Claim: убирает награду из `available`,
+   * увеличивает `doffaClaimed`. Вызывается ТОЛЬКО после reward:claimResult
+   * с ok=true — сервер уже подтвердил и провёл выплату (пусть и в тестовом
+   * режиме, см. testMode в reward:claimResult).
    */
-  setServerRewards: (r: Partial<Pick<RewardsState, 'doffa' | 'doffaClaimed'>>) => void;
-  /**
-   * Кэш-отметка о заявке на вывод. НАСТОЯЩИЙ Claim выполняет сервер (этап 4+);
-   * здесь только локальное отражение статуса. Возвращает сумму заявки.
-   */
-  claim: (wallet: string) => number;
+  markClaimed: (rewardId: string, amount: number, wallet: string) => void;
   reset: () => void;
 }
 
-function entry(kind: RewardEntry['kind'], amount: number, note: string): RewardEntry {
-  return { id: Date.now() + Math.floor(Math.random() * 1000), date: Date.now(), kind, amount, note };
+function sumAvailable(list: AvailableReward[]): number {
+  return list.filter((r) => r.status === 'available').reduce((sum, r) => sum + r.amount, 0);
 }
 
 export const useRewardsStore = create<RewardsState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       doffa: 0,
       doffaClaimed: 0,
       claimWallet: null,
       history: [],
+      available: [],
 
-      setServerRewards: (r) =>
-        set((s) => ({
-          doffa: r.doffa ?? s.doffa,
-          doffaClaimed: r.doffaClaimed ?? s.doffaClaimed,
-        })),
+      setAvailable: (list) => set({ available: list, doffa: sumAvailable(list) }),
 
-      claim: (wallet) => {
-        const amount = get().doffa;
-        if (amount <= 0) return 0;
-        set((s) => ({
-          doffa: 0,
-          doffaClaimed: s.doffaClaimed + amount,
-          claimWallet: wallet,
-          history: [
-            entry('claim', amount, `Заявка на вывод · ${wallet.slice(0, 4)}…${wallet.slice(-4)}`),
-            ...s.history,
-          ].slice(0, 50),
-        }));
-        return amount;
-      },
+      setServerHistory: (items) => set({ history: items }),
 
-      reset: () => set({ doffa: 0, doffaClaimed: 0, claimWallet: null, history: [] }),
+      markClaimed: (rewardId, amount, wallet) =>
+        set((s) => {
+          const available = s.available.filter((r) => r.id !== rewardId);
+          return {
+            available,
+            doffa: sumAvailable(available),
+            doffaClaimed: s.doffaClaimed + amount,
+            claimWallet: wallet,
+          };
+        }),
+
+      reset: () => set({ doffa: 0, doffaClaimed: 0, claimWallet: null, history: [], available: [] }),
     }),
-    // v3: убраны Cups — единая валюта «Зёрна» теперь только в beansStore.
-    { name: 'doffa-crazy8-rewards-v3' },
+    // v4: заменена локальная выдумка Claim на реальный список наград/историю с сервера.
+    { name: 'doffa-crazy8-rewards-v4' },
   ),
 );
