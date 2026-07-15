@@ -3,13 +3,13 @@
 // и docs/CRAZY8_ARCHIVE.md) и на этом экране никак не упоминается, кроме
 // служебной dev-ссылки, видимой только при явно включённом флаге.
 import { motion } from 'framer-motion';
-import { Hero3DCard } from '../components/Hero3DCard';
-import { PremiumButton } from '../components/PremiumButton';
+import { Hero3DCard } from '../components/shared/Hero3DCard';
+import { PremiumButton } from '../components/shared/PremiumButton';
 import { haptics } from '../lib/haptics';
-import { useBeansStore } from '../store/beansStore';
-import { useRewardsStore } from '../store/rewardsStore';
+import { useBeansStore } from '../features/beans/beansStore';
+import { useRewardsStore } from '../features/rewards/rewardsStore';
 import { ENABLE_CRAZY8_CLASSIC } from '../config/features';
-import type { Screen } from '../App';
+import type { Screen } from './App';
 
 interface Props {
   navigate: (s: Screen) => void;

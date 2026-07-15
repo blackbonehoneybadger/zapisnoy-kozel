@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Duelist } from './Duelist';
-import { PremiumButton } from '../../components/PremiumButton';
+import { PremiumButton } from '../../components/shared/PremiumButton';
 import { haptics } from '../../lib/haptics';
 import {
   ARENA,

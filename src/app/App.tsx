@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { HomeScreen } from './screens/HomeScreen';
-import { GameScreen } from './games/crazy8/screens/GameScreen';
-import { RulesScreen } from './games/crazy8/screens/RulesScreen';
-import { StatsScreen } from './games/crazy8/screens/StatsScreen';
-import { SettingsScreen } from './games/crazy8/screens/SettingsScreen';
-import { OnlineScreen } from './games/crazy8/screens/OnlineScreen';
-import { BeanDuelScreen } from './games/bean-duel/BeanDuelScreen';
-import { ClaimScreen } from './screens/ClaimScreen';
-import { RewardsScreen } from './screens/RewardsScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
-import { BeansScreen } from './screens/BeansScreen';
-import { BottomNav } from './components/BottomNav';
-import { useGameStore } from './games/crazy8/store/gameStore';
-import { ENABLE_CRAZY8_CLASSIC } from './config/features';
+import { HomeScreen } from './HomeScreen';
+import { GameScreen } from '../games/crazy8/screens/GameScreen';
+import { RulesScreen } from '../games/crazy8/screens/RulesScreen';
+import { StatsScreen } from '../games/crazy8/screens/StatsScreen';
+import { SettingsScreen } from '../games/crazy8/screens/SettingsScreen';
+import { OnlineScreen } from '../games/crazy8/screens/OnlineScreen';
+import { BeanDuelScreen } from '../games/bean-duel/BeanDuelScreen';
+import { ClaimScreen } from '../features/rewards/ClaimScreen';
+import { RewardsScreen } from '../features/rewards/RewardsScreen';
+import { ProfileScreen } from '../features/profile/ProfileScreen';
+import { BeansScreen } from '../features/beans/BeansScreen';
+import { BottomNav } from '../components/shared/BottomNav';
+import { useGameStore } from '../games/crazy8/store/gameStore';
+import { ENABLE_CRAZY8_CLASSIC } from '../config/features';
 
 export type Screen =
   | 'home'

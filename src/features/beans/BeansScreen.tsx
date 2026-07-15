@@ -10,17 +10,17 @@
 // Экономика v1: 1 тап = +1 зерно −1 энергия, комбо-множитель, редкие золотые зёрна.
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { PremiumButton } from '../components/PremiumButton';
-import { DoffaMascot } from '../components/DoffaMascot';
-import { DoffaEmblem } from '../components/DoffaEmblem';
-import { haptics } from '../lib/haptics';
+import { PremiumButton } from '../../components/shared/PremiumButton';
+import { DoffaMascot } from './DoffaMascot';
+import { DoffaEmblem } from '../../components/shared/DoffaEmblem';
+import { haptics } from '../../lib/haptics';
 import {
   useBeansStore,
   MATCH_ENTRY_COST,
   ENERGY_MAX,
-} from '../store/beansStore';
-import { useOnlineStore } from '../net/onlineStore';
-import type { Screen } from '../App';
+} from './beansStore';
+import { useOnlineStore } from '../../net/onlineStore';
+import type { Screen } from '../../app/App';
 
 interface Props {
   navigate: (s: Screen) => void;

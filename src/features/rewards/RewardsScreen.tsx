@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { useBeansStore, type BeansEntry } from '../store/beansStore';
-import { useRewardsStore, type RewardEntry } from '../store/rewardsStore';
+import { useBeansStore, type BeansEntry } from '../beans/beansStore';
+import { useRewardsStore, type RewardEntry } from './rewardsStore';
 
 interface Props {
   onBack: () => void;

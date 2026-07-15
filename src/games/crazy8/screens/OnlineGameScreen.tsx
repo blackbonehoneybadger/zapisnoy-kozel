@@ -7,9 +7,9 @@ import { getTakeLabel } from '../engine/labels';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
-import { PremiumButton } from '../../../components/PremiumButton';
-import { RewardOverlay } from '../../../components/RewardOverlay';
-import { DoffaEmblem } from '../../../components/DoffaEmblem';
+import { PremiumButton } from '../../../components/shared/PremiumButton';
+import { RewardOverlay } from '../../../components/shared/RewardOverlay';
+import { DoffaEmblem } from '../../../components/shared/DoffaEmblem';
 import {
   drawCardSound,
   loseSound,

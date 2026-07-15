@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
-import { haptics } from '../lib/haptics';
+import { haptics } from '../../lib/haptics';
 
 type Variant = 'gold' | 'ghost' | 'danger';
 

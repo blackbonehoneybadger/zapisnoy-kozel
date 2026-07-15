@@ -91,7 +91,7 @@ export type ServerMessage =
   | { t: 'wallet:paid'; seatIndex: number }
   | { t: 'wallet:payout'; winnerName: string; txSignature: string; lamports: number; commission: number }
   // Авторитетный баланс зёрен/энергии — единственный легитимный источник
-  // для клиента (см. src/store/beansStore.ts syncFromServer).
+  // для клиента (см. src/features/beans/beansStore.ts syncFromServer).
   | { t: 'beans:state'; beans: number; energy: number }
   // Результат запроса тренировочных зёрен (0, если сервер отказал/rate-limit).
   | { t: 'beans:trainingResult'; granted: number; beans: number; energy: number }

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { PremiumButton } from '../components/PremiumButton';
-import { WalletButton } from '../components/WalletButton';
-import { DoffaEmblem } from '../components/DoffaEmblem';
-import { Confetti } from '../components/WinFx';
-import { useBeansStore } from '../store/beansStore';
-import { useRewardsStore } from '../store/rewardsStore';
-import { useWalletStore } from '../solana/walletStore';
-import { haptics } from '../lib/haptics';
+import { PremiumButton } from '../../components/shared/PremiumButton';
+import { WalletButton } from '../../components/shared/WalletButton';
+import { DoffaEmblem } from '../../components/shared/DoffaEmblem';
+import { Confetti } from '../../components/shared/WinFx';
+import { useBeansStore } from '../beans/beansStore';
+import { useRewardsStore } from './rewardsStore';
+import { useWalletStore } from '../wallet/walletStore';
+import { haptics } from '../../lib/haptics';
 
 interface Props {
   onBack: () => void;

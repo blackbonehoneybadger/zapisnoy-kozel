@@ -10,8 +10,8 @@ import type {
   ServerMessage,
   TableView,
 } from './protocol';
-import { useWalletStore } from '../solana/walletStore';
-import { useBeansStore } from '../store/beansStore';
+import { useWalletStore } from '../features/wallet/walletStore';
+import { useBeansStore } from '../features/beans/beansStore';
 
 // Адрес сервера задаётся на сборке: VITE_SERVER_URL=wss://your-host.
 // trim() обязателен: значение из панели Vercel может прийти с \n на конце.
@@ -76,7 +76,7 @@ interface OnlineStore {
   removeFriend: (userId: string) => void;
   acceptInvite: (invite: Invite) => void;
   dismissInvite: (tableId: string) => void;
-  /** Сверка накопленных тапов тапалки с сервером (см. store/beansStore.ts). */
+  /** Сверка накопленных тапов тапалки с сервером (см. features/beans/beansStore.ts). */
   syncBeans: () => void;
   /**
    * Запрос тренировочных зёрен за офлайн-партию против ботов. Молча ничего

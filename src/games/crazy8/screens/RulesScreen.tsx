@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useScrollReveal, useScrubParallax } from '../../../fx/useScrollReveal';
-import { RuleCard } from '../../../components/RuleCard';
+import { RuleCard } from '../../../components/shared/RuleCard';
 import { Card } from '../components/Card';
 import { CARD_POINTS } from '../engine/scoring';
 import { RANKS } from '../engine/deck';

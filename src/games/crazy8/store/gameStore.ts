@@ -11,7 +11,7 @@ import {
 import { decideBotMove } from '../engine/bots';
 import { currentSettings } from '../../../store/settingsStore';
 import { useStatsStore } from './statsStore';
-import { useBeansStore } from '../../../store/beansStore';
+import { useBeansStore } from '../../../features/beans/beansStore';
 import { useOnlineStore } from '../../../net/onlineStore';
 import {
   drawCardSound,

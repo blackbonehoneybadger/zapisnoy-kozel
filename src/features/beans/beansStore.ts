@@ -5,7 +5,7 @@
 // (server/src/services/beansService.ts). Этот стор — оптимистичный КЭШ для
 // отзывчивости тапалки: тап начисляет зерно локально сразу же, а
 // накопленная с прошлой сверки партия (см. `takePendingSync`) периодически
-// отправляется на сервер (см. src/screens/BeansScreen.tsx, net/onlineStore.ts
+// отправляется на сервер (см. src/features/beans/BeansScreen.tsx, net/onlineStore.ts
 // `syncBeans`) — сервер урезает её до правдоподобного максимума по своим
 // часам и присылает авторитетный баланс через `syncFromServer`. Работает и
 // без подключённого кошелька (полностью офлайн), просто без серверной сверки.
@@ -70,7 +70,7 @@ interface BeansState {
   lastTrainingBeans: number;
   /** Локальная история начислений/списаний (кэш; сервер — этап 3+). */
   history: BeansEntry[];
-  /** Тапов с прошлой сверки с сервером (см. src/screens/BeansScreen.tsx). */
+  /** Тапов с прошлой сверки с сервером (см. src/features/beans/BeansScreen.tsx). */
   pendingTapped: number;
   /** Зёрен насчитано локально с прошлой сверки с сервером. */
   pendingGained: number;
