@@ -56,6 +56,64 @@ export const BEAN_DUEL_ENTRY_FEE = toInt(process.env.BEAN_DUEL_ENTRY_FEE, 100);
  */
 export const SOL_BETTING_ENABLED = (process.env.SOL_BETTING_ENABLED ?? 'false').trim() === 'true';
 
+// ─── DOFFA Bean Duel: Reward Vault, 80/20 split, burn, режим награды ───────
+// (см. server/src/services/rewardBudgetService.ts — расчёт суммы награды).
+
+/**
+ * Распределение ОБЩЕЙ (валовой) награды за победу в Bean Duel: доля игроку /
+ * доля на сжигание, в процентах. Должны в сумме давать 100 — проверяется
+ * validateRewardSplit() при старте сервера (см. index.ts).
+ */
+export const PLAYER_REWARD_PERCENT = toInt(process.env.PLAYER_REWARD_PERCENT, 80);
+export const BURN_PERCENT = toInt(process.env.BURN_PERCENT, 20);
+
+/**
+ * Включает реальное сжигание доли BURN_PERCENT. По умолчанию false — доля
+ * учитывается (резервируется в журнале сжигания), но НИКАКАЯ транзакция не
+ * отправляется и не имитируется; статус записи — "Planned", а не "Burned".
+ * Реализация реальной отправки в сеть — отдельная будущая задача.
+ */
+export const DOFFA_BURN_ENABLED = (process.env.DOFFA_BURN_ENABLED ?? 'false').trim() === 'true';
+/** Приватный ключ кошелька сжигания. ТОЛЬКО на сервере — никогда в клиенте, VITE_* или APK. */
+export const DOFFA_BURN_WALLET_PRIVATE_KEY = process.env.DOFFA_BURN_WALLET_PRIVATE_KEY ?? '';
+
+/**
+ * Режим расчёта награды за победу в Bean Duel:
+ *  - BETA_FIXED — фиксированная сумма на старте проекта (мало игроков),
+ *    с дневным лимитом наградных побед на игрока (см. MAX_REWARDED_WINS_PER_USER_PER_DAY).
+ *  - ADAPTIVE — сумма считается из остатка Reward Vault, планового периода и
+ *    среднесуточной активности (см. rewardBudgetService.ts), фиксируется на
+ *    сутки — не пересчитывается на каждый матч.
+ * Включать ADAPTIVE — отдельное решение владельца при достаточной активности
+ * (ориентир из ТЗ: ≥50 уникальных активных игроков/сутки ИЛИ ≥100
+ * подтверждённых наградных побед/сутки).
+ */
+export type RewardMode = 'BETA_FIXED' | 'ADAPTIVE';
+export const REWARD_MODE: RewardMode =
+  (process.env.REWARD_MODE ?? 'BETA_FIXED').trim() === 'ADAPTIVE' ? 'ADAPTIVE' : 'BETA_FIXED';
+
+/** BETA_FIXED: валовая (до 80/20-разделения) награда за одну подтверждённую победу. */
+export const BETA_GROSS_REWARD_PER_WIN = toInt(process.env.BETA_GROSS_REWARD_PER_WIN, 10);
+/** BETA_FIXED: дневной лимит наградных побед на игрока — остальные победы идут только в рейтинг/статистику. */
+export const MAX_REWARDED_WINS_PER_USER_PER_DAY = toInt(process.env.MAX_REWARDED_WINS_PER_USER_PER_DAY, 5);
+
+/** ADAPTIVE: горизонт планирования бюджета Reward Vault (дней) при расчёте суточной суммы. */
+export const ADAPTIVE_PLANNING_DAYS = toInt(process.env.ADAPTIVE_PLANNING_DAYS, 90);
+/** ADAPTIVE: минимальная и максимальная валовая награда за победу — защита от резких скачков. */
+export const ADAPTIVE_MIN_REWARD_PER_WIN = toInt(process.env.ADAPTIVE_MIN_REWARD_PER_WIN, 1);
+export const ADAPTIVE_MAX_REWARD_PER_WIN = toInt(process.env.ADAPTIVE_MAX_REWARD_PER_WIN, 50);
+/** ADAPTIVE: ожидаемое среднесуточное число подтверждённых наградных побед (для расчёта суммы на победу). */
+export const ADAPTIVE_EXPECTED_WINS_PER_DAY = toInt(process.env.ADAPTIVE_EXPECTED_WINS_PER_DAY, 100);
+
+/** Проверяет, что PLAYER_REWARD_PERCENT + BURN_PERCENT = 100. Вызывается при старте сервера. */
+export function validateRewardSplit(): void {
+  if (PLAYER_REWARD_PERCENT + BURN_PERCENT !== 100) {
+    throw new Error(
+      `PLAYER_REWARD_PERCENT (${PLAYER_REWARD_PERCENT}) + BURN_PERCENT (${BURN_PERCENT}) должны давать 100`,
+    );
+  }
+}
+
 function toInt(raw: string | undefined, fallback: number): number {
   const trimmed = (raw ?? '').trim();
   // Number('') === 0 (не NaN) — без этой проверки пустая/отсутствующая
@@ -76,5 +134,8 @@ export function rewardConfigSummary(): string {
     `beanDuelEntry=${BEAN_DUEL_ENTRY_FEE}`,
     `dailyLimit=${DOFFA_DAILY_REWARD_LIMIT || '∞'}`,
     `solBetting=${SOL_BETTING_ENABLED ? 'ON (legacy)' : 'off'}`,
+    `rewardMode=${REWARD_MODE}`,
+    `split=${PLAYER_REWARD_PERCENT}/${BURN_PERCENT}`,
+    `burn=${DOFFA_BURN_ENABLED ? 'ON' : 'off (Planned)'}`,
   ].join(' · ');
 }

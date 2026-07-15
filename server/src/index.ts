@@ -29,18 +29,23 @@ import {
   verifyPayment,
   verifySignature,
 } from './solana.js';
-import { SOL_BETTING_ENABLED, BEANS_ENTRY_FEE } from './config';
+import { SOL_BETTING_ENABLED, BEANS_ENTRY_FEE, validateRewardSplit } from './config';
 import { createEconomy } from './services';
 import type { BeansState } from './services/beansService';
+import { burnConfigSummary } from './services/rewardBudgetService';
 
 const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
 
 const PORT = Number(process.env.PORT ?? 8080);
 
+// PLAYER_REWARD_PERCENT + BURN_PERCENT должны давать 100 — падаем на старте,
+// а не молча считаем награду неправильно.
+validateRewardSplit();
+
 // Доменная экономика DOFFA: зёрна, награды, заявки на вывод (см. services/).
 const economy = createEconomy();
-console.log(`Экономика DOFFA: ${economy.summary}`);
+console.log(`Экономика DOFFA: ${economy.summary} · ${burnConfigSummary()}`);
 
 // Плата за вход, списанная при создании/входе за стол — до старта партии
 // возвращается при выходе (см. table:leave / ws close), после старта сгорает.
@@ -132,7 +137,7 @@ function sendToUser(userId: string, msg: ServerMessage): void {
 
 // DOFFA Bean Duel — авторитетный PvP-матч шлёт сообщения игрокам напрямую
 // (тиковый цикл, не привязан к синхронной обработке входящего сообщения).
-initDuel(sendToUser, economy.beans);
+initDuel(sendToUser, economy.beans, economy.rewards, economy.repositories);
 
 function beansStateMsg(s: BeansState): ServerMessage {
   return { t: 'beans:state', beans: s.beans, energy: s.energy };
@@ -703,6 +708,44 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
     case 'duel:leave':
       await leaveDuelMatch(user.id);
       break;
+
+    case 'reward:list': {
+      const rewards = await economy.rewards.listAvailable(user.id);
+      send(conn.ws, {
+        t: 'reward:list',
+        rewards: rewards.map((r) => ({ id: r.id, matchId: r.matchId, amount: r.amount, status: r.status, createdAt: r.createdAt })),
+      });
+      break;
+    }
+
+    case 'reward:claim': {
+      const outcome = await economy.claims.claim({
+        userId: user.id,
+        rewardId: msg.rewardId,
+        walletAddress: msg.walletAddress,
+        idempotencyKey: msg.idempotencyKey,
+      });
+      send(conn.ws, {
+        t: 'reward:claimResult',
+        ok: outcome.ok,
+        status: outcome.status,
+        message: outcome.message,
+        txSignature: outcome.claim?.txSignature,
+        testMode: outcome.testMode,
+      });
+      break;
+    }
+
+    case 'reward:history': {
+      const items = await economy.rewards.history(user.id);
+      send(conn.ws, {
+        t: 'reward:history',
+        // history() комбинирует только записи rewards/claims — 'beans' здесь
+        // не встречается на практике (см. RewardService.history).
+        items: items.map((i) => ({ id: i.id, date: i.date, kind: i.kind as 'doffa' | 'claim', amount: i.amount, note: i.note, txSignature: i.txSignature })),
+      });
+      break;
+    }
   }
 }
 

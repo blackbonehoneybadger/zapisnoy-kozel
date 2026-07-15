@@ -23,6 +23,9 @@ import {
 import type { ServerMessage } from './protocol';
 import { BEAN_DUEL_ENTRY_FEE } from './config';
 import type { BeansService, BeansState } from './services/beansService';
+import type { RewardService } from './services/rewardService';
+import type { Repositories } from './repositories/types';
+import { computeWinReward, recordBurn } from './services/rewardBudgetService';
 
 const TICK_MS = 50; // 20 тиков/сек — частота авторитетной симуляции
 const SIDES: FighterId[] = ['player', 'bot'];
@@ -54,10 +57,22 @@ const queue: string[] = [];
 
 let sendFn: (userId: string, msg: ServerMessage) => void = () => {};
 let beansFn: BeansService | null = null;
-/** Вызывается один раз при старте сервера — внедряет отправку сообщений и сервис зёрен (см. index.ts). */
-export function initDuel(send: (userId: string, msg: ServerMessage) => void, beans: BeansService): void {
+let rewardsFn: RewardService | null = null;
+let reposFn: Repositories | null = null;
+/**
+ * Вызывается один раз при старте сервера — внедряет отправку сообщений и
+ * доменные сервисы (зёрна, награды, репозитории — см. index.ts).
+ */
+export function initDuel(
+  send: (userId: string, msg: ServerMessage) => void,
+  beans: BeansService,
+  rewards: RewardService,
+  repositories: Repositories,
+): void {
   sendFn = send;
   beansFn = beans;
+  rewardsFn = rewards;
+  reposFn = repositories;
 }
 
 // ─── Журнал матчей (анти-фарм: см. requirement — "keep a match event log") ─
@@ -256,6 +271,7 @@ function finishMatch(match: DuelMatch): void {
   matches.delete(match.id);
 
   const durationMs = finishedAt - match.startedAt;
+  const suspiciouslyShort = durationMs < SUSPICIOUSLY_SHORT_MS;
   appendJournal({
     matchId: match.id,
     players: [match.userIds.player, match.userIds.bot],
@@ -263,8 +279,58 @@ function finishMatch(match: DuelMatch): void {
     durationMs,
     startedAt: match.startedAt,
     finishedAt,
-    suspiciouslyShort: durationMs < SUSPICIOUSLY_SHORT_MS,
+    suspiciouslyShort,
   });
+
+  // Награда DOFFA — только за решающую (не ничья) победу; расчёт суммы и
+  // запись асинхронны, поэтому не блокируют завершение матча для игроков.
+  if (winner !== 'draw') {
+    void awardWinReward(match, winner, finishedAt, suspiciouslyShort);
+  }
+}
+
+/**
+ * Начисляет награду DOFFA победителю через RewardService (80/20-разделение
+ * уже применено computeWinReward): доля игрока становится доступной
+ * наградой (reward:match), доля на сжигание уходит в burn-журнал.
+ * Подозрительно короткие матчи (<SUSPICIOUSLY_SHORT_MS) награду НЕ получают
+ * — только статистика/рейтинг, матч всё равно фиксируется со статусом
+ * "review" (анти-фарм: слив/обрыв сразу после старта не должен платить).
+ */
+async function awardWinReward(match: DuelMatch, winner: FighterId, finishedAt: number, suspiciouslyShort: boolean): Promise<void> {
+  if (!rewardsFn || !reposFn) return;
+  const winnerId = match.userIds[winner];
+
+  let doffaReward: number | undefined;
+  if (!suspiciouslyShort) {
+    try {
+      const computation = await computeWinReward(winnerId, reposFn);
+      doffaReward = computation.playerAmount;
+      if (computation.burnAmount > 0) recordBurn(match.id, computation.burnAmount);
+    } catch (e) {
+      console.error('Не удалось рассчитать награду Bean Duel:', e);
+      return;
+    }
+  }
+
+  try {
+    const { reward } = await rewardsFn.recordMatchResult({
+      matchId: match.id,
+      players: [match.userIds.player, match.userIds.bot],
+      winnerId,
+      winnerWallet: winnerId,
+      startedAt: match.startedAt,
+      finishedAt,
+      beansEntryFee: BEAN_DUEL_ENTRY_FEE,
+      doffaReward,
+      flags: suspiciouslyShort ? ['suspiciously_short_match'] : undefined,
+    });
+    if (reward && reward.amount > 0) {
+      sendFn(winnerId, { t: 'reward:match', matchId: match.id, amount: reward.amount });
+    }
+  } catch (e) {
+    console.error('Не удалось записать результат матча Bean Duel:', e);
+  }
 }
 
 /**
