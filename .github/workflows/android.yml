@@ -62,9 +62,9 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/doffa-games.keystore
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/zapisnoy.keystore
           else
-            echo "::error::Добавьте GitHub Secret ANDROID_KEYSTORE_BASE64 — base64 от файла android/app/doffa-games.keystore"
+            echo "::error::Добавьте GitHub Secret ANDROID_KEYSTORE_BASE64 — base64 от файла android/app/zapisnoy.keystore"
             exit 1
           fi
 
@@ -74,8 +74,6 @@ jobs:
           CAP_BUILD: '1'
           # APK-оболочка грузит живой сайт с Vercel → авто-обновление без
           # переустановки. Переопределяется repo variable CAP_SERVER_URL при желании.
-          # ВАЖНО: домен Vercel-проекта не переименован автоматически вместе с
-          # продуктом (см. capacitor.config.ts) — актуальный адрес деплоя.
           CAP_SERVER_URL: ${{ vars.CAP_SERVER_URL || 'https://zapisnoy-kozel.vercel.app' }}
 
       - name: Make gradlew executable
@@ -91,14 +89,14 @@ jobs:
       - name: Stage APK
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/release/app-release.apk "out/doffa-games-${{ github.run_number }}.apk"
-          cp android/app/build/outputs/apk/release/app-release.apk "out/doffa-games-latest.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/zapisnoy-kozel-${{ github.run_number }}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/zapisnoy-kozel-latest.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: doffa-games-apk
-          path: out/doffa-games-${{ github.run_number }}.apk
+          name: zapisnoy-kozel-apk
+          path: out/zapisnoy-kozel-${{ github.run_number }}.apk
           if-no-files-found: error
 
       - name: Delete old versioned APKs from release
@@ -107,7 +105,7 @@ jobs:
         run: |
           RELEASE_JSON=$(gh api repos/${{ github.repository }}/releases/tags/android-latest 2>/dev/null || echo "")
           if [ -n "$RELEASE_JSON" ]; then
-            echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name | test("^doffa-games-[0-9]+\\.apk$")) | .id' | while read ASSET_ID; do
+            echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name | test("^zapisnoy-kozel-[0-9]+\\.apk$")) | .id' | while read ASSET_ID; do
               echo "Удаляю старый APK asset $ASSET_ID..."
               gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$ASSET_ID"
             done
@@ -117,12 +115,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
-          name: DOFFA Games — Android APK
+          name: Crazy 8 — Android APK
           body: |
             📦 Установочный APK для Android (release-сборка, подписана постоянным ключом).
 
             **Как установить:**
-            1. Скачайте `doffa-games-latest.apk` ниже.
+            1. Скачайте `zapisnoy-kozel-latest.apk` ниже.
             2. На телефоне разрешите установку из неизвестных источников.
             3. Откройте файл и нажмите «Установить».
 
@@ -130,6 +128,6 @@ jobs:
 
             Сборка #${{ github.run_number }} · коммит ${{ github.sha }}
           files: |
-            out/doffa-games-latest.apk
-            out/doffa-games-${{ github.run_number }}.apk
+            out/zapisnoy-kozel-latest.apk
+            out/zapisnoy-kozel-${{ github.run_number }}.apk
           make_latest: true

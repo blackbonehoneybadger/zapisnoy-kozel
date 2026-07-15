@@ -1,18 +1,17 @@
 // Связующее звено между движком и UI: хранит активную партию,
 // проигрывает звуки, ведёт ботов по таймеру и пишет статистику.
 import { create } from 'zustand';
-import type { GameState, MoveAction, Suit } from '../engine/types';
+import type { GameState, MoveAction, Suit } from '../game/types';
 import {
   applyMove,
   createInitialState,
   getCurrentPlayer,
   startNextRound,
-} from '../engine/engine';
-import { decideBotMove } from '../engine/bots';
-import { currentSettings } from '../../../store/settingsStore';
+} from '../game/engine';
+import { decideBotMove } from '../game/bots';
+import { currentSettings } from './settingsStore';
 import { useStatsStore } from './statsStore';
-import { useBeansStore } from '../../../store/beansStore';
-import { useOnlineStore } from '../../../net/onlineStore';
+import { useRewardsStore } from './rewardsStore';
 import {
   drawCardSound,
   loseSound,
@@ -20,8 +19,8 @@ import {
   playCardSound,
   specialSound,
   winSound,
-} from '../../../lib/sound';
-import { haptics } from '../../../lib/haptics';
+} from '../game/sound';
+import { haptics } from '../game/haptics';
 
 interface GameStore {
   game: GameState | null;
@@ -103,11 +102,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         players: next.players.length,
         flewAway: human?.busted ?? false,
       });
-      // Офлайн-тренировка против ботов: только тренировочные зёрна, без DOFFA.
-      // Сумму решает ИСКЛЮЧИТЕЛЬНО сервер (см. beans:awardTraining в
-      // onlineStore) — если кошелёк не подключён/сервер недоступен, зёрна
-      // не начисляются вовсе, а не выдумываются на клиенте.
-      useOnlineStore.getState().requestTrainingAward(won);
+      // Офлайн-тренировка против ботов: только тренировочные Cups, без DOFFA.
+      useRewardsStore.getState().awardTraining(won);
       if (won) {
         winSound();
         haptics.win();
@@ -146,9 +142,6 @@ export const useGameStore = create<GameStore>((set, get) => {
     recorded: false,
     start: () => {
       clearBotTimer();
-      // Сбрасываем витрину прошлой тренировочной награды — иначе при офлайн
-      // сервере оверлей мог бы показать устаревшее число из прошлой партии.
-      useBeansStore.getState().resetLastTraining();
       const state = createInitialState(currentSettings());
       set({ game: state, recorded: false });
       scheduleBot();

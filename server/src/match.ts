@@ -1,7 +1,7 @@
 // Авторитетная партия на сервере: переиспользует игровой движок клиента.
 // Чужие руки скрываются перед отправкой — клиент видит только число карт.
-import type { Card, GameSettings, GameState } from '../../src/games/crazy8/engine/types';
-import { createInitialState, getCurrentPlayer } from '../../src/games/crazy8/engine/engine';
+import type { Card, GameSettings, GameState } from '../../src/game/types';
+import { createInitialState, getCurrentPlayer } from '../../src/game/engine';
 
 export interface SeatAssignment {
   userId: string | null;

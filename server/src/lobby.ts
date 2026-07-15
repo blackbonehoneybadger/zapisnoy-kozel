@@ -1,9 +1,9 @@
 // Лобби и столы (в памяти). Один источник правды о том, кто где сидит и
 // какая партия идёт. Сокеты и рассылку обновлений берёт на себя index.ts.
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import type { GameSettings, GameState, MoveAction } from '../../src/games/crazy8/engine/types';
-import { applyMove, startNextRound } from '../../src/games/crazy8/engine/engine';
-import { decideBotMove } from '../../src/games/crazy8/engine/bots';
+import type { GameSettings, GameState, MoveAction } from '../../src/game/types';
+import { applyMove, startNextRound } from '../../src/game/engine';
+import { decideBotMove } from '../../src/game/bots';
 import { createMatch, type SeatAssignment } from './match';
 import type { LobbyTable, TableView } from './protocol';
 
@@ -35,10 +35,6 @@ interface Table {
   potLamports?: number;
   /** Сколько раз пытались выплатить банк (для авто-повтора при сбое RPC). */
   payoutAttempts?: number;
-  /** Метка времени старта текущей партии — часть уникального matchId для наград. */
-  matchStartedAt?: number;
-  /** Защита от повторной записи результата матча (idempotent и так, но не шлём дважды). */
-  rewardRecorded?: boolean;
 }
 
 // Здравый предел ставки (1000 SOL), чтобы исключить абсурдные/переполненные значения.
@@ -250,8 +246,6 @@ export function startGame(userId: string): MutationResult {
   table.status = 'playing';
   table.paidOut = false; // новая партия — разрешаем новую выплату
   table.payoutAttempts = 0; // сбрасываем счётчик попыток выплаты
-  table.matchStartedAt = Date.now();
-  table.rewardRecorded = false; // новая партия — разрешаем новую запись награды
   // Фиксируем банк до того, как кто-то успеет выйти.
   if (table.betLamports) {
     table.potLamports = table.betLamports * seats.filter((s) => s.userId && !s.isBot).length;

@@ -32,9 +32,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       const resp = await provider.connect();
       const address = resp.publicKey.toString();
       set({ address, connecting: false, error: null });
-      // Не блокируем вход балансом: RPC может быть медленным/недоступным, а
-      // подключение кошелька (и вход в онлайн-режим) не должно от этого зависеть.
-      void get().refreshBalance();
+      await get().refreshBalance();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Ошибка подключения кошелька';
       set({ connecting: false, error: msg });

@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 import { useStatsStore } from '../store/statsStore';
-import { useScrollReveal } from '../../../fx/useScrollReveal';
-import { CountUpOnView } from '../../../components/CountUpOnView';
-import { PremiumButton } from '../../../components/PremiumButton';
+import { useScrollReveal } from '../fx/useScrollReveal';
+import { CountUpOnView } from '../components/CountUpOnView';
+import { PremiumButton } from '../components/PremiumButton';
 
 interface Props {
   onBack: () => void;

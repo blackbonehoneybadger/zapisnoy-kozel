@@ -1,7 +1,7 @@
 // Сетевое хранилище: WebSocket-соединение с онлайн-сервером, вход через
 // кошелёк Solana, лобби, присутствие, друзья, приглашения, стол и партия.
 import { create } from 'zustand';
-import type { GameState, MoveAction, Suit } from '../games/crazy8/engine/types';
+import type { GameState, MoveAction, Suit } from '../game/types';
 import type {
   ClientMessage,
   LobbyTable,
@@ -11,7 +11,6 @@ import type {
   TableView,
 } from './protocol';
 import { useWalletStore } from '../solana/walletStore';
-import { useBeansStore } from '../store/beansStore';
 
 // Адрес сервера задаётся на сборке: VITE_SERVER_URL=wss://your-host.
 // trim() обязателен: значение из панели Vercel может прийти с \n на конце.
@@ -23,7 +22,7 @@ const TOKEN_KEY = 'doffa-crazy8.token';
 
 // Текст входа — должен побайтово совпадать с сервером (server/src/index.ts).
 function authMessage(nonce: string): string {
-  return `DOFFA Games — вход\nNonce: ${nonce}`;
+  return `DOFFA Crazy 8 — вход\nNonce: ${nonce}`;
 }
 
 export type OnlineView = 'auth' | 'lobby' | 'table' | 'game';
@@ -52,8 +51,6 @@ interface OnlineStore {
   walletAddress: string | null;
   serverWallet: string | null;
   betRequired: boolean;
-  /** Сумма DOFFA за последнюю победу — приходит ТОЛЬКО от сервера (этап 3+). */
-  lastReward: number | null;
 
   connect: () => void;
   connectWallet: () => Promise<void>;
@@ -76,14 +73,6 @@ interface OnlineStore {
   removeFriend: (userId: string) => void;
   acceptInvite: (invite: Invite) => void;
   dismissInvite: (tableId: string) => void;
-  /** Сверка накопленных тапов тапалки с сервером (см. store/beansStore.ts). */
-  syncBeans: () => void;
-  /**
-   * Запрос тренировочных зёрен за офлайн-партию против ботов. Молча ничего
-   * не делает, если нет активной сессии — зёрна тогда просто не начисляются
-   * (сервер — единственный источник этой суммы).
-   */
-  requestTrainingAward: (won: boolean) => void;
 }
 
 let socket: WebSocket | null = null;
@@ -94,9 +83,6 @@ let connectTimer: ReturnType<typeof setTimeout> | null = null;
 let intentionalClose = false;
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-// Метка последней сверки тапалки — elapsedMs считаем по факту, не предполагаем
-// фиксированный интервал (вкладка могла быть в фоне/throttled).
-let lastBeansSyncTs = Date.now();
 
 export const useOnlineStore = create<OnlineStore>((set, get) => {
   function sendMsg(msg: ClientMessage): void {
@@ -175,7 +161,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         });
         break;
       case 'table:left':
-        set({ table: null, game: null, view: 'lobby', serverWallet: null, betRequired: false, lastReward: null });
+        set({ table: null, game: null, view: 'lobby', serverWallet: null, betRequired: false });
         sendMsg({ t: 'lobby:subscribe' });
         break;
       case 'game':
@@ -202,15 +188,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         });
         break;
       }
-      case 'beans:state':
-        useBeansStore.getState().syncFromServer({ beans: msg.beans, energy: msg.energy });
-        break;
-      case 'beans:trainingResult':
-        useBeansStore.getState().applyTrainingResult(msg.granted, msg.beans, msg.energy);
-        break;
-      case 'reward:match':
-        if (msg.amount > 0) set({ lastReward: msg.amount });
-        break;
     }
   }
 
@@ -231,7 +208,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     walletAddress: null,
     serverWallet: null,
     betRequired: false,
-    lastReward: null,
 
     connect: () => {
       if (socket && socket.readyState <= WebSocket.OPEN) return;
@@ -363,10 +339,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       sendMsg({ t: 'table:join', tableId, password: password || undefined });
     },
     leaveTable: () => sendMsg({ t: 'table:leave' }),
-    startGame: () => {
-      set({ lastReward: null });
-      sendMsg({ t: 'table:start' });
-    },
+    startGame: () => sendMsg({ t: 'table:start' }),
     playCard: (cardId, chosenSuit) =>
       sendMsg({ t: 'game:move', move: { type: 'play', cardId, chosenSuit } as MoveAction }),
     take: () => sendMsg({ t: 'game:move', move: { type: 'take' } }),
@@ -398,20 +371,5 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     },
     dismissInvite: (tableId: string) =>
       set((s) => ({ invites: s.invites.filter((i) => i.tableId !== tableId) })),
-
-    syncBeans: () => {
-      const now = Date.now();
-      const elapsedMs = now - lastBeansSyncTs;
-      if (get().status !== 'connected' || !get().user) return;
-      const { tapped, gained } = useBeansStore.getState().takePendingSync();
-      if (tapped <= 0) return;
-      lastBeansSyncTs = now;
-      sendMsg({ t: 'beans:sync', tapped, claimedGain: gained, elapsedMs });
-    },
-
-    requestTrainingAward: (won: boolean) => {
-      if (get().status !== 'connected' || !get().user) return;
-      sendMsg({ t: 'beans:awardTraining', won });
-    },
   };
 });

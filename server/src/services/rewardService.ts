@@ -5,7 +5,6 @@ import { randomBytes } from 'node:crypto';
 import type { MatchResult, Reward, RewardHistoryItem } from '../domain/types';
 import type { Repositories } from '../repositories/types';
 import { DOFFA_REWARD_PER_WIN } from '../config';
-import { ENERGY_MAX } from './beansService';
 
 function id(prefix: string): string {
   return `${prefix}_${randomBytes(9).toString('base64url')}`;
@@ -21,9 +20,7 @@ export class RewardService {
       user = {
         id: userId,
         walletAddress: wallet,
-        beansBalance: 0,
-        energy: ENERGY_MAX,
-        lastEnergyTs: this.now(),
+        cupsBalance: 0,
         pendingDoffa: 0,
         claimedDoffa: 0,
         createdAt: this.now(),
@@ -49,7 +46,7 @@ export class RewardService {
     winnerWallet: string;
     startedAt: number;
     finishedAt: number;
-    beansEntryFee: number;
+    cupsEntryFee: number;
     doffaReward?: number;
     flags?: string[];
   }): Promise<{ match: MatchResult; reward?: Reward }> {
@@ -68,7 +65,7 @@ export class RewardService {
       winnerWallet: input.winnerWallet,
       startedAt: input.startedAt,
       finishedAt: input.finishedAt,
-      beansEntryFee: input.beansEntryFee,
+      cupsEntryFee: input.cupsEntryFee,
       doffaReward: reward,
       rewardStatus: reward > 0 ? 'available' : suspicious ? 'review' : 'none',
       flags: input.flags,

@@ -1,40 +1,22 @@
 import { motion } from 'framer-motion';
-import { useBeansStore, type BeansEntry } from '../store/beansStore';
 import { useRewardsStore, type RewardEntry } from '../store/rewardsStore';
 
 interface Props {
   onBack: () => void;
 }
 
-/** Единая запись истории для отображения — Зёрна (beansStore) + DOFFA/вывод (rewardsStore). */
-interface HistoryRow {
-  id: string;
-  date: number;
-  kind: BeansEntry['kind'] | RewardEntry['kind'];
-  amount: number;
-  note: string;
-}
-
-const KIND_META: Record<HistoryRow['kind'], { label: string; badge: string; cls: string }> = {
+const KIND_META: Record<RewardEntry['kind'], { label: string; badge: string; cls: string }> = {
   doffa: { label: 'DOFFA', badge: '+', cls: 'bg-gold-500/15 text-gold-300' },
+  cups: { label: 'Cups', badge: '+', cls: 'bg-felt-600/25 text-emerald-300' },
   claim: { label: 'Вывод', badge: '→', cls: 'bg-white/[0.06] text-white/70' },
-  training: { label: 'Зёрна', badge: '+', cls: 'bg-felt-600/25 text-emerald-300' },
-  entryFee: { label: 'Вход в матч', badge: '−', cls: 'bg-wine-700/20 text-wine-400' },
-  refund: { label: 'Возврат', badge: '+', cls: 'bg-felt-600/25 text-emerald-300' },
 };
 
-/** История наград: начисления зёрен, DOFFA и заявки на вывод. */
+/** История наград: начисления Cups, DOFFA и заявки на вывод. */
 export function RewardsScreen({ onBack }: Props) {
-  const rewardsHistory = useRewardsStore((s) => s.history);
-  const beansHistory = useBeansStore((s) => s.history);
-  const beans = useBeansStore((s) => s.beans);
+  const history = useRewardsStore((s) => s.history);
+  const cups = useRewardsStore((s) => s.cups);
   const doffa = useRewardsStore((s) => s.doffa);
   const doffaClaimed = useRewardsStore((s) => s.doffaClaimed);
-
-  const history: HistoryRow[] = [...rewardsHistory, ...beansHistory]
-    .map((h) => ({ id: `${h.kind}-${h.id}`, date: h.date, kind: h.kind, amount: h.amount, note: h.note }))
-    .sort((a, b) => b.date - a.date)
-    .slice(0, 50);
 
   return (
     <div className="min-h-[100dvh] px-5 pt-4 safe-top safe-bottom">
@@ -54,7 +36,7 @@ export function RewardsScreen({ onBack }: Props) {
       {/* сводка балансов */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Зёрна', value: beans, cls: 'text-emerald-300' },
+          { label: 'Cups', value: cups, cls: 'text-emerald-300' },
           { label: 'DOFFA', value: doffa, cls: 'text-gold-300' },
           { label: 'К выводу', value: doffaClaimed, cls: 'text-white/85' },
         ].map((c) => (
@@ -68,8 +50,8 @@ export function RewardsScreen({ onBack }: Props) {
       <h2 className="mb-2 mt-6 px-1 font-display text-xl gold-text">Операции</h2>
       {history.length === 0 ? (
         <div className="glass rounded-2xl p-6 text-center text-sm text-white/40">
-          Пока нет наград. Тапайте по чашке — зёрна начисляются за каждый тап,
-          DOFFA — за подтверждённые сервером онлайн-победы.
+          Пока нет наград. Сыграйте партию — Cups начисляются за каждую игру,
+          DOFFA — за победы.
         </div>
       ) : (
         <div className="space-y-2">
@@ -96,18 +78,8 @@ export function RewardsScreen({ onBack }: Props) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div
-                    className={`font-display text-lg ${
-                      h.kind === 'doffa'
-                        ? 'text-gold-300'
-                        : h.kind === 'training' || h.kind === 'refund'
-                          ? 'text-emerald-300'
-                          : h.kind === 'entryFee'
-                            ? 'text-wine-400'
-                            : 'text-white/70'
-                    }`}
-                  >
-                    {h.kind === 'claim' || h.kind === 'entryFee' ? '' : '+'}
+                  <div className={`font-display text-lg ${h.kind === 'doffa' ? 'text-gold-300' : h.kind === 'cups' ? 'text-emerald-300' : 'text-white/70'}`}>
+                    {h.kind === 'claim' ? '' : '+'}
                     {h.amount}
                   </div>
                   <div className="text-[11px] text-white/40">{meta.label}</div>
