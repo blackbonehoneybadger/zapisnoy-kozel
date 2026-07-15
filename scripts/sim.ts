@@ -1,8 +1,8 @@
 // Симуляция партий «все боты» для проверки движка (не входит в сборку).
-import { createInitialState, applyMove, startNextRound, getCurrentPlayer } from '../src/games/crazy8/engine/engine';
-import { decideBotMove } from '../src/games/crazy8/engine/bots';
-import { canPlayCard } from '../src/games/crazy8/engine/rules';
-import type { GameSettings, GameState } from '../src/games/crazy8/engine/types';
+import { createInitialState, applyMove, startNextRound, getCurrentPlayer } from '../src/game/engine';
+import { decideBotMove } from '../src/game/bots';
+import { canPlayCard } from '../src/game/rules';
+import type { GameSettings, GameState } from '../src/game/types';
 
 function makeAllBots(state: GameState): GameState {
   // Принудительно делаем человека ботом для автосимуляции.

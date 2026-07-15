@@ -6,7 +6,6 @@ import { createFileRepositories } from '../repositories/fileRepositories';
 import { createTransactionProvider } from './transactionProvider';
 import { RewardService } from './rewardService';
 import { ClaimService } from './claimService';
-import { BeansService } from './beansService';
 import { rewardConfigSummary } from '../config';
 
 export function createEconomy() {
@@ -14,8 +13,7 @@ export function createEconomy() {
   const provider = createTransactionProvider();
   const rewards = new RewardService(repositories);
   const claims = new ClaimService(repositories, provider);
-  const beans = new BeansService(repositories);
-  return { repositories, provider, rewards, claims, beans, summary: rewardConfigSummary() };
+  return { repositories, provider, rewards, claims, summary: rewardConfigSummary() };
 }
 
 export type Economy = ReturnType<typeof createEconomy>;

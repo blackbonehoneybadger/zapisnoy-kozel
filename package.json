@@ -1,9 +1,9 @@
 {
-  "name": "doffa-games",
+  "name": "doffa-crazy8",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "DOFFA Games — игровая платформа экосистемы DOFFA (PWA). Основной режим: DOFFA Bean Duel. Crazy 8 сохранён как скрытый режим (см. docs/CRAZY8_ARCHIVE.md).",
+  "description": "DOFFA Crazy 8 — карточная игра экосистемы DOFFA (PWA)",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

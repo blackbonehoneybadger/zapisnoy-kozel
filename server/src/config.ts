@@ -37,24 +37,11 @@ export const DOFFA_MIN_HOT_WALLET_BALANCE = toInt(process.env.DOFFA_MIN_HOT_WALL
 /** Награда DOFFA за подтверждённую сервером онлайн-победу (единицы токена). */
 export const DOFFA_REWARD_PER_WIN = toInt(process.env.DOFFA_REWARD_PER_WIN, 10);
 
-/** Стоимость входа в онлайн-матч за зёрна (beans). */
-export const BEANS_ENTRY_FEE = toInt(process.env.BEANS_ENTRY_FEE ?? process.env.CUPS_ENTRY_FEE, 100);
-
-/**
- * Legacy-механика ставок SOL (стол на реальные деньги вместо зёрен) — см.
- * docs/SOL_BETTING_LEGACY.md. Выключена по умолчанию в продакшене новой
- * версии: столы со ставкой не создаются, пока флаг не включён явно.
- * Код (payout, verifyPayment и т.д.) не удалён — сохранён на случай
- * будущего аудита/включения, но не участвует в основном пути игрока.
- */
-export const SOL_BETTING_ENABLED = (process.env.SOL_BETTING_ENABLED ?? 'false').trim() === 'true';
+/** Стоимость входа в онлайн-матч за Cups. */
+export const CUPS_ENTRY_FEE = toInt(process.env.CUPS_ENTRY_FEE, 100);
 
 function toInt(raw: string | undefined, fallback: number): number {
-  const trimmed = (raw ?? '').trim();
-  // Number('') === 0 (не NaN) — без этой проверки пустая/отсутствующая
-  // переменная окружения тихо давала 0 вместо fallback на ЛЮБом toInt(...).
-  if (trimmed === '') return fallback;
-  const n = Number(trimmed);
+  const n = Number((raw ?? '').trim());
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 }
 
@@ -65,8 +52,7 @@ export function rewardConfigSummary(): string {
     `mint=${DOFFA_MINT.slice(0, 4)}…${DOFFA_MINT.slice(-4)}`,
     `pool=${DOFFA_REWARD_POOL_INITIAL}`,
     `perWin=${DOFFA_REWARD_PER_WIN}`,
-    `beansEntry=${BEANS_ENTRY_FEE}`,
+    `cupsEntry=${CUPS_ENTRY_FEE}`,
     `dailyLimit=${DOFFA_DAILY_REWARD_LIMIT || '∞'}`,
-    `solBetting=${SOL_BETTING_ENABLED ? 'ON (legacy)' : 'off'}`,
   ].join(' · ');
 }

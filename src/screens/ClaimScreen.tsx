@@ -4,10 +4,9 @@ import { PremiumButton } from '../components/PremiumButton';
 import { WalletButton } from '../components/WalletButton';
 import { DoffaEmblem } from '../components/DoffaEmblem';
 import { Confetti } from '../components/WinFx';
-import { useBeansStore } from '../store/beansStore';
 import { useRewardsStore } from '../store/rewardsStore';
 import { useWalletStore } from '../solana/walletStore';
-import { haptics } from '../lib/haptics';
+import { haptics } from '../game/haptics';
 
 interface Props {
   onBack: () => void;
@@ -21,7 +20,7 @@ interface Props {
 export function ClaimScreen({ onBack }: Props) {
   const doffa = useRewardsStore((s) => s.doffa);
   const doffaClaimed = useRewardsStore((s) => s.doffaClaimed);
-  const beans = useBeansStore((s) => s.beans);
+  const cups = useRewardsStore((s) => s.cups);
   const claim = useRewardsStore((s) => s.claim);
   const address = useWalletStore((s) => s.address);
 
@@ -96,8 +95,8 @@ export function ClaimScreen({ onBack }: Props) {
 
         <div className="mt-5 flex items-center justify-center gap-6 text-sm">
           <div>
-            <p className="font-display text-2xl text-gold-300">{beans}</p>
-            <p className="text-[11px] text-white/40">Зёрна · энергия</p>
+            <p className="font-display text-2xl text-gold-300">{cups}</p>
+            <p className="text-[11px] text-white/40">Cups · энергия</p>
           </div>
           <div className="h-8 w-px bg-white/[0.08]" />
           <div>

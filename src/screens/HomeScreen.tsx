@@ -1,22 +1,13 @@
-// Главный экран DOFFA Games. Единственный публичный игровой режим —
-// DOFFA Bean Duel; старый Crazy 8 полностью скрыт (см. ENABLE_CRAZY8_CLASSIC
-// и docs/CRAZY8_ARCHIVE.md) и на этом экране никак не упоминается, кроме
-// служебной dev-ссылки, видимой только при явно включённом флаге.
 import { motion } from 'framer-motion';
 import { Hero3DCard } from '../components/Hero3DCard';
 import { PremiumButton } from '../components/PremiumButton';
-import { haptics } from '../lib/haptics';
-import { useBeansStore } from '../store/beansStore';
+import { haptics } from '../game/haptics';
 import { useRewardsStore } from '../store/rewardsStore';
-import { ENABLE_CRAZY8_CLASSIC } from '../config/features';
 import type { Screen } from '../App';
 
 interface Props {
   navigate: (s: Screen) => void;
-  /** Запускает DOFFA Bean Duel — основной игровой режим. */
   onPlay: () => void;
-  /** Запускает офлайн-партию Crazy 8 против ботов. Задано ТОЛЬКО при ENABLE_CRAZY8_CLASSIC. */
-  onPlayClassic?: () => void;
 }
 
 const item = {
@@ -29,41 +20,44 @@ const item = {
 };
 
 const secondary: { label: string; screen: Screen; hint: string }[] = [
-  { label: 'Накопить зёрна', screen: 'beans', hint: 'Тапалка DOFFA' },
-  { label: 'Награды', screen: 'rewards', hint: 'История начислений' },
-  { label: 'Профиль', screen: 'profile', hint: 'Кошелёк, DOFFA' },
+  { label: 'Профиль', screen: 'profile', hint: 'Кошелёк, награды, Cups' },
+  { label: 'Правила', screen: 'rules', hint: 'Как играть' },
+  { label: 'Статистика', screen: 'stats', hint: 'Победы и партии' },
+  { label: 'Настройки', screen: 'settings', hint: 'Боты, лимит, звук' },
 ];
 
-export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
-  const beans = useBeansStore((s) => s.beans);
+export function HomeScreen({ navigate, onPlay }: Props) {
+  const cups = useRewardsStore((s) => s.cups);
   const doffa = useRewardsStore((s) => s.doffa);
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-between px-7 py-8 safe-top safe-bottom">
-      {/* баланс зёрен + доступная награда DOFFA — ведёт в профиль */}
+      {/* балансы наград — тихая плашка над hero, ведёт в профиль */}
       <div className="z-20 flex h-9 w-full items-start justify-end">
-        <motion.button
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          onClick={() => {
-            haptics.tap();
-            navigate('profile');
-          }}
-          className="glass flex items-center gap-3 rounded-full px-4 py-2 text-xs"
-        >
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span className="text-white/70">{beans}</span>
-            <span className="text-white/35">Зёрна</span>
-          </span>
-          <span className="h-3 w-px bg-white/[0.1]" />
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
-            <span className="text-gold-300">{doffa}</span>
-            <span className="text-white/35">DOFFA</span>
-          </span>
-        </motion.button>
+        {(cups > 0 || doffa > 0) && (
+          <motion.button
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            onClick={() => {
+              haptics.tap();
+              navigate('profile');
+            }}
+            className="glass flex items-center gap-3 rounded-full px-4 py-2 text-xs"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-white/70">{cups}</span>
+              <span className="text-white/35">Cups</span>
+            </span>
+            <span className="h-3 w-px bg-white/[0.1]" />
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+              <span className="text-gold-300">{doffa}</span>
+              <span className="text-white/35">DOFFA</span>
+            </span>
+          </motion.button>
+        )}
       </div>
       <div className="relative flex w-full flex-1 flex-col items-center justify-center text-center">
         {/* парящие 3D-карты за заголовком (Three.js, лениво) */}
@@ -94,7 +88,7 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
           transition={{ delay: 0.12 }}
           className="text-[0.65rem] uppercase tracking-luxe text-gold-500/70"
         >
-          DOFFA Games
+          DOFFA · Espresso Bar
         </motion.p>
 
         <motion.h1
@@ -103,9 +97,9 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
           transition={{ delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
           className="mt-3 font-display text-[3.4rem] font-semibold leading-[0.92] tracking-tight"
         >
-          <span className="gold-text">Bean</span>
+          <span className="gold-text">DOFFA</span>
           <br />
-          <span className="text-[#f3efe6]">Duel</span>
+          <span className="text-[#f3efe6]">Crazy 8</span>
         </motion.h1>
 
         <motion.div
@@ -121,7 +115,7 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
           transition={{ delay: 0.4 }}
           className="mt-5 max-w-[17rem] text-balance text-sm leading-relaxed text-white/45"
         >
-          Быстрая дуэль один на один. Уклоняйся, атакуй, побеждай за 60–90 секунд.
+          Избавься от карт первым. Шестёрки, тузы и пиковый король решают исход.
         </motion.p>
         </div>
       </div>
@@ -129,7 +123,26 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
       <div className="w-full max-w-sm">
         <motion.div custom={0} variants={item} initial="hidden" animate="show">
           <PremiumButton full variant="gold" onClick={onPlay}>
-            Играть в Bean Duel
+            Играть бесплатно
+          </PremiumButton>
+        </motion.div>
+
+        <motion.div custom={1} variants={item} initial="hidden" animate="show" className="mt-3">
+          <PremiumButton
+            full
+            variant="ghost"
+            onClick={() => {
+              haptics.tap();
+              navigate('online');
+            }}
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                <path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            }
+          >
+            Играть на DOFFA
           </PremiumButton>
         </motion.div>
 
@@ -137,7 +150,7 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
           {secondary.map((b, i) => (
             <motion.button
               key={b.screen}
-              custom={i + 1}
+              custom={i + 2}
               variants={item}
               initial="hidden"
               animate="show"
@@ -161,21 +174,6 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
         <p className="pt-4 text-center text-[11px] tracking-wide text-white/25">
           v1.0 · играй офлайн · добавь на экран «Домой»
         </p>
-
-        {/* Служебные dev-ссылки на старый Crazy 8 — видны ТОЛЬКО при явном
-            VITE_ENABLE_CRAZY8_CLASSIC=true (локальная разработка/тесты). */}
-        {ENABLE_CRAZY8_CLASSIC && (
-          <div className="mt-3 flex justify-center gap-3 text-[10px] uppercase tracking-widest text-white/20">
-            {onPlayClassic && (
-              <button onClick={onPlayClassic} className="hover:text-white/40">
-                Crazy 8 · офлайн (dev)
-              </button>
-            )}
-            <button onClick={() => navigate('online')} className="hover:text-white/40">
-              Crazy 8 · онлайн (dev)
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

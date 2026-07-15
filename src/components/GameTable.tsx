@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { GameEventFlag, GameState, Player } from '../engine/types';
-import { SUIT_SYMBOL } from '../engine/deck';
-import { topCard } from '../engine/rules';
-import { actionLabel } from '../engine/labels';
+import type { GameEventFlag, GameState, Player } from '../game/types';
+import { SUIT_SYMBOL } from '../game/deck';
+import { topCard } from '../game/rules';
+import { actionLabel } from '../game/labels';
 import { Card } from './Card';
-import { DoffaEmblem } from '../../../components/DoffaEmblem';
+import { DoffaEmblem } from './DoffaEmblem';
 
 interface Props {
   state: GameState;
@@ -259,7 +259,7 @@ function RewardsOrb() {
       <span className="text-[7px] font-medium uppercase leading-[1.3] tracking-[0.22em] text-white/35">
         DOFFA
         <br />
-        Зёрна
+        Cups
       </span>
     </div>
   );

@@ -12,9 +12,9 @@ const pwaPlugin = VitePWA({
   registerType: 'autoUpdate',
   includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
   manifest: {
-    name: 'DOFFA Games',
+    name: 'DOFFA Crazy 8',
     short_name: 'DOFFA',
-    description: 'DOFFA Games — премиальная игровая платформа: DOFFA Bean Duel и тапалка «Зёрна»',
+    description: 'Премиальная карточная игра «DOFFA Crazy 8»',
     lang: 'ru',
     theme_color: '#16110b',
     background_color: '#16110b',

@@ -1,14 +1,12 @@
-# Онлайн-сервер DOFFA Games (Crazy 8 — скрытый режим внутри платформы).
-# Контекст сборки — КОРЕНЬ репозитория (серверу нужен движок Crazy 8
-# из src/games/crazy8/engine):
-#   docker build -f server/Dockerfile -t doffa-games-server .
-#   docker run -p 8080:8080 -e AUTH_SECRET=задайте-секрет doffa-games-server
+# Онлайн-сервер «Записной Козёл».
+# Контекст сборки — КОРЕНЬ репозитория (серверу нужен общий движок src/game):
+#   docker build -f server/Dockerfile -t kozel-server .
+#   docker run -p 8080:8080 -e AUTH_SECRET=задайте-секрет kozel-server
 FROM node:22-alpine
 WORKDIR /app
 
-# Игровой движок Crazy 8 (используется и клиентом, и сервером — авторитетная
-# онлайн-игра переигрывает те же ходы тем же кодом, что и офлайн-режим).
-COPY src/games/crazy8/engine ./src/games/crazy8/engine
+# Общий игровой движок (используется и клиентом, и сервером).
+COPY src/game ./src/game
 
 # Зависимости сервера.
 COPY server/package*.json ./server/

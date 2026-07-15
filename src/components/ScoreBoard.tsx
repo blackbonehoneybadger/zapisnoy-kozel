@@ -1,4 +1,4 @@
-import type { GameState, RoundResult } from '../engine/types';
+import type { GameState, RoundResult } from '../game/types';
 
 interface Props {
   state: GameState;

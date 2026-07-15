@@ -1,5 +1,5 @@
 // Протокол WebSocket (зеркало server/src/protocol.ts).
-import type { GameState, MoveAction } from '../games/crazy8/engine/types';
+import type { GameState, MoveAction } from '../game/types';
 
 export interface PublicUser {
   id: string; // адрес кошелька Solana
@@ -65,15 +65,7 @@ export type ClientMessage =
   | { t: 'invite:send'; tableId: string; toUserId: string }
   | { t: 'invite:all'; tableId: string }
   | { t: 'friend:add'; userId: string }
-  | { t: 'friend:remove'; userId: string }
-  // Сверка партии тапов тапалки: сколько тапов и сколько зёрен клиент
-  // насчитал локально с прошлой сверки — сервер урезает до правдоподобного.
-  | { t: 'beans:sync'; tapped: number; claimedGain: number; elapsedMs: number }
-  // Запрос тренировочных зёрен за офлайн-партию против ботов (rate-limited).
-  | { t: 'beans:awardTraining'; won: boolean }
-  | { t: 'reward:list' }
-  | { t: 'reward:claim'; rewardId: string; walletAddress: string; idempotencyKey: string }
-  | { t: 'reward:history' };
+  | { t: 'friend:remove'; userId: string };
 
 export type ServerMessage =
   | { t: 'auth:challenge'; nonce: string }
@@ -89,37 +81,4 @@ export type ServerMessage =
   | { t: 'invite'; tableId: string; tableName: string; fromName: string; betLamports?: number }
   | { t: 'wallet:required'; serverWallet: string; lamports: number }
   | { t: 'wallet:paid'; seatIndex: number }
-  | { t: 'wallet:payout'; winnerName: string; txSignature: string; lamports: number; commission: number }
-  // Авторитетный баланс зёрен/энергии — единственный легитимный источник
-  // для клиента (см. src/store/beansStore.ts syncFromServer).
-  | { t: 'beans:state'; beans: number; energy: number }
-  // Результат запроса тренировочных зёрен (0, если сервер отказал/rate-limit).
-  | { t: 'beans:trainingResult'; granted: number; beans: number; energy: number }
-  // Подтверждённая сервером сумма DOFFA за окончание онлайн-матча
-  // (0/undefined, если победы не было или награда не назначена).
-  | { t: 'reward:match'; matchId: string; amount: number }
-  | { t: 'reward:list'; rewards: RewardSummary[] }
-  | { t: 'reward:claimResult'; ok: boolean; status: RewardStatusValue; message?: string; txSignature?: string; testMode: boolean }
-  | { t: 'reward:history'; items: RewardHistoryItemSummary[] };
-
-/** Статус жизненного цикла награды (зеркало server/src/domain/types.ts RewardStatus). */
-export type RewardStatusValue = 'none' | 'available' | 'processing' | 'sent' | 'failed' | 'review';
-
-/** Урезанная для клиента форма Reward (server/src/domain/types.ts). */
-export interface RewardSummary {
-  id: string;
-  matchId: string;
-  amount: number;
-  status: RewardStatusValue;
-  createdAt: number;
-}
-
-/** Урезанная для клиента форма RewardHistoryItem (server/src/domain/types.ts). */
-export interface RewardHistoryItemSummary {
-  id: string;
-  date: number;
-  kind: 'doffa' | 'claim';
-  amount: number;
-  note: string;
-  txSignature?: string;
-}
+  | { t: 'wallet:payout'; winnerName: string; txSignature: string; lamports: number; commission: number };

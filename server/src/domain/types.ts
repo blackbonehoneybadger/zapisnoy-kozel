@@ -23,12 +23,8 @@ export interface DoffaUser {
   telegramId?: string;
   /** Подключённый Solana-кошелёк (получатель DOFFA). */
   walletAddress?: string;
-  /** Баланс зёрен — внутренняя игровая энергия (авторитетно на сервере). */
-  beansBalance: number;
-  /** Текущая энергия тапалки (авторитетно на сервере). */
-  energy: number;
-  /** Метка времени последнего пересчёта регенерации энергии. */
-  lastEnergyTs: number;
+  /** Игровая энергия (авторитетно на сервере). */
+  cupsBalance: number;
   /** Накопленный доступный DOFFA (сумма available-наград). */
   pendingDoffa: number;
   /** Суммарно выплаченный DOFFA. */
@@ -46,8 +42,8 @@ export interface MatchResult {
   winnerWallet: string;
   startedAt: number;
   finishedAt: number;
-  /** Списанная плата за вход (зёрна) с каждого игрока-человека. */
-  beansEntryFee: number;
+  /** Списанная плата за вход (Cups) с каждого игрока-человека. */
+  cupsEntryFee: number;
   /** Назначенная награда DOFFA победителю. */
   doffaReward: number;
   rewardStatus: RewardStatus;
@@ -89,7 +85,7 @@ export interface ClaimRecord {
 export interface RewardHistoryItem {
   id: string;
   date: number;
-  kind: 'beans' | 'doffa' | 'claim';
+  kind: 'cups' | 'doffa' | 'claim';
   amount: number;
   note: string;
   txSignature?: string;
