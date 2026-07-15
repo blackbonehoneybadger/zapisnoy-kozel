@@ -1,23 +1,30 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { DoffaEmblem } from '../components/DoffaEmblem';
-import { PremiumButton } from '../components/PremiumButton';
-import { WalletButton } from '../components/WalletButton';
+import { DoffaEmblem } from '../../../components/DoffaEmblem';
+import { PremiumButton } from '../../../components/PremiumButton';
+import { WalletButton } from '../../../components/WalletButton';
 import { OnlineGameScreen } from './OnlineGameScreen';
-import { useOnlineStore } from '../net/onlineStore';
-import { useWalletStore } from '../solana/walletStore';
-import type { LobbyTable, OnlineUser } from '../net/protocol';
+import { useOnlineStore } from '../../../net/onlineStore';
+import { useWalletStore } from '../../../solana/walletStore';
+import { useBeansStore, MATCH_ENTRY_COST } from '../../../store/beansStore';
+import { SOL_BETTING_ENABLED } from '../../../config/features';
+import type { LobbyTable, OnlineUser } from '../../../net/protocol';
+import type { Screen } from '../../../App';
+
+/** Заявленная награда за победу — визуальный ориентир (см. server/src/config.ts DOFFA_REWARD_PER_WIN). */
+const DOFFA_REWARD_PER_WIN_DISPLAY = 10;
 
 interface Props {
   onBack: () => void;
+  navigate: (s: Screen) => void;
 }
 
 function short(addr: string): string {
   return addr.length <= 9 ? addr : `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
-export function OnlineScreen({ onBack }: Props) {
+export function OnlineScreen({ onBack, navigate }: Props) {
   const view = useOnlineStore((s) => s.view);
   const connect = useOnlineStore((s) => s.connect);
   const notice = useOnlineStore((s) => s.notice);
@@ -36,7 +43,7 @@ export function OnlineScreen({ onBack }: Props) {
   return (
     <div className="relative min-h-[100dvh]">
       {view === 'auth' && <WalletConnectView onBack={onBack} />}
-      {view === 'lobby' && <LobbyView onBack={onBack} />}
+      {view === 'lobby' && <LobbyView onBack={onBack} navigate={navigate} />}
       {view === 'table' && <WaitingRoom />}
       {view === 'game' && <OnlineGameScreen />}
 
@@ -137,10 +144,10 @@ function WalletConnectView({ onBack }: { onBack: () => void }) {
           <DoffaEmblem size={62} />
         </motion.div>
 
-        <h2 className="font-display text-3xl gold-text">Играй на SOL</h2>
+        <h2 className="font-display text-3xl gold-text">Играй онлайн</h2>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-white/55">
-          Децентрализованная площадка. Подключи кошелёк Solana — без регистраций и паролей.
-          Ставка в SOL, банк забирает победитель.
+          Подключи кошелёк Solana — без регистраций и паролей. Вход в матч —
+          за зёрна, победа приносит DOFFA на твой кошелёк.
         </p>
 
         <div className="mt-8 w-full max-w-xs">
@@ -183,7 +190,7 @@ function SolMark() {
 }
 
 // ─── Лобби ─────────────────────────────────────────────────────────
-function LobbyView({ onBack }: { onBack: () => void }) {
+function LobbyView({ onBack, navigate }: { onBack: () => void; navigate: (s: Screen) => void }) {
   const lobby = useOnlineStore((s) => s.lobby);
   const user = useOnlineStore((s) => s.user);
   const online = useOnlineStore((s) => s.online);
@@ -194,6 +201,8 @@ function LobbyView({ onBack }: { onBack: () => void }) {
   const removeFriend = useOnlineStore((s) => s.removeFriend);
   const logout = useOnlineStore((s) => s.logout);
   const balance = useWalletStore((s) => s.balance);
+  const beans = useBeansStore((s) => s.beans);
+  const canEnter = useBeansStore((s) => s.canEnterMatch());
   const [creating, setCreating] = useState(false);
   const [joinTarget, setJoinTarget] = useState<LobbyTable | null>(null);
   const [editName, setEditName] = useState(false);
@@ -243,6 +252,27 @@ function LobbyView({ onBack }: { onBack: () => void }) {
         </div>
       </button>
 
+      {/* стоимость входа / баланс зёрен / возможная награда */}
+      <div className="mb-4 grid grid-cols-3 gap-2.5">
+        <EntryStat label="Вход в матч" value={`${MATCH_ENTRY_COST}`} hint="зёрен" tone="amber" />
+        <EntryStat label="Ваш баланс" value={`${beans}`} hint="зёрен" tone={canEnter ? 'cream' : 'wine'} />
+        <EntryStat label="Награда" value={`до ${DOFFA_REWARD_PER_WIN_DISPLAY}`} hint="DOFFA" tone="forest" />
+      </div>
+      {!canEnter && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 rounded-2xl border border-wine-600/25 bg-wine-600/5 px-4 py-3"
+        >
+          <p className="mb-2 text-xs text-wine-400/80">
+            Недостаточно зёрен для входа в матч.
+          </p>
+          <PremiumButton full variant="gold" onClick={() => navigate('beans')}>
+            Накопить зёрна
+          </PremiumButton>
+        </motion.div>
+      )}
+
       <div className="flex-1 space-y-2.5 overflow-y-auto no-scrollbar pb-2">
         <SectionLabel>Открытые столы</SectionLabel>
         {lobby.length === 0 && (
@@ -259,11 +289,11 @@ function LobbyView({ onBack }: { onBack: () => void }) {
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             transition={{ delay: Math.min(i * 0.06, 0.5), ease: [0.22, 1, 0.36, 1] }}
             onClick={() => {
-              if (tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers) return;
+              if (tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers || !canEnter) return;
               if (tbl.hasPassword) setJoinTarget(tbl);
               else joinTable(tbl.id);
             }}
-            disabled={tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers}
+            disabled={tbl.status !== 'waiting' || tbl.players >= tbl.maxPlayers || !canEnter}
             className="flex w-full items-center justify-between rounded-2xl glass px-4 py-3.5 text-left transition-colors hover:bg-white/[0.05] disabled:opacity-45"
           >
             <span className="flex min-w-0 flex-col">
@@ -312,7 +342,7 @@ function LobbyView({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="pt-4">
-        <PremiumButton full onClick={() => setCreating(true)}>
+        <PremiumButton full onClick={() => setCreating(true)} disabled={!canEnter}>
           Создать стол
         </PremiumButton>
       </div>
@@ -329,6 +359,34 @@ function LobbyView({ onBack }: { onBack: () => void }) {
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p className="px-1 pt-3 text-[11px] uppercase tracking-[0.25em] text-white/35">{children}</p>
+  );
+}
+
+function EntryStat({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone: 'amber' | 'cream' | 'forest' | 'wine';
+}) {
+  const color =
+    tone === 'amber'
+      ? 'text-gold-300'
+      : tone === 'forest'
+        ? 'text-emerald-300'
+        : tone === 'wine'
+          ? 'text-wine-400'
+          : 'text-[#f3efe6]';
+  return (
+    <div className="glass rounded-2xl px-3 py-3 text-center">
+      <div className="text-[10px] uppercase tracking-wide text-white/40">{label}</div>
+      <div className={`mt-0.5 font-display text-lg ${color}`}>{value}</div>
+      <div className="text-[10px] text-white/35">{hint}</div>
+    </div>
   );
 }
 
@@ -421,57 +479,61 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        {/* Ставка SOL */}
-        <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-          <span className="flex items-center gap-2 text-sm text-white/80">
-            <SolMark />
-            Ставка SOL
-          </span>
-          <button
-            onClick={() => setUseBet((v) => !v)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#e0a43b]/70' : 'bg-white/15'}`}
-          >
-            <motion.span
-              animate={{ x: useBet ? 22 : 2 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-              className="absolute top-1 h-4 w-4 rounded-full bg-white"
-            />
-          </button>
-        </label>
+        {/* Ставка SOL — legacy-механика за флагом, см. docs/SOL_BETTING_LEGACY.md */}
+        {SOL_BETTING_ENABLED && (
+          <>
+            <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+              <span className="flex items-center gap-2 text-sm text-white/80">
+                <SolMark />
+                Ставка SOL
+              </span>
+              <button
+                onClick={() => setUseBet((v) => !v)}
+                className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#e0a43b]/70' : 'bg-white/15'}`}
+              >
+                <motion.span
+                  animate={{ x: useBet ? 22 : 2 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                  className="absolute top-1 h-4 w-4 rounded-full bg-white"
+                />
+              </button>
+            </label>
 
-        <AnimatePresence>
-          {useBet && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <span className="mb-1.5 block text-[11px] uppercase tracking-widest text-white/40">Размер ставки (SOL)</span>
-              <div className="flex gap-2">
-                {SOL_PRESETS.map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setSolAmount(v)}
-                    className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium transition-colors ${
-                      solAmount === v
-                        ? 'border-[#e0a43b]/50 bg-[#e0a43b]/10 text-[#f2d9a0]'
-                        : 'border-white/[0.08] bg-white/[0.03] text-white/55'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-[11px] text-white/30">
-                Банк: {(solAmount * maxPlayers).toFixed(3)} SOL · победителю −5% комиссии
-              </p>
-              <p className="mt-1 text-[11px] text-white/35">
-                💡 Ставка работает только если все {maxPlayers} места заняты живыми игроками
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <AnimatePresence>
+              {useBet && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <span className="mb-1.5 block text-[11px] uppercase tracking-widest text-white/40">Размер ставки (SOL)</span>
+                  <div className="flex gap-2">
+                    {SOL_PRESETS.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setSolAmount(v)}
+                        className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium transition-colors ${
+                          solAmount === v
+                            ? 'border-[#e0a43b]/50 bg-[#e0a43b]/10 text-[#f2d9a0]'
+                            : 'border-white/[0.08] bg-white/[0.03] text-white/55'
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/30">
+                    Банк: {(solAmount * maxPlayers).toFixed(3)} SOL · победителю −5% комиссии
+                  </p>
+                  <p className="mt-1 text-[11px] text-white/35">
+                    💡 Ставка работает только если все {maxPlayers} места заняты живыми игроками
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
 
         <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
           <span className="text-sm text-white/80">Закрыть паролем</span>

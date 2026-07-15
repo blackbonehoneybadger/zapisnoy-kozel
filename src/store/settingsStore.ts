@@ -1,9 +1,9 @@
 // Настройки игры с сохранением в localStorage.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { GameSettings } from '../game/types';
-import { setSoundEnabled } from '../game/sound';
-import { setHapticsEnabled } from '../game/haptics';
+import type { GameSettings } from '../games/crazy8/engine/types';
+import { setSoundEnabled } from '../lib/sound';
+import { setHapticsEnabled } from '../lib/haptics';
 
 export const DEFAULT_SETTINGS: GameSettings = {
   scoreLimit: 101,

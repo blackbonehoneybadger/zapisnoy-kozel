@@ -1,4 +1,4 @@
-# Деплой «Записной Козёл»
+# Деплой DOFFA Games
 
 Приложение состоит из двух частей:
 
@@ -12,9 +12,12 @@
 
 ### 1.1. Создать сервис
 1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Выбрать `blackbonehoneybadger/zapisnoy-kozel` (игра DOFFA Crazy 8)
+2. Выбрать репозиторий проекта DOFFA Games (текущее имя репозитория —
+   `blackbonehoneybadger/zapisnoy-kozel`; готовится переименование в
+   `doffa-games`, см. `docs/REPOSITORY_RENAME.md`)
 3. Railway найдёт `railway.toml` и соберёт образ из `server/Dockerfile`
-   (контекст сборки — корень репозитория, серверу нужен общий движок `src/game`).
+   (контекст сборки — корень репозитория, серверу нужен движок Crazy 8 из
+   `src/games/crazy8/engine`).
 
 ### 1.2. Переменные окружения (Variables)
 
@@ -59,7 +62,13 @@ Railway → **Settings** → **Networking** → **Generate Domain**.
 
 После задания переменных — **Redeploy**, чтобы сборка их подхватила.
 
-### 2.2. Архитектура платежей
+> ⚠️ Ставки SOL, описанные ниже, — legacy-механика, выключенная по
+> умолчанию (`SOL_BETTING_ENABLED=false` на сервере,
+> `VITE_SOL_BETTING_ENABLED=false` на клиенте). Основной путь платформы —
+> зёрна → вход в матч → DOFFA-награда за победу, без ставок реальными
+> деньгами. См. `docs/SOL_BETTING_LEGACY.md`.
+
+### 2.2. Архитектура платежей (только если SOL_BETTING_ENABLED=true)
 
 ```
 Игроки ──ставки──▶ [Горячий кошелёк сервера]   (SOLANA_PRIVATE_KEY на Railway)

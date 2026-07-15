@@ -7,8 +7,8 @@ export interface UserRepository {
   get(id: string): Promise<DoffaUser | undefined>;
   getByWallet(wallet: string): Promise<DoffaUser | undefined>;
   upsert(user: DoffaUser): Promise<DoffaUser>;
-  /** Атомарно изменить баланс Cups (может быть отрицательным — списание). */
-  adjustCups(id: string, delta: number): Promise<DoffaUser | undefined>;
+  /** Атомарно изменить баланс зёрен (может быть отрицательным — списание). */
+  adjustBeans(id: string, delta: number): Promise<DoffaUser | undefined>;
 }
 
 export interface MatchRepository {

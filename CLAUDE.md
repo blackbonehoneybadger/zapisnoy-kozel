@@ -1,4 +1,4 @@
-# Project: Записной Козёл
+# Project: DOFFA Games (основной режим — DOFFA Bean Duel; Crazy 8 сохранён как скрытый режим, см. docs/CRAZY8_ARCHIVE.md)
 
 This project must always prioritize premium mobile UI quality.
 

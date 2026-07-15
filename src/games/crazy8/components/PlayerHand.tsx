@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Card as CardType } from '../game/types';
+import type { Card as CardType } from '../engine/types';
 import { Card } from './Card';
 
 interface Props {

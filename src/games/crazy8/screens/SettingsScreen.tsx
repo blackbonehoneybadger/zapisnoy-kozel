@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { useSettingsStore } from '../store/settingsStore';
+import { useSettingsStore } from '../../../store/settingsStore';
 import { useStatsStore } from '../store/statsStore';
-import type { Difficulty } from '../game/types';
+import type { Difficulty } from '../engine/types';
 
 interface Props {
   onBack: () => void;

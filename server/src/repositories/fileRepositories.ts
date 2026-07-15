@@ -82,10 +82,10 @@ class FileUserRepository implements UserRepository {
   async upsert(user: DoffaUser) {
     return this.c.upsert(user);
   }
-  async adjustCups(id: string, delta: number) {
+  async adjustBeans(id: string, delta: number) {
     const user = this.c.find(id);
     if (!user) return undefined;
-    user.cupsBalance = Math.max(0, user.cupsBalance + delta);
+    user.beansBalance = Math.max(0, user.beansBalance + delta);
     return this.c.upsert(user);
   }
 }

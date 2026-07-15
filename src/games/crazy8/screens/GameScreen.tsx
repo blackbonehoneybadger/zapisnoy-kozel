@@ -1,103 +1,56 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Card as CardType, GameState, Suit } from '../game/types';
-import { canPlayCard, hasPlayableCard } from '../game/rules';
-import { SUITS, SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../game/deck';
-import { getTakeLabel } from '../game/labels';
+import type { Card as CardType, GameState, Suit } from '../engine/types';
+import { canPlayCard, hasPlayableCard } from '../engine/rules';
+import { SUITS, SUIT_IS_RED, SUIT_LABEL, SUIT_SYMBOL } from '../engine/deck';
+import { getTakeLabel } from '../engine/labels';
 import { GameTable } from '../components/GameTable';
 import { PlayerHand } from '../components/PlayerHand';
 import { ScoreBoard } from '../components/ScoreBoard';
-import { PremiumButton } from '../components/PremiumButton';
-import { RewardOverlay } from '../components/RewardOverlay';
-import { DoffaEmblem } from '../components/DoffaEmblem';
-import {
-  drawCardSound,
-  loseSound,
-  penaltySound,
-  playCardSound,
-  specialSound,
-  winSound,
-} from '../game/sound';
-import { haptics } from '../game/haptics';
-import { useOnlineStore } from '../net/onlineStore';
+import { PremiumButton } from '../../../components/PremiumButton';
+import { RewardOverlay } from '../../../components/RewardOverlay';
+import { DoffaEmblem } from '../../../components/DoffaEmblem';
+import { useGameStore } from '../store/gameStore';
+import { useBeansStore } from '../../../store/beansStore';
 
-function playEvent(state: GameState): void {
-  const evt = state.lastEvent;
-  if (!evt) return;
-  switch (evt.type) {
-    case 'play':
-      playCardSound();
-      haptics.play();
-      break;
-    case 'queen':
-    case 'six':
-    case 'seven':
-    case 'king':
-    case 'ace':
-    case 'nine':
-      specialSound();
-      haptics.special();
-      break;
-    case 'draw':
-      if ((evt.amount ?? 1) > 1) {
-        penaltySound();
-        haptics.penalty();
-      } else {
-        drawCardSound();
-        haptics.draw();
-      }
-      break;
-    case 'busted':
-      loseSound();
-      haptics.lose();
-      break;
-    case 'reset':
-    case 'roundWin':
-      winSound();
-      haptics.win();
-      break;
-  }
+interface Props {
+  onExit: () => void;
 }
 
-export function OnlineGameScreen() {
-  const game = useOnlineStore((s) => s.game);
-  const youSeat = useOnlineStore((s) => s.youSeat);
-  const table = useOnlineStore((s) => s.table);
-  const user = useOnlineStore((s) => s.user);
-  const playCard = useOnlineStore((s) => s.playCard);
-  const take = useOnlineStore((s) => s.take);
-  const nextRound = useOnlineStore((s) => s.nextRound);
-  const startGame = useOnlineStore((s) => s.startGame);
-  const leaveTable = useOnlineStore((s) => s.leaveTable);
+export function GameScreen({ onExit }: Props) {
+  const game = useGameStore((s) => s.game);
+  const playCard = useGameStore((s) => s.playCard);
+  const take = useGameStore((s) => s.take);
+  const nextRound = useGameStore((s) => s.nextRound);
+  const start = useGameStore((s) => s.start);
+  const trainingBeans = useBeansStore((s) => s.lastTrainingBeans);
 
   const [queenCard, setQueenCard] = useState<CardType | null>(null);
   const [showScore, setShowScore] = useState(false);
-  const lastEventTs = useRef(0);
-
-  useEffect(() => {
-    if (game?.lastEvent && game.lastEvent.ts !== lastEventTs.current) {
-      lastEventTs.current = game.lastEvent.ts;
-      playEvent(game);
-    }
-  }, [game?.lastEvent?.ts]);
+  const [confirmExit, setConfirmExit] = useState(false);
 
   if (!game) return null;
 
-  const me = game.players[youSeat];
+  const human = game.players.find((p) => p.id === 'you')!;
   const current = game.players[game.currentPlayerIndex];
-  const yourTurn = game.currentPlayerIndex === youSeat && game.phase === 'playing';
+  const yourTurn = current.id === 'you' && game.phase === 'playing';
   const isPlayable = (card: CardType) => canPlayCard(game, card);
-  const canPlayAny = hasPlayableCard(game, me?.hand ?? []);
+  const canPlayAny = hasPlayableCard(game, human.hand);
   const takeLabel = getTakeLabel(game, canPlayAny);
-  const isHost = table?.hostId === user?.id;
 
   const onPlay = (card: CardType) => {
     if (card.rank === 'Q') setQueenCard(card);
     else playCard(card.id);
   };
+
   const chooseSuit = (suit: Suit) => {
     if (queenCard) playCard(queenCard.id, suit);
     setQueenCard(null);
+  };
+
+  const handleBack = () => {
+    if (game.phase === 'playing') setConfirmExit(true);
+    else onExit();
   };
 
   return (
@@ -105,8 +58,8 @@ export function OnlineGameScreen() {
       {/* верхняя панель */}
       <div className="mb-2 flex items-center justify-between px-1">
         <button
-          onClick={leaveTable}
-          aria-label="Выйти из-за стола"
+          onClick={handleBack}
+          aria-label="Выйти в меню"
           className="glass grid h-10 w-10 place-items-center rounded-xl text-white/70 transition active:scale-95 hover:text-white"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -115,13 +68,11 @@ export function OnlineGameScreen() {
         </button>
         <div className="text-center">
           <div className="font-display text-sm tracking-wide gold-text">Раунд {game.roundNumber}</div>
-          <div className="max-w-[10rem] truncate text-[10px] uppercase tracking-[0.25em] text-white/35">
-            {table?.name ?? 'Онлайн-стол'}
-          </div>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-white/35">DOFFA Crazy 8</div>
         </div>
         <button
           onClick={() => setShowScore(true)}
-          aria-label="Показать счёт"
+          aria-label="Показать счёт и события"
           className="glass grid h-10 w-10 place-items-center rounded-xl text-gold-400 transition active:scale-95 hover:text-gold-300"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -130,7 +81,7 @@ export function OnlineGameScreen() {
         </button>
       </div>
 
-      <GameTable state={game} youSeat={youSeat} />
+      <GameTable state={game} />
 
       {/* статус хода */}
       <div className="relative mt-2 flex min-h-[2.25rem] shrink-0 items-center justify-center px-2">
@@ -143,7 +94,9 @@ export function OnlineGameScreen() {
             className="glass rounded-full px-4 py-1.5 text-center text-sm"
           >
             {yourTurn ? (
-              <span className="text-gold-300">{takeLabel.prompt ?? 'Ваш ход — выберите карту'}</span>
+              <span className="text-gold-300">
+                {takeLabel.prompt ?? 'Ваш ход — выберите карту'}
+              </span>
             ) : (
               <span className="text-white/60">Ходит {current.name}…</span>
             )}
@@ -164,27 +117,83 @@ export function OnlineGameScreen() {
             />
           )}
         </AnimatePresence>
-        <PlayerHand cards={me?.hand ?? []} isPlayable={isPlayable} onPlay={onPlay} yourTurn={yourTurn} />
+        <PlayerHand
+          cards={human.hand}
+          isPlayable={isPlayable}
+          onPlay={onPlay}
+          yourTurn={yourTurn}
+        />
       </div>
 
       {/* действия */}
       <div className="mt-2 flex shrink-0 items-center justify-center gap-3 px-3 pb-1 safe-bottom">
-        <PremiumButton variant="ghost" disabled={!yourTurn} onClick={take} className="min-w-[10rem]">
+        <PremiumButton
+          variant="ghost"
+          disabled={!yourTurn}
+          onClick={take}
+          className="min-w-[10rem]"
+        >
           {takeLabel.button}
         </PremiumButton>
       </div>
 
       {/* выбор масти дамой */}
       <AnimatePresence>
-        {queenCard && <SuitChooser onChoose={chooseSuit} onCancel={() => setQueenCard(null)} />}
+        {queenCard && (
+          <SuitChooser onChoose={chooseSuit} onCancel={() => setQueenCard(null)} />
+        )}
       </AnimatePresence>
 
-      {/* счёт */}
+      {/* таблица счёта (шторка) */}
       <AnimatePresence>
         {showScore && (
           <Sheet onClose={() => setShowScore(false)}>
             <ScoreBoard state={game} />
+            <div className="mt-4 max-h-48 overflow-y-auto no-scrollbar">
+              <h4 className="mb-2 text-xs uppercase tracking-widest text-white/40">События</h4>
+              <div className="space-y-1.5">
+                {game.log.slice(0, 14).map((l) => (
+                  <p key={l.id} className={`text-xs ${logColor(l.kind)}`}>
+                    {l.text}
+                  </p>
+                ))}
+              </div>
+            </div>
           </Sheet>
+        )}
+      </AnimatePresence>
+
+      {/* подтверждение выхода */}
+      <AnimatePresence>
+        {confirmExit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 grid place-items-center bg-black/70 backdrop-blur-sm px-6"
+            onClick={() => setConfirmExit(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-strong w-full max-w-xs rounded-3xl p-6 text-center"
+            >
+              <h3 className="font-display text-xl gold-text">Выйти в меню?</h3>
+              <p className="mb-5 mt-1 text-xs text-white/50">
+                Текущая партия не сохранится.
+              </p>
+              <div className="space-y-3">
+                <PremiumButton full variant="danger" onClick={onExit}>
+                  Выйти
+                </PremiumButton>
+                <PremiumButton full variant="ghost" onClick={() => setConfirmExit(false)}>
+                  Продолжить игру
+                </PremiumButton>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -195,33 +204,26 @@ export function OnlineGameScreen() {
         )}
       </AnimatePresence>
 
-      {/* конец партии — фирменный экран победы и награды */}
+      {/* конец офлайн-партии: тренировочная награда — только зёрна. Настоящий
+          DOFFA-Claim здесь недоступен (даётся лишь за подтверждённую сервером
+          онлайн-победу). Тренировочные зёрна начислены awardTraining в commit. */}
       <AnimatePresence>
-        {game.phase === 'gameOver' && (() => {
-          const won = game.winnerId === me?.id;
-          const bet = table?.betLamports ?? 0;
-          // Ставка есть → реальная награда DOFFA из банка партии; иначе — дружеская игра на Cups.
-          const potDoffa = Math.round(((bet * game.players.length) / 1e9) * 1000);
-          const unit: 'Cups' | 'DOFFA' = bet > 0 ? 'DOFFA' : 'Cups';
-          const reward = bet > 0 ? potDoffa : 100 + (game.roundNumber - 1) * 20;
-          return (
-            <RewardOverlay
-              won={won}
-              unit={unit}
-              reward={won ? reward : undefined}
-              loserNote={
-                won
-                  ? undefined
-                  : `Победитель — ${game.players.find((p) => p.id === game.winnerId)?.name ?? '—'}.`
-              }
-              showAgain={isHost}
-              onAgain={startGame}
-              onMenu={leaveTable}
-              againLabel="Сыграть ещё"
-              menuLabel="Выйти в лобби"
-            />
-          );
-        })()}
+        {game.phase === 'gameOver' && (
+          <RewardOverlay
+            won={game.winnerId === 'you'}
+            unit="Зёрна"
+            reward={game.winnerId === 'you' ? trainingBeans : undefined}
+            loserNote={
+              game.winnerId === 'you'
+                ? 'Тренировка против ботов — награда зёрнами.'
+                : `Победитель — ${game.players.find((p) => p.id === game.winnerId)?.name ?? '—'}.`
+            }
+            onAgain={start}
+            onMenu={onExit}
+            againLabel="Играть ещё"
+            menuLabel="В меню"
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -291,6 +293,26 @@ function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () =
   );
 }
 
+function CountUp({ from, to, duration = 0.8, delay = 0 }: { from: number; to: number; duration?: number; delay?: number }) {
+  const [display, setDisplay] = useState(from);
+  useEffect(() => {
+    let start: number;
+    let raf: number;
+    const startTime = performance.now() + delay * 1000;
+    const tick = (now: number) => {
+      if (now < startTime) { raf = requestAnimationFrame(tick); return; }
+      if (!start) start = now;
+      const progress = Math.min((now - start) / (duration * 1000), 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [from, to, duration, delay]);
+  return <>{display}</>;
+}
+
 function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void }) {
   const results = state.roundResults!;
   return (
@@ -306,12 +328,22 @@ function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void 
         transition={{ type: 'spring', stiffness: 280, damping: 24 }}
         className="glass-strong w-full max-w-sm rounded-3xl p-6"
       >
+        <p className="mb-1 text-center text-[11px] uppercase tracking-[0.3em] text-gold-500/60">
+          Раунд {state.roundNumber}
+        </p>
         <h2 className="mb-4 text-center font-display text-2xl gold-text">Раунд завершён</h2>
         <div className="glass rounded-2xl p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-display text-lg gold-text">Счёт</h3>
+            <span className="text-[11px] text-white/50">Лимит {state.settings.scoreLimit}</span>
+          </div>
           <div className="space-y-1.5">
-            {results.map((r) => (
-              <div
+            {results.map((r, i) => (
+              <motion.div
                 key={r.playerId}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + i * 0.12 }}
                 className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
                   r.busted ? 'bg-wine-700/20' : 'bg-white/[0.03]'
                 }`}
@@ -320,11 +352,18 @@ function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void 
                   {r.name}
                 </span>
                 <span className="flex items-center gap-2">
-                  {r.busted && <span className="text-[11px] text-wine-400">улетел</span>}
+                  {r.gained > 0 && (
+                    <span className="text-[11px] text-wine-400">
+                      +<CountUp from={0} to={r.gained} delay={0.25 + i * 0.12} />
+                    </span>
+                  )}
                   {r.reset && <span className="text-[11px] text-emerald-300">обнулён</span>}
-                  <span className="font-display text-lg text-gold-300">{r.total}</span>
+                  {r.busted && <span className="text-[11px] text-wine-400">улетел</span>}
+                  <span className="font-display text-lg text-gold-300">
+                    <CountUp from={r.total - r.gained} to={r.total} delay={0.4 + i * 0.12} />
+                  </span>
                 </span>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -338,3 +377,10 @@ function RoundOverlay({ state, onNext }: { state: GameState; onNext: () => void 
   );
 }
 
+
+function logColor(kind: string): string {
+  if (kind === 'special') return 'text-gold-300/90';
+  if (kind === 'penalty') return 'text-wine-400/90';
+  if (kind === 'win') return 'text-emerald-300/90';
+  return 'text-white/55';
+}
