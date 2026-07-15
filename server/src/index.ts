@@ -20,6 +20,7 @@ import {
 } from './accounts';
 import * as lobby from './lobby';
 import { redactFor } from './match';
+import { initDuel, queueForDuel, cancelQueue as cancelDuelQueue, submitInput as submitDuelInput, leaveMatch as leaveDuelMatch } from './duel';
 import {
   SERVER_WALLET,
   PLATFORM_FEE,
@@ -78,11 +79,22 @@ interface Conn {
   inLobby: boolean;
   /** Метки времени последних сообщений — для ограничения частоты (anti-flood). */
   msgTimes: number[];
+  /** Отдельные метки для duel:input — щедрее общего лимита (см. DUEL_RATE_*). */
+  duelInputTimes: number[];
 }
 
 // Anti-flood: не более RATE_MAX сообщений за RATE_WINDOW мс с одного сокета.
+// Рассчитан на обычные действия лобби/стола — НЕ подходит для потока ввода
+// авторитетного PvP-матча Bean Duel (см. DUEL_RATE_* ниже, отдельный лимит).
 const RATE_WINDOW = 10_000;
 const RATE_MAX = 60;
+// duel:input шлётся клиентом почти каждый кадр (позиция пальца/мыши) — на
+// порядок чаще обычных сообщений. Отдельный, более щедрый лимит; превышение
+// просто отбрасывает лишний кадр ввода, а не рвёт соединение (в отличие от
+// общего лимита) — короткий сетевой всплеск у честного игрока не должен
+// обрывать матч.
+const DUEL_RATE_WINDOW = 1_000;
+const DUEL_RATE_MAX = 40; // ~40 Гц с запасом над клиентским requestAnimationFrame
 // Защита от гигантских payload (DoS памяти): максимум 16 КБ на сообщение.
 const MAX_MSG_BYTES = 16 * 1024;
 
@@ -92,6 +104,15 @@ function allowMessage(conn: Conn): boolean {
   conn.msgTimes = conn.msgTimes.filter((t) => now - t < RATE_WINDOW);
   if (conn.msgTimes.length >= RATE_MAX) return false;
   conn.msgTimes.push(now);
+  return true;
+}
+
+/** Отдельный, более щедрый лимит частоты для duel:input (см. DUEL_RATE_*). */
+function allowDuelInput(conn: Conn): boolean {
+  const now = Date.now();
+  conn.duelInputTimes = conn.duelInputTimes.filter((t) => now - t < DUEL_RATE_WINDOW);
+  if (conn.duelInputTimes.length >= DUEL_RATE_MAX) return false;
+  conn.duelInputTimes.push(now);
   return true;
 }
 
@@ -108,6 +129,10 @@ function send(ws: WebSocket, msg: ServerMessage): void {
 function sendToUser(userId: string, msg: ServerMessage): void {
   byUser.get(userId)?.forEach((c) => send(c.ws, msg));
 }
+
+// DOFFA Bean Duel — авторитетный PvP-матч шлёт сообщения игрокам напрямую
+// (тиковый цикл, не привязан к синхронной обработке входящего сообщения).
+initDuel(sendToUser);
 
 function beansStateMsg(s: BeansState): ServerMessage {
   return { t: 'beans:state', beans: s.beans, energy: s.energy };
@@ -662,6 +687,22 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       });
       break;
     }
+
+    case 'duel:queue':
+      queueForDuel(user.id);
+      break;
+
+    case 'duel:cancelQueue':
+      cancelDuelQueue(user.id);
+      break;
+
+    case 'duel:input':
+      submitDuelInput(user.id, msg.target, msg.dashPressed, msg.throwPressed);
+      break;
+
+    case 'duel:leave':
+      leaveDuelMatch(user.id);
+      break;
   }
 }
 
@@ -679,7 +720,7 @@ const http = createServer((req, res) => {
 const wss = new WebSocketServer({ server: http });
 
 wss.on('connection', (ws) => {
-  const conn: Conn = { ws, inLobby: false, msgTimes: [] };
+  const conn: Conn = { ws, inLobby: false, msgTimes: [], duelInputTimes: [] };
   conns.set(ws, conn);
 
   ws.on('message', (raw) => {
@@ -688,17 +729,21 @@ wss.on('connection', (ws) => {
     if (size > MAX_MSG_BYTES) {
       return send(ws, { t: 'error', message: 'Сообщение слишком большое' });
     }
-    // Anti-flood: при превышении частоты — закрываем сокет.
-    if (!allowMessage(conn)) {
-      send(ws, { t: 'error', message: 'Слишком много запросов. Подождите.' });
-      try { ws.close(1008, 'rate limit'); } catch { /* уже закрыт */ }
-      return;
-    }
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw.toString());
     } catch {
       return send(ws, { t: 'error', message: 'Некорректное сообщение' });
+    }
+    // duel:input — отдельный, более щедрый лимит частоты (см. DUEL_RATE_*):
+    // превышение просто отбрасывает лишний кадр ввода, не рвёт соединение.
+    if (msg.t === 'duel:input') {
+      if (!allowDuelInput(conn)) return;
+    } else if (!allowMessage(conn)) {
+      // Anti-flood для остальных сообщений: при превышении частоты — закрываем сокет.
+      send(ws, { t: 'error', message: 'Слишком много запросов. Подождите.' });
+      try { ws.close(1008, 'rate limit'); } catch { /* уже закрыт */ }
+      return;
     }
     handle(conn, msg).catch((e) => {
       console.error('Ошибка обработки:', e);
@@ -712,6 +757,7 @@ wss.on('connection', (ws) => {
       set?.delete(conn);
       if (set && set.size === 0) {
         byUser.delete(conn.userId);
+        leaveDuelMatch(conn.userId); // техническое поражение в активном Bean Duel, если был
         const wasPlaying = lobby.tableOf(conn.userId)?.status === 'playing';
         const table = lobby.leaveTable(conn.userId);
         void settleEntryOnLeave(conn.userId, wasPlaying);

@@ -1,5 +1,6 @@
 // Протокол WebSocket (зеркало server/src/protocol.ts).
 import type { GameState, MoveAction } from '../../src/games/crazy8/engine/types';
+import type { DuelState, FighterId, Vec2 } from '../../src/games/bean-duel/engine';
 
 export interface PublicUser {
   id: string; // адрес кошелька Solana
@@ -73,7 +74,14 @@ export type ClientMessage =
   | { t: 'beans:awardTraining'; won: boolean }
   | { t: 'reward:list' }
   | { t: 'reward:claim'; rewardId: string; walletAddress: string; idempotencyKey: string }
-  | { t: 'reward:history' };
+  | { t: 'reward:history' }
+  // DOFFA Bean Duel — авторитетный PvP-матч (см. server/src/duel.ts). Клиент
+  // шлёт только СВОЙ ввод каждый кадр/тик; движок и решение о победителе —
+  // исключительно на сервере (см. duel:state/duel:result ниже).
+  | { t: 'duel:queue' }
+  | { t: 'duel:cancelQueue' }
+  | { t: 'duel:input'; target: Vec2 | null; dashPressed: boolean; throwPressed: boolean }
+  | { t: 'duel:leave' };
 
 export type ServerMessage =
   | { t: 'auth:challenge'; nonce: string }
@@ -100,7 +108,15 @@ export type ServerMessage =
   | { t: 'reward:match'; matchId: string; amount: number }
   | { t: 'reward:list'; rewards: RewardSummary[] }
   | { t: 'reward:claimResult'; ok: boolean; status: RewardStatusValue; message?: string; txSignature?: string; testMode: boolean }
-  | { t: 'reward:history'; items: RewardHistoryItemSummary[] };
+  | { t: 'reward:history'; items: RewardHistoryItemSummary[] }
+  // DOFFA Bean Duel — авторитетный PvP.
+  | { t: 'duel:queued' }
+  | { t: 'duel:matchFound'; matchId: string; you: FighterId; opponentName: string }
+  // Полное состояние движка каждый тик — источник истины для рендера обоих
+  // клиентов; `you` говорит клиенту, какой боец в state — он сам.
+  | { t: 'duel:state'; matchId: string; you: FighterId; state: DuelState }
+  | { t: 'duel:result'; matchId: string; winner: FighterId | 'draw'; youWon: boolean }
+  | { t: 'duel:cancelled' };
 
 /** Статус жизненного цикла награды (зеркало server/src/domain/types.ts RewardStatus). */
 export type RewardStatusValue = 'none' | 'available' | 'processing' | 'sent' | 'failed' | 'review';

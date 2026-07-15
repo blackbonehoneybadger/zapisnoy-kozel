@@ -148,8 +148,46 @@ export interface DuelInput {
   throwPressed: boolean;
 }
 
-/** Один шаг симуляции. Чистая функция: state + input + dt → новый state. */
+/** Ввод ОБОИХ бойцов за этот кадр — общая форма для PvP и локального режима. */
+export interface DuelInputs {
+  player: DuelInput;
+  bot: DuelInput;
+}
+
+/**
+ * Один шаг симуляции для боя, где ОБА бойца управляются реальным вводом
+ * (без встроенного ИИ) — используется сервером для авторитетного PvP-матча
+ * Bean Duel (см. server/src/duel.ts): оба клиента шлют свой ввод, сервер
+ * гоняет ровно эту функцию по тику и рассылает авторитетный результат.
+ * Чистая функция: state + inputs + dt → новый state (детерминированно).
+ */
+export function stepDuelPvP(state: DuelState, inputs: DuelInputs, dtMs: number): DuelState {
+  return resolveStep(state, inputs, dtMs);
+}
+
+/**
+ * Один шаг локальной дуэли игрок vs бот: ввод игрока извне, ввод бота —
+ * встроенный простой ИИ, вычисленный из текущего состояния. Используется
+ * офлайн-прототипом (BeanDuelScreen). Делегирует всю физику/бой в
+ * resolveStep — тот же код, что и на сервере в PvP-режиме.
+ */
 export function stepDuel(state: DuelState, input: DuelInput, dtMs: number): DuelState {
+  // Ввод бота: простой ИИ — преследует игрока, иногда рвётся в его сторону,
+  // а на средней дистанции кидает зерно вместо сближения.
+  const botTarget = state.fighters.player.pos;
+  const botToPlayer = { x: botTarget.x - state.fighters.bot.pos.x, y: botTarget.y - state.fighters.bot.pos.y };
+  const botDist = vecLen(botToPlayer);
+  const botWantsDash = state.fighters.bot.dashCooldownMs <= 0 && botDist < 130 && botDist > 10;
+  const botWantsThrow = state.fighters.bot.throwCooldownMs <= 0 && botDist >= 70 && botDist < 260;
+  const botInput: DuelInput = {
+    target: botDist > 4 ? botTarget : null,
+    dashPressed: botWantsDash,
+    throwPressed: botWantsThrow,
+  };
+  return resolveStep(state, { player: input, bot: botInput }, dtMs);
+}
+
+function resolveStep(state: DuelState, inputs: DuelInputs, dtMs: number): DuelState {
   if (state.phase === 'countdown') {
     const countdown = state.countdown - dtMs / 1000;
     if (countdown <= 0) {
@@ -164,16 +202,8 @@ export function stepDuel(state: DuelState, input: DuelInput, dtMs: number): Duel
     bot: { ...state.fighters.bot },
   };
 
-  // Ввод бота: простой ИИ — преследует игрока, иногда рвётся в его сторону,
-  // а на средней дистанции кидает зерно вместо сближения.
-  const botTarget = state.fighters.player.pos;
-  const botToPlayer = { x: botTarget.x - fighters.bot.pos.x, y: botTarget.y - fighters.bot.pos.y };
-  const botDist = vecLen(botToPlayer);
-  const botWantsDash = fighters.bot.dashCooldownMs <= 0 && botDist < 130 && botDist > 10;
-  const botWantsThrow = fighters.bot.throwCooldownMs <= 0 && botDist >= 70 && botDist < 260;
-
-  updateFighter(fighters.player, input.target, input.dashPressed, dtMs);
-  updateFighter(fighters.bot, botDist > 4 ? botTarget : null, botWantsDash, dtMs);
+  updateFighter(fighters.player, inputs.player.target, inputs.player.dashPressed, dtMs);
+  updateFighter(fighters.bot, inputs.bot.target, inputs.bot.dashPressed, dtMs);
 
   // «Бросок зерна» — спавн снаряда по направлению взгляда бойца (facing уже
   // обновлён на этом кадре внутри updateFighter выше).
@@ -189,8 +219,8 @@ export function stepDuel(state: DuelState, input: DuelInput, dtMs: number): Duel
       vel: { x: f.facing.x * THROW_SPEED, y: f.facing.y * THROW_SPEED },
     });
   };
-  trySpawnThrow(fighters.player, input.throwPressed, 'player');
-  trySpawnThrow(fighters.bot, botWantsThrow, 'bot');
+  trySpawnThrow(fighters.player, inputs.player.throwPressed, 'player');
+  trySpawnThrow(fighters.bot, inputs.bot.throwPressed, 'bot');
 
   let lastHit: DuelState['lastHit'] = null;
 
