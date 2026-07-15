@@ -6,6 +6,7 @@ import { useStatsStore } from '../store/statsStore';
 import { useBeansStore } from '../store/beansStore';
 import { useRewardsStore } from '../store/rewardsStore';
 import { useWalletStore } from '../solana/walletStore';
+import { ENABLE_CRAZY8_CLASSIC } from '../config/features';
 import type { Screen } from '../App';
 
 interface Props {
@@ -77,21 +78,24 @@ export function ProfileScreen({ onBack, navigate }: Props) {
         ))}
       </div>
 
-      {/* сводка статистики */}
-      <div className="mt-4 glass rounded-2xl px-5 py-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Партий сыграно</span>
-          <span className="font-display text-lg text-white/85">{stats.gamesPlayed}</span>
+      {/* сводка статистики Crazy 8 — показываем только в dev-режиме классики,
+          иначе она бессмысленна (режим недоступен игроку). */}
+      {ENABLE_CRAZY8_CLASSIC && (
+        <div className="mt-4 glass rounded-2xl px-5 py-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Партий сыграно</span>
+            <span className="font-display text-lg text-white/85">{stats.gamesPlayed}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-sm">
+            <span className="text-white/60">Побед</span>
+            <span className="font-display text-lg text-emerald-300">{stats.wins}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-sm">
+            <span className="text-white/60">Процент побед</span>
+            <span className="font-display text-lg text-gold-300">{winRate}%</span>
+          </div>
         </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-white/60">Побед</span>
-          <span className="font-display text-lg text-emerald-300">{stats.wins}</span>
-        </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-white/60">Процент побед</span>
-          <span className="font-display text-lg text-gold-300">{winRate}%</span>
-        </div>
-      </div>
+      )}
 
       {/* навигация */}
       <div className="mt-4 space-y-3">
@@ -101,9 +105,11 @@ export function ProfileScreen({ onBack, navigate }: Props) {
         <PremiumButton full variant="ghost" onClick={() => navigate('rewards')}>
           История наград
         </PremiumButton>
-        <PremiumButton full variant="ghost" onClick={() => navigate('stats')}>
-          Полная статистика
-        </PremiumButton>
+        {ENABLE_CRAZY8_CLASSIC && (
+          <PremiumButton full variant="ghost" onClick={() => navigate('stats')}>
+            Полная статистика (Crazy 8)
+          </PremiumButton>
+        )}
       </div>
 
       <div className="mt-6 flex items-center justify-center gap-2 pb-6 text-[11px] text-white/25">

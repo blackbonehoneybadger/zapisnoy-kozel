@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { HomeScreen } from './screens/HomeScreen';
 import { GameScreen } from './screens/GameScreen';
@@ -6,15 +6,18 @@ import { RulesScreen } from './screens/RulesScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { OnlineScreen } from './screens/OnlineScreen';
+import { BeanDuelScreen } from './games/bean-duel/BeanDuelScreen';
 import { ClaimScreen } from './screens/ClaimScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { BeansScreen } from './screens/BeansScreen';
 import { BottomNav } from './components/BottomNav';
 import { useGameStore } from './store/gameStore';
+import { ENABLE_CRAZY8_CLASSIC } from './config/features';
 
 export type Screen =
   | 'home'
+  | 'bean-duel'
   | 'game'
   | 'rules'
   | 'stats'
@@ -28,6 +31,14 @@ export type Screen =
 /** Экраны-хабы, на которых показывается нижнее меню. */
 const HUB_SCREENS: Screen[] = ['home', 'beans', 'rewards', 'profile'];
 
+/**
+ * Старый флагманский режим DOFFA Crazy 8 — офлайн-боты, правила, статистика,
+ * настройки и онлайн-лобби. Скрыт в production по умолчанию (см.
+ * ENABLE_CRAZY8_CLASSIC / docs/CRAZY8_ARCHIVE.md). Экраны не удалены — код
+ * полностью сохранён в src/games/crazy8, просто недостижим из UI без флага.
+ */
+const CRAZY8_CLASSIC_SCREENS: Screen[] = ['game', 'rules', 'stats', 'settings', 'online'];
+
 const transition = {
   initial: { opacity: 0, scale: 0.98, y: 12 },
   animate: { opacity: 1, scale: 1, y: 0 },
@@ -38,6 +49,17 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const start = useGameStore((s) => s.start);
   const quit = useGameStore((s) => s.quit);
+
+  // Защита от скрытого режима Crazy 8: даже если состояние экрана каким-то
+  // образом окажется на «классическом» экране при выключенном флаге —
+  // безопасно возвращаем на главный экран DOFFA Games. Нет прямого URL на
+  // экран (SPA без роутера), но это держит инвариант «недостижим» жёстко,
+  // а не только через отсутствие кнопок в UI.
+  useEffect(() => {
+    if (!ENABLE_CRAZY8_CLASSIC && CRAZY8_CLASSIC_SCREENS.includes(screen)) {
+      setScreen('home');
+    }
+  }, [screen]);
 
   const startGame = () => {
     start();
@@ -65,12 +87,19 @@ export default function App() {
             // отступ снизу под фиксированное меню на хабовых экранах
             className={showNav ? 'pb-24' : ''}
           >
-            {screen === 'home' && <HomeScreen navigate={setScreen} onPlay={startGame} />}
-            {screen === 'game' && <GameScreen onExit={exitGame} />}
-            {screen === 'rules' && <RulesScreen onBack={() => setScreen('home')} />}
-            {screen === 'stats' && <StatsScreen onBack={() => setScreen('home')} />}
-            {screen === 'settings' && <SettingsScreen onBack={() => setScreen('home')} />}
-            {screen === 'online' && (
+            {screen === 'home' && (
+              <HomeScreen
+                navigate={setScreen}
+                onPlay={() => setScreen('bean-duel')}
+                onPlayClassic={ENABLE_CRAZY8_CLASSIC ? startGame : undefined}
+              />
+            )}
+            {screen === 'bean-duel' && <BeanDuelScreen onExit={() => setScreen('home')} />}
+            {ENABLE_CRAZY8_CLASSIC && screen === 'game' && <GameScreen onExit={exitGame} />}
+            {ENABLE_CRAZY8_CLASSIC && screen === 'rules' && <RulesScreen onBack={() => setScreen('home')} />}
+            {ENABLE_CRAZY8_CLASSIC && screen === 'stats' && <StatsScreen onBack={() => setScreen('home')} />}
+            {ENABLE_CRAZY8_CLASSIC && screen === 'settings' && <SettingsScreen onBack={() => setScreen('home')} />}
+            {ENABLE_CRAZY8_CLASSIC && screen === 'online' && (
               <OnlineScreen onBack={() => setScreen('home')} navigate={setScreen} />
             )}
             {screen === 'claim' && <ClaimScreen onBack={() => setScreen('home')} />}
@@ -79,7 +108,7 @@ export default function App() {
               <ProfileScreen onBack={() => setScreen('home')} navigate={setScreen} />
             )}
             {screen === 'beans' && (
-              <BeansScreen navigate={setScreen} onPlay={() => setScreen('online')} />
+              <BeansScreen navigate={setScreen} onPlay={() => setScreen('bean-duel')} />
             )}
           </motion.div>
         </AnimatePresence>
