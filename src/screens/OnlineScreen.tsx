@@ -7,6 +7,7 @@ import { WalletButton } from '../components/WalletButton';
 import { OnlineGameScreen } from './OnlineGameScreen';
 import { useOnlineStore } from '../net/onlineStore';
 import { useWalletStore } from '../solana/walletStore';
+import { SOL_BETTING_ENABLED } from '../config/features';
 import type { LobbyTable, OnlineUser } from '../net/protocol';
 
 interface Props {
@@ -137,10 +138,10 @@ function WalletConnectView({ onBack }: { onBack: () => void }) {
           <DoffaEmblem size={62} />
         </motion.div>
 
-        <h2 className="font-display text-3xl gold-text">Играй на SOL</h2>
+        <h2 className="font-display text-3xl gold-text">Играй онлайн</h2>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-white/55">
-          Децентрализованная площадка. Подключи кошелёк Solana — без регистраций и паролей.
-          Ставка в SOL, банк забирает победитель.
+          Подключи кошелёк Solana — без регистраций и паролей. Вход в матч —
+          за зёрна, победа приносит DOFFA на твой кошелёк.
         </p>
 
         <div className="mt-8 w-full max-w-xs">
@@ -421,57 +422,61 @@ function CreateTableModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        {/* Ставка SOL */}
-        <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-          <span className="flex items-center gap-2 text-sm text-white/80">
-            <SolMark />
-            Ставка SOL
-          </span>
-          <button
-            onClick={() => setUseBet((v) => !v)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#e0a43b]/70' : 'bg-white/15'}`}
-          >
-            <motion.span
-              animate={{ x: useBet ? 22 : 2 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-              className="absolute top-1 h-4 w-4 rounded-full bg-white"
-            />
-          </button>
-        </label>
+        {/* Ставка SOL — legacy-механика за флагом, см. docs/SOL_BETTING_LEGACY.md */}
+        {SOL_BETTING_ENABLED && (
+          <>
+            <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+              <span className="flex items-center gap-2 text-sm text-white/80">
+                <SolMark />
+                Ставка SOL
+              </span>
+              <button
+                onClick={() => setUseBet((v) => !v)}
+                className={`relative h-6 w-11 rounded-full transition-colors ${useBet ? 'bg-[#e0a43b]/70' : 'bg-white/15'}`}
+              >
+                <motion.span
+                  animate={{ x: useBet ? 22 : 2 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                  className="absolute top-1 h-4 w-4 rounded-full bg-white"
+                />
+              </button>
+            </label>
 
-        <AnimatePresence>
-          {useBet && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <span className="mb-1.5 block text-[11px] uppercase tracking-widest text-white/40">Размер ставки (SOL)</span>
-              <div className="flex gap-2">
-                {SOL_PRESETS.map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setSolAmount(v)}
-                    className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium transition-colors ${
-                      solAmount === v
-                        ? 'border-[#e0a43b]/50 bg-[#e0a43b]/10 text-[#f2d9a0]'
-                        : 'border-white/[0.08] bg-white/[0.03] text-white/55'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-[11px] text-white/30">
-                Банк: {(solAmount * maxPlayers).toFixed(3)} SOL · победителю −5% комиссии
-              </p>
-              <p className="mt-1 text-[11px] text-white/35">
-                💡 Ставка работает только если все {maxPlayers} места заняты живыми игроками
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <AnimatePresence>
+              {useBet && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <span className="mb-1.5 block text-[11px] uppercase tracking-widest text-white/40">Размер ставки (SOL)</span>
+                  <div className="flex gap-2">
+                    {SOL_PRESETS.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setSolAmount(v)}
+                        className={`flex-1 rounded-2xl border py-2.5 text-xs font-medium transition-colors ${
+                          solAmount === v
+                            ? 'border-[#e0a43b]/50 bg-[#e0a43b]/10 text-[#f2d9a0]'
+                            : 'border-white/[0.08] bg-white/[0.03] text-white/55'
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/30">
+                    Банк: {(solAmount * maxPlayers).toFixed(3)} SOL · победителю −5% комиссии
+                  </p>
+                  <p className="mt-1 text-[11px] text-white/35">
+                    💡 Ставка работает только если все {maxPlayers} места заняты живыми игроками
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
 
         <label className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
           <span className="text-sm text-white/80">Закрыть паролем</span>

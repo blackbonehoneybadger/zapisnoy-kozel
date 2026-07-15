@@ -40,6 +40,15 @@ export const DOFFA_REWARD_PER_WIN = toInt(process.env.DOFFA_REWARD_PER_WIN, 10);
 /** Стоимость входа в онлайн-матч за зёрна (beans). */
 export const BEANS_ENTRY_FEE = toInt(process.env.BEANS_ENTRY_FEE ?? process.env.CUPS_ENTRY_FEE, 100);
 
+/**
+ * Legacy-механика ставок SOL (стол на реальные деньги вместо зёрен) — см.
+ * docs/SOL_BETTING_LEGACY.md. Выключена по умолчанию в продакшене новой
+ * версии: столы со ставкой не создаются, пока флаг не включён явно.
+ * Код (payout, verifyPayment и т.д.) не удалён — сохранён на случай
+ * будущего аудита/включения, но не участвует в основном пути игрока.
+ */
+export const SOL_BETTING_ENABLED = (process.env.SOL_BETTING_ENABLED ?? 'false').trim() === 'true';
+
 function toInt(raw: string | undefined, fallback: number): number {
   const n = Number((raw ?? '').trim());
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
@@ -54,5 +63,6 @@ export function rewardConfigSummary(): string {
     `perWin=${DOFFA_REWARD_PER_WIN}`,
     `beansEntry=${BEANS_ENTRY_FEE}`,
     `dailyLimit=${DOFFA_DAILY_REWARD_LIMIT || '∞'}`,
+    `solBetting=${SOL_BETTING_ENABLED ? 'ON (legacy)' : 'off'}`,
   ].join(' · ');
 }

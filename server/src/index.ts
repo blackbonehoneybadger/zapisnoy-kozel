@@ -28,6 +28,7 @@ import {
   verifyPayment,
   verifySignature,
 } from './solana.js';
+import { SOL_BETTING_ENABLED } from './config';
 
 const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
@@ -355,13 +356,17 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       break;
 
     case 'table:create': {
+      // SOL-ставки — legacy-механика за флагом (см. docs/SOL_BETTING_LEGACY.md).
+      // Выключена по умолчанию: игнорируем betLamports, стол создаётся без ставки.
+      const wantsBet = !!msg.betLamports && msg.betLamports > 0;
+      const betLamports = wantsBet && SOL_BETTING_ENABLED ? msg.betLamports : undefined;
       const res = lobby.createTable(
         user,
         msg.name,
         msg.maxPlayers,
         msg.password,
-        msg.betLamports,
-        msg.betLamports && msg.betLamports > 0 ? SERVER_WALLET : undefined,
+        betLamports,
+        betLamports ? SERVER_WALLET : undefined,
       );
       if (!res.ok || !res.table) return send(conn.ws, { t: 'error', message: res.error ?? 'Ошибка' });
       conn.inLobby = false;

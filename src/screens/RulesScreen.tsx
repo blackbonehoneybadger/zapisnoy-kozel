@@ -24,9 +24,14 @@ const ART = {
 
 const FLOW: { icon: string; title: string; text: string }[] = [
   {
+    icon: '☕',
+    title: 'Копи зёрна',
+    text: 'Тапай по чашке DOFFA на вкладке «Зёрна» — это внутренняя игровая энергия, не криптовалюта.',
+  },
+  {
     icon: '👛',
     title: 'Подключи кошелёк',
-    text: 'Phantom или Solflare — без регистрации. Это твой вход и твой счёт в SOL.',
+    text: 'Phantom или Solflare — без регистрации. Кошелёк нужен для входа в онлайн-матчи и получения DOFFA.',
   },
   {
     icon: '🪑',
@@ -34,9 +39,9 @@ const FLOW: { icon: string; title: string; text: string }[] = [
     text: 'Видишь, кто в сети и кому нужны игроки. Или создай свою на 2–4 человек и позови друзей.',
   },
   {
-    icon: '💰',
-    title: 'Все вносят ставку',
-    text: 'Перед стартом каждый переводит одинаковую ставку в банк партии. Играют только живые игроки.',
+    icon: '🌱',
+    title: 'Вход за зёрна',
+    text: 'Место за столом стоит немного зёрен — сервер списывает их при входе и возвращает, если матч не состоялся.',
   },
   {
     icon: '🃏',
@@ -45,8 +50,8 @@ const FLOW: { icon: string; title: string; text: string }[] = [
   },
   {
     icon: '🏆',
-    title: 'Победитель забирает банк',
-    text: 'Весь банк уходит победителю автоматически. Площадка удерживает 5% комиссии.',
+    title: 'Победа — DOFFA на кошелёк',
+    text: 'Сервер подтверждает результат матча. Нажми «Забрать награду» — DOFFA отправится на твой кошелёк.',
   },
 ];
 
@@ -59,7 +64,7 @@ export function RulesScreen({ onBack }: Props) {
     <div ref={rootRef} className="min-h-[100dvh] px-5 pt-4 safe-top safe-bottom">
       <Header title="Как играть" onBack={onBack} />
 
-      {/* ─── Иллюстрированная инструкция: как играть на SOL ─── */}
+      {/* ─── Иллюстрированная инструкция: путь игрока DOFFA ─── */}
       <motion.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -71,11 +76,11 @@ export function RulesScreen({ onBack }: Props) {
 
         <div className="relative">
           <span className="text-[11px] uppercase tracking-[0.3em] text-gold-400/80">
-            Solana · игра на токены
+            Зёрна · матчи · DOFFA
           </span>
           <h2 className="mt-1 font-display text-2xl gold-text">Как это работает</h2>
           <p className="mt-1 text-sm text-white/55">
-            Децентрализованная площадка: вход кошельком, ставка в SOL, банк — победителю.
+            Тапай по чашке — копи зёрна — трать на вход в матч — побеждай — получай DOFFA.
           </p>
 
           <div className="mt-5 space-y-1">
