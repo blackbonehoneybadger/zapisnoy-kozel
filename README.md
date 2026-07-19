@@ -20,7 +20,7 @@ PWA.
 - **PWA:** офлайн-кэш, манифест, установка на домашний экран iPhone/Android.
 - **DOFFA Bean Duel** (`src/games/bean-duel/`) — локальная дуэль игрок vs бот:
   чистый детерминированный движок (`engine.ts`) + React-рендер арены.
-- **Тапалка «Зёрна»** (`src/screens/BeansScreen.tsx`) — маскот-чашка DOFFA,
+- **Тапалка «Зёрна»** (`src/features/beans/BeansScreen.tsx`) — маскот-чашка DOFFA,
   тап начисляет зерно оптимистично на клиенте, сервер периодически сверяет
   и урезает до правдоподобного (`server/src/services/beansService.ts`).
 - **Экономика DOFFA:** серверный баланс зёрен, вход в матч за зёрна,
@@ -152,6 +152,7 @@ docker run -p 8080:8080 -e AUTH_SECRET=задайте-секрет doffa-games-s
 
 ```
 src/
+  app/               # корень приложения: App.tsx (роутер), HomeScreen.tsx
   games/
     bean-duel/      # DOFFA Bean Duel — основной режим
       engine.ts     # чистая логика дуэли (без React)
@@ -162,12 +163,14 @@ src/
       components/    # Card, GameTable, PlayerHand, ScoreBoard, SuitIcon…
       screens/       # GameScreen, OnlineScreen, RulesScreen, StatsScreen…
       store/         # gameStore, statsStore
-  components/        # общие UI-компоненты (кнопки, маскот-тапалка, оверлеи…)
-  screens/           # общие экраны: Главный, Зёрна, Профиль, Награды, Claim
-  store/             # общие Zustand-хранилища: beansStore, rewardsStore, settingsStore
+  features/          # доменные модули платформы (общие, не дублируются между играми)
+    beans/           # тапалка «Зёрна»: beansStore, BeansScreen, DoffaMascot
+    rewards/         # rewardsStore, RewardsScreen, ClaimScreen
+    profile/         # ProfileScreen
+    wallet/          # кошелёк Solana: index.ts, walletStore.ts
+  components/shared/ # общие UI-компоненты (кнопки, эмблема, оверлеи, BottomNav…)
   net/               # WebSocket-клиент (auth, зёрна, награды, Crazy8-лобби)
   lib/               # общие утилиты: haptics.ts, sound.ts
-  solana/            # кошелёк Solana
   config/            # фиче-флаги (ENABLE_CRAZY8_CLASSIC, SOL_BETTING_ENABLED)
   styles/            # globals.css (Tailwind)
 server/

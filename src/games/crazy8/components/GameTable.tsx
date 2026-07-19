@@ -5,7 +5,7 @@ import { SUIT_SYMBOL } from '../engine/deck';
 import { topCard } from '../engine/rules';
 import { actionLabel } from '../engine/labels';
 import { Card } from './Card';
-import { DoffaEmblem } from '../../../components/DoffaEmblem';
+import { DoffaEmblem } from '../../../components/shared/DoffaEmblem';
 
 interface Props {
   state: GameState;

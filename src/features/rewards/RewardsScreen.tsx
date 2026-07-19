@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useBeansStore, type BeansEntry } from '../store/beansStore';
-import { useRewardsStore, type RewardEntry } from '../store/rewardsStore';
+import { useBeansStore, type BeansEntry } from '../beans/beansStore';
+import { useRewardsStore, type RewardEntry } from './rewardsStore';
+import { useOnlineStore } from '../../net/onlineStore';
 
 interface Props {
   onBack: () => void;
@@ -30,6 +32,16 @@ export function RewardsScreen({ onBack }: Props) {
   const beans = useBeansStore((s) => s.beans);
   const doffa = useRewardsStore((s) => s.doffa);
   const doffaClaimed = useRewardsStore((s) => s.doffaClaimed);
+
+  const status = useOnlineStore((s) => s.status);
+  const user = useOnlineStore((s) => s.user);
+  const requestRewardHistory = useOnlineStore((s) => s.requestRewardHistory);
+
+  // История DOFFA/Claim — с сервера (reward:history); зёрна остаются
+  // локальным кэшем сервер-подтверждённых начислений (beansStore).
+  useEffect(() => {
+    if (status === 'connected' && user) requestRewardHistory();
+  }, [status, user, requestRewardHistory]);
 
   const history: HistoryRow[] = [...rewardsHistory, ...beansHistory]
     .map((h) => ({ id: `${h.kind}-${h.id}`, date: h.date, kind: h.kind, amount: h.amount, note: h.note }))

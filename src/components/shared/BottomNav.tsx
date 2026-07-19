@@ -2,8 +2,8 @@
 // Показывается только на «хабовых» экранах (см. App). Активная вкладка
 // подсвечивается золотом; «Зёрна» выделена фирменной иконкой-зерном.
 import { motion } from 'framer-motion';
-import { haptics } from '../lib/haptics';
-import type { Screen } from '../App';
+import { haptics } from '../../lib/haptics';
+import type { Screen } from '../../app/App';
 
 interface Props {
   screen: Screen;

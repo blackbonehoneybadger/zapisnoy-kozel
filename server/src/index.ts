@@ -20,6 +20,7 @@ import {
 } from './accounts';
 import * as lobby from './lobby';
 import { redactFor } from './match';
+import { initDuel, queueForDuel, cancelQueue as cancelDuelQueue, submitInput as submitDuelInput, leaveMatch as leaveDuelMatch } from './duel';
 import {
   SERVER_WALLET,
   PLATFORM_FEE,
@@ -28,18 +29,23 @@ import {
   verifyPayment,
   verifySignature,
 } from './solana.js';
-import { SOL_BETTING_ENABLED, BEANS_ENTRY_FEE } from './config';
+import { SOL_BETTING_ENABLED, BEANS_ENTRY_FEE, validateRewardSplit } from './config';
 import { createEconomy } from './services';
 import type { BeansState } from './services/beansService';
+import { burnConfigSummary } from './services/rewardBudgetService';
 
 const here = dirname(fileURLToPath(import.meta.url));
 mkdirSync(resolve(here, '..', 'data'), { recursive: true });
 
 const PORT = Number(process.env.PORT ?? 8080);
 
+// PLAYER_REWARD_PERCENT + BURN_PERCENT должны давать 100 — падаем на старте,
+// а не молча считаем награду неправильно.
+validateRewardSplit();
+
 // Доменная экономика DOFFA: зёрна, награды, заявки на вывод (см. services/).
 const economy = createEconomy();
-console.log(`Экономика DOFFA: ${economy.summary}`);
+console.log(`Экономика DOFFA: ${economy.summary} · ${burnConfigSummary()}`);
 
 // Плата за вход, списанная при создании/входе за стол — до старта партии
 // возвращается при выходе (см. table:leave / ws close), после старта сгорает.
@@ -78,11 +84,22 @@ interface Conn {
   inLobby: boolean;
   /** Метки времени последних сообщений — для ограничения частоты (anti-flood). */
   msgTimes: number[];
+  /** Отдельные метки для duel:input — щедрее общего лимита (см. DUEL_RATE_*). */
+  duelInputTimes: number[];
 }
 
 // Anti-flood: не более RATE_MAX сообщений за RATE_WINDOW мс с одного сокета.
+// Рассчитан на обычные действия лобби/стола — НЕ подходит для потока ввода
+// авторитетного PvP-матча Bean Duel (см. DUEL_RATE_* ниже, отдельный лимит).
 const RATE_WINDOW = 10_000;
 const RATE_MAX = 60;
+// duel:input шлётся клиентом почти каждый кадр (позиция пальца/мыши) — на
+// порядок чаще обычных сообщений. Отдельный, более щедрый лимит; превышение
+// просто отбрасывает лишний кадр ввода, а не рвёт соединение (в отличие от
+// общего лимита) — короткий сетевой всплеск у честного игрока не должен
+// обрывать матч.
+const DUEL_RATE_WINDOW = 1_000;
+const DUEL_RATE_MAX = 40; // ~40 Гц с запасом над клиентским requestAnimationFrame
 // Защита от гигантских payload (DoS памяти): максимум 16 КБ на сообщение.
 const MAX_MSG_BYTES = 16 * 1024;
 
@@ -92,6 +109,15 @@ function allowMessage(conn: Conn): boolean {
   conn.msgTimes = conn.msgTimes.filter((t) => now - t < RATE_WINDOW);
   if (conn.msgTimes.length >= RATE_MAX) return false;
   conn.msgTimes.push(now);
+  return true;
+}
+
+/** Отдельный, более щедрый лимит частоты для duel:input (см. DUEL_RATE_*). */
+function allowDuelInput(conn: Conn): boolean {
+  const now = Date.now();
+  conn.duelInputTimes = conn.duelInputTimes.filter((t) => now - t < DUEL_RATE_WINDOW);
+  if (conn.duelInputTimes.length >= DUEL_RATE_MAX) return false;
+  conn.duelInputTimes.push(now);
   return true;
 }
 
@@ -108,6 +134,10 @@ function send(ws: WebSocket, msg: ServerMessage): void {
 function sendToUser(userId: string, msg: ServerMessage): void {
   byUser.get(userId)?.forEach((c) => send(c.ws, msg));
 }
+
+// DOFFA Bean Duel — авторитетный PvP-матч шлёт сообщения игрокам напрямую
+// (тиковый цикл, не привязан к синхронной обработке входящего сообщения).
+initDuel(sendToUser, economy.beans, economy.rewards, economy.repositories);
 
 function beansStateMsg(s: BeansState): ServerMessage {
   return { t: 'beans:state', beans: s.beans, energy: s.energy };
@@ -662,6 +692,106 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       });
       break;
     }
+
+    case 'run:start': {
+      // Вход в забег Defense за зёрна — списывается здесь, на старте; после
+      // старта плата не возвращается (как билет дуэли). Недостаток зёрен не
+      // мешает офлайн-игре: клиент просто продолжает без серверных наград.
+      const started = await economy.runs.startRun(user.id, user.id);
+      if (!started) return send(conn.ws, { t: 'error', message: 'Недостаточно зёрен для входа в забег' });
+      send(conn.ws, { t: 'run:started', runId: started.runId, beans: started.beans, energy: started.energy });
+      break;
+    }
+
+    case 'run:finish': {
+      if (typeof msg.runId !== 'string') {
+        send(conn.ws, { t: 'error', message: 'Некорректный забег' });
+        break;
+      }
+      const result = await economy.runs.finishRun(user.id, user.id, {
+        runId: msg.runId,
+        roomsCleared: msg.roomsCleared,
+        miniBossKilled: msg.miniBossKilled,
+        chapterComplete: msg.chapterComplete,
+        durationMs: msg.durationMs,
+        seed: msg.seed,
+      });
+      if (!result) {
+        send(conn.ws, { t: 'error', message: 'Забег не найден' });
+        break;
+      }
+      send(conn.ws, {
+        t: 'run:finished',
+        runId: result.runId,
+        ok: result.ok,
+        reason: result.reason,
+        beansGranted: result.beansGranted,
+        doffaGranted: result.doffaGranted,
+        beans: result.beans,
+        energy: result.energy,
+        rewardStatus: result.rewardStatus,
+      });
+      // Как и у дуэли (reward:match): отдельный push о подтверждённой DOFFA-
+      // награде, чтобы клиент подтянул список наград (см. onlineStore).
+      if (result.doffaGranted > 0) {
+        sendToUser(user.id, { t: 'reward:run', runId: result.runId, amount: result.doffaGranted });
+      }
+      break;
+    }
+
+    case 'duel:queue':
+      await queueForDuel(user.id);
+      break;
+
+    case 'duel:cancelQueue':
+      await cancelDuelQueue(user.id);
+      break;
+
+    case 'duel:input':
+      submitDuelInput(user.id, msg.target, msg.dashPressed, msg.throwPressed);
+      break;
+
+    case 'duel:leave':
+      await leaveDuelMatch(user.id);
+      break;
+
+    case 'reward:list': {
+      const rewards = await economy.rewards.listAvailable(user.id);
+      send(conn.ws, {
+        t: 'reward:list',
+        rewards: rewards.map((r) => ({ id: r.id, matchId: r.matchId, amount: r.amount, status: r.status, createdAt: r.createdAt })),
+      });
+      break;
+    }
+
+    case 'reward:claim': {
+      const outcome = await economy.claims.claim({
+        userId: user.id,
+        rewardId: msg.rewardId,
+        walletAddress: msg.walletAddress,
+        idempotencyKey: msg.idempotencyKey,
+      });
+      send(conn.ws, {
+        t: 'reward:claimResult',
+        ok: outcome.ok,
+        status: outcome.status,
+        message: outcome.message,
+        txSignature: outcome.claim?.txSignature,
+        testMode: outcome.testMode,
+      });
+      break;
+    }
+
+    case 'reward:history': {
+      const items = await economy.rewards.history(user.id);
+      send(conn.ws, {
+        t: 'reward:history',
+        // history() комбинирует только записи rewards/claims — 'beans' здесь
+        // не встречается на практике (см. RewardService.history).
+        items: items.map((i) => ({ id: i.id, date: i.date, kind: i.kind as 'doffa' | 'claim', amount: i.amount, note: i.note, txSignature: i.txSignature })),
+      });
+      break;
+    }
   }
 }
 
@@ -679,7 +809,7 @@ const http = createServer((req, res) => {
 const wss = new WebSocketServer({ server: http });
 
 wss.on('connection', (ws) => {
-  const conn: Conn = { ws, inLobby: false, msgTimes: [] };
+  const conn: Conn = { ws, inLobby: false, msgTimes: [], duelInputTimes: [] };
   conns.set(ws, conn);
 
   ws.on('message', (raw) => {
@@ -688,17 +818,21 @@ wss.on('connection', (ws) => {
     if (size > MAX_MSG_BYTES) {
       return send(ws, { t: 'error', message: 'Сообщение слишком большое' });
     }
-    // Anti-flood: при превышении частоты — закрываем сокет.
-    if (!allowMessage(conn)) {
-      send(ws, { t: 'error', message: 'Слишком много запросов. Подождите.' });
-      try { ws.close(1008, 'rate limit'); } catch { /* уже закрыт */ }
-      return;
-    }
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw.toString());
     } catch {
       return send(ws, { t: 'error', message: 'Некорректное сообщение' });
+    }
+    // duel:input — отдельный, более щедрый лимит частоты (см. DUEL_RATE_*):
+    // превышение просто отбрасывает лишний кадр ввода, не рвёт соединение.
+    if (msg.t === 'duel:input') {
+      if (!allowDuelInput(conn)) return;
+    } else if (!allowMessage(conn)) {
+      // Anti-flood для остальных сообщений: при превышении частоты — закрываем сокет.
+      send(ws, { t: 'error', message: 'Слишком много запросов. Подождите.' });
+      try { ws.close(1008, 'rate limit'); } catch { /* уже закрыт */ }
+      return;
     }
     handle(conn, msg).catch((e) => {
       console.error('Ошибка обработки:', e);
@@ -712,6 +846,7 @@ wss.on('connection', (ws) => {
       set?.delete(conn);
       if (set && set.size === 0) {
         byUser.delete(conn.userId);
+        void leaveDuelMatch(conn.userId); // техническое поражение в активном Bean Duel, если был
         const wasPlaying = lobby.tableOf(conn.userId)?.status === 'playing';
         const table = lobby.leaveTable(conn.userId);
         void settleEntryOnLeave(conn.userId, wasPlaying);

@@ -1,5 +1,6 @@
 // Протокол WebSocket (зеркало server/src/protocol.ts).
 import type { GameState, MoveAction } from '../games/crazy8/engine/types';
+import type { DuelState, FighterId, Vec2 } from '../games/bean-duel/engine';
 
 export interface PublicUser {
   id: string; // адрес кошелька Solana
@@ -71,9 +72,29 @@ export type ClientMessage =
   | { t: 'beans:sync'; tapped: number; claimedGain: number; elapsedMs: number }
   // Запрос тренировочных зёрен за офлайн-партию против ботов (rate-limited).
   | { t: 'beans:awardTraining'; won: boolean }
+  // DOFFA Defense — авторитетная экономика одиночного забега (см.
+  // server/src/services/runService.ts). Клиент присылает только статистику;
+  // суммы начислений решает исключительно сервер.
+  | { t: 'run:start' }
+  | {
+      t: 'run:finish';
+      runId: string;
+      roomsCleared: number;
+      miniBossKilled: boolean;
+      chapterComplete: boolean;
+      durationMs: number;
+      seed?: number;
+    }
   | { t: 'reward:list' }
   | { t: 'reward:claim'; rewardId: string; walletAddress: string; idempotencyKey: string }
-  | { t: 'reward:history' };
+  | { t: 'reward:history' }
+  // DOFFA Bean Duel — авторитетный PvP-матч (см. server/src/duel.ts). Клиент
+  // шлёт только СВОЙ ввод каждый кадр/тик; движок и решение о победителе —
+  // исключительно на сервере (см. duel:state/duel:result ниже).
+  | { t: 'duel:queue' }
+  | { t: 'duel:cancelQueue' }
+  | { t: 'duel:input'; target: Vec2 | null; dashPressed: boolean; throwPressed: boolean }
+  | { t: 'duel:leave' };
 
 export type ServerMessage =
   | { t: 'auth:challenge'; nonce: string }
@@ -91,16 +112,42 @@ export type ServerMessage =
   | { t: 'wallet:paid'; seatIndex: number }
   | { t: 'wallet:payout'; winnerName: string; txSignature: string; lamports: number; commission: number }
   // Авторитетный баланс зёрен/энергии — единственный легитимный источник
-  // для клиента (см. src/store/beansStore.ts syncFromServer).
+  // для клиента (см. src/features/beans/beansStore.ts syncFromServer).
   | { t: 'beans:state'; beans: number; energy: number }
   // Результат запроса тренировочных зёрен (0, если сервер отказал/rate-limit).
   | { t: 'beans:trainingResult'; granted: number; beans: number; energy: number }
+  // Подтверждение старта забега Defense: плата за вход списана, забег заведён.
+  | { t: 'run:started'; runId: string; beans: number; energy: number }
+  // Авторитетный итог забега: сколько зёрен/DOFFA сервер реально начислил
+  // (0 — отказ по античит-потолкам/rate-limit/дневному лимиту).
+  | {
+      t: 'run:finished';
+      runId: string;
+      ok: boolean;
+      reason?: 'rate_limited';
+      beansGranted: number;
+      doffaGranted: number;
+      beans: number;
+      energy: number;
+      rewardStatus?: RewardStatusValue;
+    }
+  // Подтверждённая сервером сумма DOFFA за пройденную главу Defense
+  // (аналог reward:match для дуэли; 0 не шлётся — только реальная награда).
+  | { t: 'reward:run'; runId: string; amount: number }
   // Подтверждённая сервером сумма DOFFA за окончание онлайн-матча
   // (0/undefined, если победы не было или награда не назначена).
   | { t: 'reward:match'; matchId: string; amount: number }
   | { t: 'reward:list'; rewards: RewardSummary[] }
   | { t: 'reward:claimResult'; ok: boolean; status: RewardStatusValue; message?: string; txSignature?: string; testMode: boolean }
-  | { t: 'reward:history'; items: RewardHistoryItemSummary[] };
+  | { t: 'reward:history'; items: RewardHistoryItemSummary[] }
+  // DOFFA Bean Duel — авторитетный PvP.
+  | { t: 'duel:queued' }
+  | { t: 'duel:matchFound'; matchId: string; you: FighterId; opponentName: string }
+  // Полное состояние движка каждый тик — источник истины для рендера обоих
+  // клиентов; `you` говорит клиенту, какой боец в state — он сам.
+  | { t: 'duel:state'; matchId: string; you: FighterId; state: DuelState }
+  | { t: 'duel:result'; matchId: string; winner: FighterId | 'draw'; youWon: boolean }
+  | { t: 'duel:cancelled' };
 
 /** Статус жизненного цикла награды (зеркало server/src/domain/types.ts RewardStatus). */
 export type RewardStatusValue = 'none' | 'available' | 'processing' | 'sent' | 'failed' | 'review';

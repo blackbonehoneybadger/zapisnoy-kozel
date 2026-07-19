@@ -1,7 +1,7 @@
 // Интерфейсы репозиториев (этап 9). Бизнес-логика зависит только от них, а не
 // от способа хранения. Текущая реализация — файловая (fileRepositories.ts);
 // позже её можно заменить на PostgreSQL без изменения сервисов и игры.
-import type { ClaimRecord, DoffaUser, MatchResult, Reward } from '../domain/types';
+import type { ClaimRecord, DoffaUser, MatchResult, Reward, RunRecord } from '../domain/types';
 
 export interface UserRepository {
   get(id: string): Promise<DoffaUser | undefined>;
@@ -33,9 +33,16 @@ export interface ClaimRepository {
   save(claim: ClaimRecord): Promise<ClaimRecord>;
 }
 
+export interface RunRepository {
+  get(runId: string): Promise<RunRecord | undefined>;
+  save(run: RunRecord): Promise<RunRecord>;
+  listByUser(userId: string, limit?: number): Promise<RunRecord[]>;
+}
+
 export interface Repositories {
   users: UserRepository;
   matches: MatchRepository;
   rewards: RewardRepository;
   claims: ClaimRepository;
+  runs: RunRepository;
 }

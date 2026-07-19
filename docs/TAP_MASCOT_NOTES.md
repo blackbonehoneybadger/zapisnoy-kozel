@@ -7,11 +7,11 @@
 
 | Файл | Роль |
 |---|---|
-| `src/store/beansStore.ts` | Экономика зёрен: баланс, энергия (реген), комбо, золотые зёрна, вход в матч. localStorage — **кэш**; истина — будущий сервер (`syncFromServer`). |
-| `src/components/DoffaMascot.tsx` | Маскот-чашка (SVG + Framer Motion): idle / tap / tired. Ноги, кофе, пар, рука, брызги — временная качественная версия без внешних ассетов. |
-| `src/screens/BeansScreen.tsx` | Композиция экрана: HUD (зёрна + энергия), маскот, летящие зёрна и «+N», карточки, кнопки, состояния low-energy / not-enough-beans. |
-| `src/components/BottomNav.tsx` | Нижнее меню: Играть · Зёрна · Награды · Профиль. |
-| `src/App.tsx` | Тип экрана `beans`, роут, показ `BottomNav` на хабовых экранах + отступ под меню. |
+| `src/features/beans/beansStore.ts` | Экономика зёрен: баланс, энергия (реген), комбо, золотые зёрна, вход в матч. localStorage — **кэш**; истина — сервер (`syncFromServer`). |
+| `src/features/beans/DoffaMascot.tsx` | Маскот-чашка (SVG + Framer Motion): idle / tap / tired. Ноги, кофе, пар, рука, брызги — временная качественная версия без внешних ассетов. |
+| `src/features/beans/BeansScreen.tsx` | Композиция экрана: HUD (зёрна + энергия), маскот, летящие зёрна и «+N», карточки, кнопки, состояния low-energy / not-enough-beans. |
+| `src/components/shared/BottomNav.tsx` | Нижнее меню: Играть · Зёрна · Награды · Профиль. |
+| `src/app/App.tsx` | Тип экрана `beans`, роут, показ `BottomNav` на хабовых экранах + отступ под меню. |
 
 ## Как встроен
 

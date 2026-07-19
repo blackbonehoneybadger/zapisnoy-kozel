@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWalletStore } from '../solana/walletStore';
+import { useWalletStore } from '../../features/wallet/walletStore';
 
 function SolanaIcon({ size = 16 }: { size?: number }) {
   return (

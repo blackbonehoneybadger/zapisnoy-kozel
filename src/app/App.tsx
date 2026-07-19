@@ -1,22 +1,24 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { HomeScreen } from './screens/HomeScreen';
-import { GameScreen } from './games/crazy8/screens/GameScreen';
-import { RulesScreen } from './games/crazy8/screens/RulesScreen';
-import { StatsScreen } from './games/crazy8/screens/StatsScreen';
-import { SettingsScreen } from './games/crazy8/screens/SettingsScreen';
-import { OnlineScreen } from './games/crazy8/screens/OnlineScreen';
-import { BeanDuelScreen } from './games/bean-duel/BeanDuelScreen';
-import { ClaimScreen } from './screens/ClaimScreen';
-import { RewardsScreen } from './screens/RewardsScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
-import { BeansScreen } from './screens/BeansScreen';
-import { BottomNav } from './components/BottomNav';
-import { useGameStore } from './games/crazy8/store/gameStore';
-import { ENABLE_CRAZY8_CLASSIC } from './config/features';
+import { HomeScreen } from './HomeScreen';
+import { GameScreen } from '../games/crazy8/screens/GameScreen';
+import { RulesScreen } from '../games/crazy8/screens/RulesScreen';
+import { StatsScreen } from '../games/crazy8/screens/StatsScreen';
+import { SettingsScreen } from '../games/crazy8/screens/SettingsScreen';
+import { OnlineScreen } from '../games/crazy8/screens/OnlineScreen';
+import { BeanDuelScreen } from '../games/bean-duel/BeanDuelScreen';
+import { DoffaDefenseScreen } from '../games/doffa-defense/DoffaDefenseScreen';
+import { ClaimScreen } from '../features/rewards/ClaimScreen';
+import { RewardsScreen } from '../features/rewards/RewardsScreen';
+import { ProfileScreen } from '../features/profile/ProfileScreen';
+import { BeansScreen } from '../features/beans/BeansScreen';
+import { BottomNav } from '../components/shared/BottomNav';
+import { useGameStore } from '../games/crazy8/store/gameStore';
+import { ENABLE_BEAN_DUEL, ENABLE_CRAZY8_CLASSIC } from '../config/features';
 
 export type Screen =
   | 'home'
+  | 'doffa-defense'
   | 'bean-duel'
   | 'game'
   | 'rules'
@@ -39,6 +41,13 @@ const HUB_SCREENS: Screen[] = ['home', 'beans', 'rewards', 'profile'];
  */
 const CRAZY8_CLASSIC_SCREENS: Screen[] = ['game', 'rules', 'stats', 'settings', 'online'];
 
+/**
+ * Прежний основной режим DOFFA Bean Duel — скрыт в production по умолчанию
+ * (см. ENABLE_BEAN_DUEL / docs/BEAN_DUEL_ARCHIVE.md), код полностью сохранён
+ * в src/games/bean-duel по той же архивной схеме, что и Crazy 8.
+ */
+const BEAN_DUEL_SCREENS: Screen[] = ['bean-duel'];
+
 const transition = {
   initial: { opacity: 0, scale: 0.98, y: 12 },
   animate: { opacity: 1, scale: 1, y: 0 },
@@ -57,6 +66,9 @@ export default function App() {
   // а не только через отсутствие кнопок в UI.
   useEffect(() => {
     if (!ENABLE_CRAZY8_CLASSIC && CRAZY8_CLASSIC_SCREENS.includes(screen)) {
+      setScreen('home');
+    }
+    if (!ENABLE_BEAN_DUEL && BEAN_DUEL_SCREENS.includes(screen)) {
       setScreen('home');
     }
   }, [screen]);
@@ -90,11 +102,13 @@ export default function App() {
             {screen === 'home' && (
               <HomeScreen
                 navigate={setScreen}
-                onPlay={() => setScreen('bean-duel')}
+                onPlay={() => setScreen('doffa-defense')}
                 onPlayClassic={ENABLE_CRAZY8_CLASSIC ? startGame : undefined}
+                onPlayBeanDuel={ENABLE_BEAN_DUEL ? () => setScreen('bean-duel') : undefined}
               />
             )}
-            {screen === 'bean-duel' && <BeanDuelScreen onExit={() => setScreen('home')} />}
+            {screen === 'doffa-defense' && <DoffaDefenseScreen onExit={() => setScreen('home')} />}
+            {ENABLE_BEAN_DUEL && screen === 'bean-duel' && <BeanDuelScreen onExit={() => setScreen('home')} />}
             {ENABLE_CRAZY8_CLASSIC && screen === 'game' && <GameScreen onExit={exitGame} />}
             {ENABLE_CRAZY8_CLASSIC && screen === 'rules' && <RulesScreen onBack={() => setScreen('home')} />}
             {ENABLE_CRAZY8_CLASSIC && screen === 'stats' && <StatsScreen onBack={() => setScreen('home')} />}
@@ -108,7 +122,7 @@ export default function App() {
               <ProfileScreen onBack={() => setScreen('home')} navigate={setScreen} />
             )}
             {screen === 'beans' && (
-              <BeansScreen navigate={setScreen} onPlay={() => setScreen('bean-duel')} />
+              <BeansScreen navigate={setScreen} onPlay={() => setScreen('doffa-defense')} />
             )}
           </motion.div>
         </AnimatePresence>

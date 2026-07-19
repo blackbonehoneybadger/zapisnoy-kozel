@@ -50,7 +50,7 @@ DOFFA-награда за подтверждённую сервером побе
   `sanitizeBet`, человеко-only проверка в `startGame`-пути.
 - `server/src/index.ts` — обработчики `wallet:register`, `wallet:pay`,
   логика `handlePayout`.
-- `src/screens/OnlineScreen.tsx` — блок «Ставка SOL» в `CreateTableModal`
+- `src/games/crazy8/screens/OnlineScreen.tsx` — блок «Ставка SOL» в `CreateTableModal`
   и связанные предупреждения в `WaitingRoom` (скрыты, не удалены).
 - `src/net/protocol.ts` / `server/src/protocol.ts` — поля `betLamports`,
   `potLamports`, сообщения `wallet:*`.

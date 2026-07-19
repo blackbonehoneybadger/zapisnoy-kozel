@@ -1,6 +1,7 @@
 // DOFFA Bean Duel — первый рабочий вертикальный прототип. Локальная дуэль
 // (устройство vs бот): управление пальцем/мышью — боец следует за
-// указателем, кнопка «Рывок» — атака с уклонением (см. engine.ts). Матч
+// указателем. Две способности (см. engine.ts): «Рывок» — ближний бой и
+// уклонение, «Бросок зерна» — дальнобойный снаряд со своим кулдауном. Матч
 // 60–90 сек, победа не передаёт ставку — чисто skill-based результат.
 //
 // Экономика: v1 не списывает и не начисляет зёрна/DOFFA за матч Bean Duel —
@@ -10,12 +11,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Duelist } from './Duelist';
-import { PremiumButton } from '../../components/PremiumButton';
+import { PremiumButton } from '../../components/shared/PremiumButton';
 import { haptics } from '../../lib/haptics';
 import {
   ARENA,
   DASH_COOLDOWN_MS,
   MATCH_DURATION_MS,
+  PROJECTILE_RADIUS,
+  THROW_COOLDOWN_MS,
   createInitialState,
   stepDuel,
   type DuelInput,
@@ -35,6 +38,7 @@ export function BeanDuelScreen({ onExit }: Props) {
   const arenaRef = useRef<HTMLDivElement>(null);
   const pointerRef = useRef<Vec2 | null>(null);
   const dashQueuedRef = useRef(false);
+  const throwQueuedRef = useRef(false);
   const lastHitSeenRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastTsRef = useRef<number | null>(null);
@@ -50,8 +54,10 @@ export function BeanDuelScreen({ onExit }: Props) {
       const input: DuelInput = {
         target: pointerRef.current,
         dashPressed: dashQueuedRef.current,
+        throwPressed: throwQueuedRef.current,
       };
       dashQueuedRef.current = false;
+      throwQueuedRef.current = false;
 
       const next = stepDuel(stateRef.current, input, dt);
       stateRef.current = next;
@@ -95,6 +101,11 @@ export function BeanDuelScreen({ onExit }: Props) {
     haptics.tap?.();
   };
 
+  const handleThrow = () => {
+    throwQueuedRef.current = true;
+    haptics.tap?.();
+  };
+
   const restart = () => {
     lastTsRef.current = null;
     lastHitSeenRef.current = null;
@@ -106,6 +117,8 @@ export function BeanDuelScreen({ onExit }: Props) {
   const player = state.fighters.player;
   const dashReady = player.dashCooldownMs <= 0;
   const dashPct = Math.max(0, Math.min(100, 100 - (player.dashCooldownMs / DASH_COOLDOWN_MS) * 100));
+  const throwReady = player.throwCooldownMs <= 0;
+  const throwPct = Math.max(0, Math.min(100, 100 - (player.throwCooldownMs / THROW_COOLDOWN_MS) * 100));
   const secondsLeft = Math.ceil(state.timeLeftMs / 1000);
 
   return (
@@ -151,6 +164,26 @@ export function BeanDuelScreen({ onExit }: Props) {
         <Duelist fighter={state.fighters.bot} team="bot" label="Соперник" />
         <Duelist fighter={state.fighters.player} team="player" label="Игрок" />
 
+        {/* летящие зёрна — снаряды «Броска зерна» */}
+        {state.projectiles.map((p) => (
+          <span
+            key={p.id}
+            aria-hidden
+            data-projectile={p.owner}
+            className="pointer-events-none absolute rounded-full"
+            style={{
+              left: p.pos.x - PROJECTILE_RADIUS,
+              top: p.pos.y - PROJECTILE_RADIUS,
+              width: PROJECTILE_RADIUS * 2,
+              height: PROJECTILE_RADIUS * 2,
+              background: p.owner === 'player'
+                ? 'radial-gradient(circle at 35% 30%, #f6e3ab, #c98a2e)'
+                : 'radial-gradient(circle at 35% 30%, #bfe3cf, #3a966e)',
+              boxShadow: '0 0 8px 1px rgba(0,0,0,0.35)',
+            }}
+          />
+        ))}
+
         {/* обратный отсчёт */}
         <AnimatePresence>
           {state.phase === 'countdown' && (
@@ -178,7 +211,43 @@ export function BeanDuelScreen({ onExit }: Props) {
           />
         </div>
 
-        <div className="mt-5 flex justify-center">
+        <div className="mt-5 flex items-center justify-center gap-5">
+          <motion.button
+            onPointerDown={(e) => {
+              e.preventDefault();
+              handleThrow();
+            }}
+            whileTap={{ scale: 0.92 }}
+            disabled={!throwReady}
+            aria-label="Бросок зерна"
+            className="relative grid h-16 w-16 place-items-center rounded-full text-[11px] font-semibold text-ink-900 shadow-glow disabled:opacity-50"
+            style={{ background: throwReady ? undefined : 'rgba(255,255,255,0.08)' }}
+          >
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full"
+              style={{
+                opacity: throwReady ? 1 : 0.25,
+                background: 'linear-gradient(135deg,#bfe3cf,#3a966e)',
+              }}
+            />
+            <svg aria-hidden className="absolute inset-0 -rotate-90" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="3" />
+              <circle
+                cx="32"
+                cy="32"
+                r="29"
+                fill="none"
+                stroke="#eaf5ee"
+                strokeWidth="3"
+                strokeDasharray={2 * Math.PI * 29}
+                strokeDashoffset={2 * Math.PI * 29 * (1 - throwPct / 100)}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="relative leading-tight">ЗЕРНО</span>
+          </motion.button>
+
           <motion.button
             onPointerDown={(e) => {
               e.preventDefault();
@@ -186,6 +255,7 @@ export function BeanDuelScreen({ onExit }: Props) {
             }}
             whileTap={{ scale: 0.92 }}
             disabled={!dashReady}
+            aria-label="Рывок"
             className="relative grid h-20 w-20 place-items-center rounded-full text-sm font-semibold text-ink-900 shadow-glow disabled:opacity-50"
             style={{ background: dashReady ? undefined : 'rgba(255,255,255,0.08)' }}
           >
@@ -216,7 +286,7 @@ export function BeanDuelScreen({ onExit }: Props) {
           </motion.button>
         </div>
         <p className="mt-3 text-center text-[11px] text-white/35">
-          Веди пальцем по арене · рывок — атака и уклонение
+          Веди пальцем по арене · рывок — атака и уклонение · зерно — бросок издалека
         </p>
       </div>
 

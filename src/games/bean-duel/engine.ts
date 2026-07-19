@@ -3,12 +3,16 @@
 // арене. Победа зависит от управления, реакции и уклонения — НЕ от размера
 // ставки: проигравший ничего не передаёт победителю (см. docs в модуле).
 //
-// Модель боя v1:
+// Модель боя v1 (две способности):
 //   - Игрок ведёт своего бойца пальцем/мышью (следование за указателем).
-//   - Кнопка «Рывок» — короткий бросок в сторону движения: во время рывка
-//     боец наносит урон при касании соперника и невосприимчив к чужому
-//     рывку. Простое касание БЕЗ рывка урона не наносит — это и есть
-//     уклонение: чтобы не получить урон, нужно НЕ стоять на пути чужого рывка.
+//   - «Рывок» (ближний бой) — короткий бросок в сторону движения: во время
+//     рывка боец наносит урон при касании соперника и невосприимчив к
+//     чужому рывку И к чужому «Броску зерна». Простое касание БЕЗ рывка
+//     урона не наносит — это и есть уклонение: чтобы не получить урон,
+//     нужно НЕ стоять на пути чужого рывка/зерна (или увернуться рывком).
+//   - «Бросок зерна» (дальний бой) — снаряд летит по направлению взгляда
+//     бойца, наносит меньше урона, чем рывок, но достаёт на дистанции и
+//     не требует сближения; свой, более долгий, кулдаун.
 //   - Матч идёт MATCH_DURATION_MS или до нуля HP одного из бойцов.
 //   - При равенстве по истечении времени — победа у того, чьё HP выше
 //     (ничья, если равны).
@@ -33,6 +37,16 @@ export interface Fighter {
   invulnerableMs: number;
   /** Мс лёгкого отброса/стана после получения удара (не может двигаться/рывковать). */
   stunMs: number;
+  /** Мс до готовности следующего «Броска зерна». */
+  throwCooldownMs: number;
+}
+
+/** Летящее зерно — снаряд способности «Бросок зерна». */
+export interface Projectile {
+  id: number;
+  owner: FighterId;
+  pos: Vec2;
+  vel: Vec2;
 }
 
 export type DuelPhase = 'countdown' | 'playing' | 'over';
@@ -40,6 +54,9 @@ export type DuelPhase = 'countdown' | 'playing' | 'over';
 export interface DuelState {
   arena: { w: number; h: number };
   fighters: Record<FighterId, Fighter>;
+  projectiles: Projectile[];
+  /** Счётчик для стабильных id новых снарядов (детерминированно, без Math.random/Date.now). */
+  nextProjectileId: number;
   timeLeftMs: number;
   phase: DuelPhase;
   winner: FighterId | 'draw' | null;
@@ -61,6 +78,15 @@ export const DASH_COOLDOWN_MS = 1400;
 const DASH_DAMAGE = 34;
 const HIT_STUN_MS = 260;
 export const MAX_HP = 100;
+
+// «Бросок зерна» — дальнобойная способность: слабее рывка, но не требует
+// сближения и имеет более долгий кулдаун (нельзя спамить издалека).
+export const PROJECTILE_RADIUS = 7;
+export const THROW_SPEED = 0.5; // px/ms
+export const THROW_COOLDOWN_MS = 2200;
+const THROW_DAMAGE = 16;
+const THROW_STUN_MS = 160;
+const THROW_SPAWN_OFFSET = FIGHTER_RADIUS + PROJECTILE_RADIUS + 2;
 
 function vecLen(v: Vec2): number {
   return Math.hypot(v.x, v.y);
@@ -91,6 +117,7 @@ function makeFighter(pos: Vec2): Fighter {
     dashCooldownMs: 0,
     invulnerableMs: 0,
     stunMs: 0,
+    throwCooldownMs: 0,
   };
 }
 
@@ -101,6 +128,8 @@ export function createInitialState(): DuelState {
       player: makeFighter({ x: ARENA.w / 2, y: ARENA.h - 90 }),
       bot: makeFighter({ x: ARENA.w / 2, y: 90 }),
     },
+    projectiles: [],
+    nextProjectileId: 1,
     timeLeftMs: MATCH_DURATION_MS,
     phase: 'countdown',
     winner: null,
@@ -115,10 +144,50 @@ export interface DuelInput {
   target: Vec2 | null;
   /** Кнопка рывка нажата ИМЕННО в этом кадре (edge-triggered, не удержание). */
   dashPressed: boolean;
+  /** Кнопка «Бросок зерна» нажата ИМЕННО в этом кадре (edge-triggered). */
+  throwPressed: boolean;
 }
 
-/** Один шаг симуляции. Чистая функция: state + input + dt → новый state. */
+/** Ввод ОБОИХ бойцов за этот кадр — общая форма для PvP и локального режима. */
+export interface DuelInputs {
+  player: DuelInput;
+  bot: DuelInput;
+}
+
+/**
+ * Один шаг симуляции для боя, где ОБА бойца управляются реальным вводом
+ * (без встроенного ИИ) — используется сервером для авторитетного PvP-матча
+ * Bean Duel (см. server/src/duel.ts): оба клиента шлют свой ввод, сервер
+ * гоняет ровно эту функцию по тику и рассылает авторитетный результат.
+ * Чистая функция: state + inputs + dt → новый state (детерминированно).
+ */
+export function stepDuelPvP(state: DuelState, inputs: DuelInputs, dtMs: number): DuelState {
+  return resolveStep(state, inputs, dtMs);
+}
+
+/**
+ * Один шаг локальной дуэли игрок vs бот: ввод игрока извне, ввод бота —
+ * встроенный простой ИИ, вычисленный из текущего состояния. Используется
+ * офлайн-прототипом (BeanDuelScreen). Делегирует всю физику/бой в
+ * resolveStep — тот же код, что и на сервере в PvP-режиме.
+ */
 export function stepDuel(state: DuelState, input: DuelInput, dtMs: number): DuelState {
+  // Ввод бота: простой ИИ — преследует игрока, иногда рвётся в его сторону,
+  // а на средней дистанции кидает зерно вместо сближения.
+  const botTarget = state.fighters.player.pos;
+  const botToPlayer = { x: botTarget.x - state.fighters.bot.pos.x, y: botTarget.y - state.fighters.bot.pos.y };
+  const botDist = vecLen(botToPlayer);
+  const botWantsDash = state.fighters.bot.dashCooldownMs <= 0 && botDist < 130 && botDist > 10;
+  const botWantsThrow = state.fighters.bot.throwCooldownMs <= 0 && botDist >= 70 && botDist < 260;
+  const botInput: DuelInput = {
+    target: botDist > 4 ? botTarget : null,
+    dashPressed: botWantsDash,
+    throwPressed: botWantsThrow,
+  };
+  return resolveStep(state, { player: input, bot: botInput }, dtMs);
+}
+
+function resolveStep(state: DuelState, inputs: DuelInputs, dtMs: number): DuelState {
   if (state.phase === 'countdown') {
     const countdown = state.countdown - dtMs / 1000;
     if (countdown <= 0) {
@@ -133,18 +202,50 @@ export function stepDuel(state: DuelState, input: DuelInput, dtMs: number): Duel
     bot: { ...state.fighters.bot },
   };
 
-  // Ввод бота: простой ИИ — преследует игрока, иногда рвётся в его сторону.
-  const botTarget = state.fighters.player.pos;
-  const botToPlayer = { x: botTarget.x - fighters.bot.pos.x, y: botTarget.y - fighters.bot.pos.y };
-  const botDist = vecLen(botToPlayer);
-  const botWantsDash = fighters.bot.dashCooldownMs <= 0 && botDist < 130 && botDist > 10;
+  updateFighter(fighters.player, inputs.player.target, inputs.player.dashPressed, dtMs);
+  updateFighter(fighters.bot, inputs.bot.target, inputs.bot.dashPressed, dtMs);
 
-  updateFighter(fighters.player, input.target, input.dashPressed, dtMs);
-  updateFighter(fighters.bot, botDist > 4 ? botTarget : null, botWantsDash, dtMs);
+  // «Бросок зерна» — спавн снаряда по направлению взгляда бойца (facing уже
+  // обновлён на этом кадре внутри updateFighter выше).
+  const projectiles: Projectile[] = state.projectiles.map((p) => ({ ...p }));
+  let nextProjectileId = state.nextProjectileId;
+  const trySpawnThrow = (f: Fighter, wants: boolean, owner: FighterId) => {
+    if (!wants || f.stunMs > 0 || f.dashingMs > 0 || f.throwCooldownMs > 0) return;
+    f.throwCooldownMs = THROW_COOLDOWN_MS;
+    projectiles.push({
+      id: nextProjectileId++,
+      owner,
+      pos: { x: f.pos.x + f.facing.x * THROW_SPAWN_OFFSET, y: f.pos.y + f.facing.y * THROW_SPAWN_OFFSET },
+      vel: { x: f.facing.x * THROW_SPEED, y: f.facing.y * THROW_SPEED },
+    });
+  };
+  trySpawnThrow(fighters.player, inputs.player.throwPressed, 'player');
+  trySpawnThrow(fighters.bot, inputs.bot.throwPressed, 'bot');
 
   let lastHit: DuelState['lastHit'] = null;
-  // Столкновение: урон наносит ТОЛЬКО тот, кто сейчас в рывке, невосприимчивой
-  // стороне (rывок = неуязвимость) урон не проходит.
+
+  // Полёт и попадание снарядов: снаряд поглощается при вылете за арену или
+  // при попадании во ВРАЖЕСКОГО бойца (свой снаряд его не задевает); цель в
+  // рывке (неуязвима) снаряд не получает — тот же принцип, что и с рывком.
+  const survivors: Projectile[] = [];
+  for (const p of projectiles) {
+    const pos = { x: p.pos.x + p.vel.x * dtMs, y: p.pos.y + p.vel.y * dtMs };
+    const outOfBounds = pos.x < -20 || pos.x > ARENA.w + 20 || pos.y < -20 || pos.y > ARENA.h + 20;
+    if (outOfBounds) continue;
+    const targetId: FighterId = p.owner === 'player' ? 'bot' : 'player';
+    const target = fighters[targetId];
+    const dToTarget = vecLen({ x: pos.x - target.pos.x, y: pos.y - target.pos.y });
+    if (dToTarget < FIGHTER_RADIUS + PROJECTILE_RADIUS && target.invulnerableMs <= 0) {
+      target.hp = Math.max(0, target.hp - THROW_DAMAGE);
+      target.stunMs = Math.max(target.stunMs, THROW_STUN_MS);
+      lastHit = { target: targetId, at: Date.now() };
+      continue; // снаряд израсходован
+    }
+    survivors.push({ ...p, pos });
+  }
+
+  // Столкновение вплотную (рывок): урон наносит ТОЛЬКО тот, кто сейчас в
+  // рывке, невосприимчивой стороне (rывок = неуязвимость) урон не проходит.
   const dist = vecLen({ x: fighters.player.pos.x - fighters.bot.pos.x, y: fighters.player.pos.y - fighters.bot.pos.y });
   if (dist < FIGHTER_RADIUS * 1.7) {
     const playerHits = fighters.player.dashingMs > 0 && fighters.bot.invulnerableMs <= 0;
@@ -178,7 +279,7 @@ export function stepDuel(state: DuelState, input: DuelInput, dtMs: number): Duel
     winner = fighters.player.hp === fighters.bot.hp ? 'draw' : fighters.player.hp > fighters.bot.hp ? 'player' : 'bot';
   }
 
-  return { ...state, fighters, timeLeftMs, phase, winner, lastHit };
+  return { ...state, fighters, projectiles: survivors, nextProjectileId, timeLeftMs, phase, winner, lastHit };
 }
 
 function updateFighter(f: Fighter, target: Vec2 | null, dashPressed: boolean, dtMs: number): void {
@@ -186,6 +287,7 @@ function updateFighter(f: Fighter, target: Vec2 | null, dashPressed: boolean, dt
   f.dashCooldownMs = Math.max(0, f.dashCooldownMs - dtMs);
   f.invulnerableMs = Math.max(0, f.invulnerableMs - dtMs);
   f.stunMs = Math.max(0, f.stunMs - dtMs);
+  f.throwCooldownMs = Math.max(0, f.throwCooldownMs - dtMs);
 
   if (f.stunMs > 0) return; // оглушён — не двигается, не рвётся
 

@@ -9,6 +9,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host",
     "lint": "tsc --noEmit",
+    "test": "vitest run && npm --prefix server test",
+    "test:client": "vitest run",
     "cap:build": "CAP_BUILD=1 npm run build && cap sync android",
     "cap:open": "cap open android",
     "icons": "node scripts/gen-icons.mjs && capacitor-assets generate --android",
@@ -39,6 +41,7 @@
     "typescript": "^5.5.4",
     "vite": "^5.4.0",
     "vite-plugin-node-polyfills": "^0.28.0",
-    "vite-plugin-pwa": "^0.20.1"
+    "vite-plugin-pwa": "^0.20.1",
+    "vitest": "^1.6.1"
   }
 }

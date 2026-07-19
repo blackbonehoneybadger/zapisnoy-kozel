@@ -1,22 +1,26 @@
 // Главный экран DOFFA Games. Единственный публичный игровой режим —
-// DOFFA Bean Duel; старый Crazy 8 полностью скрыт (см. ENABLE_CRAZY8_CLASSIC
-// и docs/CRAZY8_ARCHIVE.md) и на этом экране никак не упоминается, кроме
-// служебной dev-ссылки, видимой только при явно включённом флаге.
+// DOFFA Defense (порт комнатного action-roguelite из LibGDX-игры); Bean Duel
+// и старый Crazy 8 полностью скрыты за флагами (см. ENABLE_BEAN_DUEL /
+// ENABLE_CRAZY8_CLASSIC, docs/BEAN_DUEL_ARCHIVE.md, docs/CRAZY8_ARCHIVE.md)
+// и на этом экране никак не упоминаются, кроме служебных dev-ссылок,
+// видимых только при явно включённых флагах.
 import { motion } from 'framer-motion';
-import { Hero3DCard } from '../components/Hero3DCard';
-import { PremiumButton } from '../components/PremiumButton';
+import { Hero3DCard } from '../components/shared/Hero3DCard';
+import { PremiumButton } from '../components/shared/PremiumButton';
 import { haptics } from '../lib/haptics';
-import { useBeansStore } from '../store/beansStore';
-import { useRewardsStore } from '../store/rewardsStore';
-import { ENABLE_CRAZY8_CLASSIC } from '../config/features';
-import type { Screen } from '../App';
+import { useBeansStore } from '../features/beans/beansStore';
+import { useRewardsStore } from '../features/rewards/rewardsStore';
+import { ENABLE_BEAN_DUEL, ENABLE_CRAZY8_CLASSIC } from '../config/features';
+import type { Screen } from './App';
 
 interface Props {
   navigate: (s: Screen) => void;
-  /** Запускает DOFFA Bean Duel — основной игровой режим. */
+  /** Запускает DOFFA Defense — основной игровой режим. */
   onPlay: () => void;
   /** Запускает офлайн-партию Crazy 8 против ботов. Задано ТОЛЬКО при ENABLE_CRAZY8_CLASSIC. */
   onPlayClassic?: () => void;
+  /** Запускает дуэль Bean Duel. Задано ТОЛЬКО при ENABLE_BEAN_DUEL. */
+  onPlayBeanDuel?: () => void;
 }
 
 const item = {
@@ -34,7 +38,7 @@ const secondary: { label: string; screen: Screen; hint: string }[] = [
   { label: 'Профиль', screen: 'profile', hint: 'Кошелёк, DOFFA' },
 ];
 
-export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
+export function HomeScreen({ navigate, onPlay, onPlayClassic, onPlayBeanDuel }: Props) {
   const beans = useBeansStore((s) => s.beans);
   const doffa = useRewardsStore((s) => s.doffa);
 
@@ -103,9 +107,9 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
           transition={{ delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
           className="mt-3 font-display text-[3.4rem] font-semibold leading-[0.92] tracking-tight"
         >
-          <span className="gold-text">Bean</span>
+          <span className="gold-text">DOFFA</span>
           <br />
-          <span className="text-[#f3efe6]">Duel</span>
+          <span className="text-[#f3efe6]">Defense</span>
         </motion.h1>
 
         <motion.div
@@ -121,7 +125,7 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
           transition={{ delay: 0.4 }}
           className="mt-5 max-w-[17rem] text-balance text-sm leading-relaxed text-white/45"
         >
-          Быстрая дуэль один на один. Уклоняйся, атакуй, побеждай за 60–90 секунд.
+          Зачисти главу из шести комнат. Двигайся, уклоняйся, собирай способности и победи Химического Варщика.
         </motion.p>
         </div>
       </div>
@@ -129,7 +133,7 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
       <div className="w-full max-w-sm">
         <motion.div custom={0} variants={item} initial="hidden" animate="show">
           <PremiumButton full variant="gold" onClick={onPlay}>
-            Играть в Bean Duel
+            Играть в DOFFA Defense
           </PremiumButton>
         </motion.div>
 
@@ -162,18 +166,26 @@ export function HomeScreen({ navigate, onPlay, onPlayClassic }: Props) {
           v1.0 · играй офлайн · добавь на экран «Домой»
         </p>
 
-        {/* Служебные dev-ссылки на старый Crazy 8 — видны ТОЛЬКО при явном
-            VITE_ENABLE_CRAZY8_CLASSIC=true (локальная разработка/тесты). */}
-        {ENABLE_CRAZY8_CLASSIC && (
+        {/* Служебные dev-ссылки на скрытые режимы — видны ТОЛЬКО при явных
+            VITE_ENABLE_BEAN_DUEL=true / VITE_ENABLE_CRAZY8_CLASSIC=true
+            (локальная разработка/тесты). */}
+        {(ENABLE_BEAN_DUEL || ENABLE_CRAZY8_CLASSIC) && (
           <div className="mt-3 flex justify-center gap-3 text-[10px] uppercase tracking-widest text-white/20">
+            {onPlayBeanDuel && (
+              <button onClick={onPlayBeanDuel} className="hover:text-white/40">
+                Bean Duel (dev)
+              </button>
+            )}
             {onPlayClassic && (
               <button onClick={onPlayClassic} className="hover:text-white/40">
                 Crazy 8 · офлайн (dev)
               </button>
             )}
-            <button onClick={() => navigate('online')} className="hover:text-white/40">
-              Crazy 8 · онлайн (dev)
-            </button>
+            {ENABLE_CRAZY8_CLASSIC && (
+              <button onClick={() => navigate('online')} className="hover:text-white/40">
+                Crazy 8 · онлайн (dev)
+              </button>
+            )}
           </div>
         )}
       </div>

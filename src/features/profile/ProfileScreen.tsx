@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
-import { PremiumButton } from '../components/PremiumButton';
-import { WalletButton } from '../components/WalletButton';
-import { DoffaEmblem } from '../components/DoffaEmblem';
-import { useStatsStore } from '../games/crazy8/store/statsStore';
-import { useBeansStore } from '../store/beansStore';
-import { useRewardsStore } from '../store/rewardsStore';
-import { useWalletStore } from '../solana/walletStore';
-import { ENABLE_CRAZY8_CLASSIC } from '../config/features';
-import type { Screen } from '../App';
+import { PremiumButton } from '../../components/shared/PremiumButton';
+import { WalletButton } from '../../components/shared/WalletButton';
+import { DoffaEmblem } from '../../components/shared/DoffaEmblem';
+import { useStatsStore } from '../../games/crazy8/store/statsStore';
+import { useBeansStore } from '../beans/beansStore';
+import { useRewardsStore } from '../rewards/rewardsStore';
+import { useWalletStore } from '../wallet/walletStore';
+import { ENABLE_CRAZY8_CLASSIC } from '../../config/features';
+import type { Screen } from '../../app/App';
 
 interface Props {
   onBack: () => void;
