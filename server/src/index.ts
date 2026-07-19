@@ -693,6 +693,52 @@ async function handle(conn: Conn, msg: ClientMessage): Promise<void> {
       break;
     }
 
+    case 'run:start': {
+      // Вход в забег Defense за зёрна — списывается здесь, на старте; после
+      // старта плата не возвращается (как билет дуэли). Недостаток зёрен не
+      // мешает офлайн-игре: клиент просто продолжает без серверных наград.
+      const started = await economy.runs.startRun(user.id, user.id);
+      if (!started) return send(conn.ws, { t: 'error', message: 'Недостаточно зёрен для входа в забег' });
+      send(conn.ws, { t: 'run:started', runId: started.runId, beans: started.beans, energy: started.energy });
+      break;
+    }
+
+    case 'run:finish': {
+      if (typeof msg.runId !== 'string') {
+        send(conn.ws, { t: 'error', message: 'Некорректный забег' });
+        break;
+      }
+      const result = await economy.runs.finishRun(user.id, user.id, {
+        runId: msg.runId,
+        roomsCleared: msg.roomsCleared,
+        miniBossKilled: msg.miniBossKilled,
+        chapterComplete: msg.chapterComplete,
+        durationMs: msg.durationMs,
+        seed: msg.seed,
+      });
+      if (!result) {
+        send(conn.ws, { t: 'error', message: 'Забег не найден' });
+        break;
+      }
+      send(conn.ws, {
+        t: 'run:finished',
+        runId: result.runId,
+        ok: result.ok,
+        reason: result.reason,
+        beansGranted: result.beansGranted,
+        doffaGranted: result.doffaGranted,
+        beans: result.beans,
+        energy: result.energy,
+        rewardStatus: result.rewardStatus,
+      });
+      // Как и у дуэли (reward:match): отдельный push о подтверждённой DOFFA-
+      // награде, чтобы клиент подтянул список наград (см. onlineStore).
+      if (result.doffaGranted > 0) {
+        sendToUser(user.id, { t: 'reward:run', runId: result.runId, amount: result.doffaGranted });
+      }
+      break;
+    }
+
     case 'duel:queue':
       await queueForDuel(user.id);
       break;

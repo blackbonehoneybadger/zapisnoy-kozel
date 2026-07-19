@@ -1,6 +1,6 @@
 // Лёгкая in-memory реализация Repositories для юнит-тестов сервисов —
 // без файловой системы, быстро и изолированно между тестами.
-import type { ClaimRecord, DoffaUser, MatchResult, Reward } from '../domain/types';
+import type { ClaimRecord, DoffaUser, MatchResult, Reward, RunRecord } from '../domain/types';
 import type { Repositories } from '../repositories/types';
 
 export function createInMemoryRepositories(): Repositories {
@@ -8,6 +8,7 @@ export function createInMemoryRepositories(): Repositories {
   const matches = new Map<string, MatchResult>();
   const rewards = new Map<string, Reward>();
   const claims = new Map<string, ClaimRecord>();
+  const runs = new Map<string, RunRecord>();
 
   return {
     users: {
@@ -77,6 +78,21 @@ export function createInMemoryRepositories(): Repositories {
       async save(claim) {
         claims.set(claim.id, claim);
         return claim;
+      },
+    },
+    runs: {
+      async get(runId) {
+        return runs.get(runId);
+      },
+      async save(run) {
+        runs.set(run.runId, run);
+        return run;
+      },
+      async listByUser(userId, limit = 50) {
+        return [...runs.values()]
+          .filter((r) => r.userId === userId)
+          .sort((a, b) => b.startedAt - a.startedAt)
+          .slice(0, limit);
       },
     },
   };

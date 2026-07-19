@@ -72,6 +72,19 @@ export type ClientMessage =
   | { t: 'beans:sync'; tapped: number; claimedGain: number; elapsedMs: number }
   // Запрос тренировочных зёрен за офлайн-партию против ботов (rate-limited).
   | { t: 'beans:awardTraining'; won: boolean }
+  // DOFFA Defense — авторитетная экономика одиночного забега (см.
+  // server/src/services/runService.ts). Клиент присылает только статистику;
+  // суммы начислений решает исключительно сервер.
+  | { t: 'run:start' }
+  | {
+      t: 'run:finish';
+      runId: string;
+      roomsCleared: number;
+      miniBossKilled: boolean;
+      chapterComplete: boolean;
+      durationMs: number;
+      seed?: number;
+    }
   | { t: 'reward:list' }
   | { t: 'reward:claim'; rewardId: string; walletAddress: string; idempotencyKey: string }
   | { t: 'reward:history' }
@@ -103,6 +116,24 @@ export type ServerMessage =
   | { t: 'beans:state'; beans: number; energy: number }
   // Результат запроса тренировочных зёрен (0, если сервер отказал/rate-limit).
   | { t: 'beans:trainingResult'; granted: number; beans: number; energy: number }
+  // Подтверждение старта забега Defense: плата за вход списана, забег заведён.
+  | { t: 'run:started'; runId: string; beans: number; energy: number }
+  // Авторитетный итог забега: сколько зёрен/DOFFA сервер реально начислил
+  // (0 — отказ по античит-потолкам/rate-limit/дневному лимиту).
+  | {
+      t: 'run:finished';
+      runId: string;
+      ok: boolean;
+      reason?: 'rate_limited';
+      beansGranted: number;
+      doffaGranted: number;
+      beans: number;
+      energy: number;
+      rewardStatus?: RewardStatusValue;
+    }
+  // Подтверждённая сервером сумма DOFFA за пройденную главу Defense
+  // (аналог reward:match для дуэли; 0 не шлётся — только реальная награда).
+  | { t: 'reward:run'; runId: string; amount: number }
   // Подтверждённая сервером сумма DOFFA за окончание онлайн-матча
   // (0/undefined, если победы не было или награда не назначена).
   | { t: 'reward:match'; matchId: string; amount: number }

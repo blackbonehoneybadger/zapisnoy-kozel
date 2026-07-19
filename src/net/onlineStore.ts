@@ -55,6 +55,13 @@ interface OnlineStore {
   betRequired: boolean;
   /** Сумма DOFFA за последнюю победу — приходит ТОЛЬКО от сервера (этап 3+). */
   lastReward: number | null;
+  /** runId текущего серверного забега Defense (null — забег офлайн/без наград). */
+  activeRunId: string | null;
+  /**
+   * Авторитетный итог последнего завершённого забега Defense — только после
+   * подтверждения сервером (run:finished); клиент суммы не считает сам.
+   */
+  lastRunResult: { runId: string; beansGranted: number; doffaGranted: number } | null;
   /** Заявка на Claim в процессе — блокирует повторное нажатие до ответа сервера. */
   claimBusy: boolean;
   /** Причина отказа последнего Claim (сообщение сервера), если был. */
@@ -91,6 +98,25 @@ interface OnlineStore {
    * (сервер — единственный источник этой суммы).
    */
   requestTrainingAward: (won: boolean) => void;
+  /**
+   * Старт серверного забега DOFFA Defense: сервер списывает плату за вход и
+   * заводит runId (ответ run:started). Молча ничего не делает без активной
+   * сессии — забег остаётся офлайн, награды просто не начисляются.
+   */
+  startRun: () => void;
+  /**
+   * Завершение забега: шлёт серверу только статистику (комнаты/боссы/
+   * длительность/сид); сколько зёрен/DOFFA начислить, решает сервер
+   * (ответ run:finished → lastRunResult). Без сессии/чужой runId — молча пропуск.
+   */
+  finishRun: (result: {
+    runId: string;
+    roomsCleared: number;
+    miniBossKilled: boolean;
+    chapterComplete: boolean;
+    durationMs: number;
+    seed?: number;
+  }) => void;
   /** Запрашивает актуальный список наград DOFFA к получению (reward:list). */
   requestRewards: () => void;
   /** Запрашивает историю наград/заявок (reward:history). */
@@ -230,6 +256,23 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
       case 'beans:trainingResult':
         useBeansStore.getState().applyTrainingResult(msg.granted, msg.beans, msg.energy);
         break;
+      case 'run:started':
+        set({ activeRunId: msg.runId, lastRunResult: null });
+        useBeansStore.getState().syncFromServer({ beans: msg.beans, energy: msg.energy });
+        break;
+      case 'run:finished':
+        set({
+          lastRunResult: { runId: msg.runId, beansGranted: msg.beansGranted, doffaGranted: msg.doffaGranted },
+        });
+        useBeansStore.getState().syncFromServer({ beans: msg.beans, energy: msg.energy });
+        break;
+      case 'reward:run':
+        if (msg.amount > 0) {
+          set({ lastReward: msg.amount });
+          // Новая награда появилась на сервере — подтягиваем актуальный список.
+          sendMsg({ t: 'reward:list' });
+        }
+        break;
       case 'reward:match':
         if (msg.amount > 0) {
           set({ lastReward: msg.amount });
@@ -278,6 +321,8 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     serverWallet: null,
     betRequired: false,
     lastReward: null,
+    activeRunId: null,
+    lastRunResult: null,
     claimBusy: false,
     claimError: null,
     lastClaimTestMode: false,
@@ -392,6 +437,8 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
         friends: [],
         invites: [],
         walletAddress: null,
+        activeRunId: null,
+        lastRunResult: null,
       });
     },
 
@@ -461,6 +508,21 @@ export const useOnlineStore = create<OnlineStore>((set, get) => {
     requestTrainingAward: (won: boolean) => {
       if (get().status !== 'connected' || !get().user) return;
       sendMsg({ t: 'beans:awardTraining', won });
+    },
+
+    startRun: () => {
+      if (get().status !== 'connected' || !get().user) return;
+      // Новая попытка: сбрасываем прошлый runId/итог до ответа run:started.
+      set({ activeRunId: null, lastRunResult: null });
+      sendMsg({ t: 'run:start' });
+    },
+
+    finishRun: (result) => {
+      if (get().status !== 'connected' || !get().user) return;
+      // Завершить можно только свой подтверждённый сервером забег — иначе
+      // это офлайн-забег (без наград) или чужой/просроченный runId.
+      if (get().activeRunId !== result.runId) return;
+      sendMsg({ t: 'run:finish', ...result });
     },
 
     requestRewards: () => {

@@ -97,6 +97,36 @@ export const BETA_GROSS_REWARD_PER_WIN = toInt(process.env.BETA_GROSS_REWARD_PER
 /** BETA_FIXED: дневной лимит наградных побед на игрока — остальные победы идут только в рейтинг/статистику. */
 export const MAX_REWARDED_WINS_PER_USER_PER_DAY = toInt(process.env.MAX_REWARDED_WINS_PER_USER_PER_DAY, 5);
 
+// ─── DOFFA Defense: экономика одиночного забега (run:*, см. services/runService.ts) ─
+// Петля: тапалка → зёрна → вход в забег за зёрна → зёрна за комнаты +
+// DOFFA за полное прохождение главы (эквивалент победы в Bean Duel).
+
+/** Плата за вход в забег DOFFA Defense (зёрна), списывается сервером при run:start. */
+export const RUN_ENTRY_BEANS = toInt(process.env.RUN_ENTRY_BEANS, 100);
+/** Зёрна за каждую зачищенную комнату забега. */
+export const RUN_BEANS_PER_ROOM = toInt(process.env.RUN_BEANS_PER_ROOM, 5);
+/** Зёрна сверху за убийство мини-босса. */
+export const RUN_BEANS_MINI_BOSS = toInt(process.env.RUN_BEANS_MINI_BOSS, 10);
+/** Зёрна сверху за полное прохождение главы. */
+export const RUN_BEANS_CHAPTER = toInt(process.env.RUN_BEANS_CHAPTER, 15);
+/**
+ * Античит-потолок правдоподобия: длительность забега не может быть меньше
+ * roomsCleared × этой величины (с небольшим допуском в самом сервисе).
+ * Нарушение → награда не платится, глава уходит в review (см. runService).
+ */
+export const RUN_MIN_SECONDS_PER_ROOM = toInt(process.env.RUN_MIN_SECONDS_PER_ROOM, 40);
+/** Минимальный интервал между завершениями забегов одного игрока (rate-limit, анти-фарм). */
+export const RUN_FINISH_MIN_INTERVAL_MS = toInt(process.env.RUN_FINISH_MIN_INTERVAL_MS, 15_000);
+/**
+ * Дневной лимит НАГРАДНЫХ пройденных глав на игрока — сверх лимита глава
+ * даёт только зёрна/статистику, без DOFFA. Тот же механизм и те же данные,
+ * что у MAX_REWARDED_WINS_PER_USER_PER_DAY для дуэлей (записи Reward в общем
+ * репозитории за 24ч; у забегов matchId имеет префикс "run:"). Общий лимит
+ * наград MAX_REWARDED_WINS_PER_USER_PER_DAY дополнительно действует через
+ * computeWinReward — он считает и дуэльные, и забеговые награды вместе.
+ */
+export const MAX_REWARDED_CHAPTERS_PER_USER_PER_DAY = toInt(process.env.MAX_REWARDED_CHAPTERS_PER_USER_PER_DAY, 5);
+
 /** ADAPTIVE: горизонт планирования бюджета Reward Vault (дней) при расчёте суточной суммы. */
 export const ADAPTIVE_PLANNING_DAYS = toInt(process.env.ADAPTIVE_PLANNING_DAYS, 90);
 /** ADAPTIVE: минимальная и максимальная валовая награда за победу — защита от резких скачков. */
@@ -138,5 +168,9 @@ export function rewardConfigSummary(): string {
     `rewardMode=${REWARD_MODE}`,
     `split=${PLAYER_REWARD_PERCENT}/${BURN_PERCENT}`,
     `burn=${DOFFA_BURN_ENABLED ? 'ON' : 'off (Planned)'}`,
+    `runEntry=${RUN_ENTRY_BEANS}`,
+    `runBeans=${RUN_BEANS_PER_ROOM}/${RUN_BEANS_MINI_BOSS}/${RUN_BEANS_CHAPTER}`,
+    `runPace=${RUN_MIN_SECONDS_PER_ROOM}s/room·${RUN_FINISH_MIN_INTERVAL_MS}ms`,
+    `chaptersPerDay=${MAX_REWARDED_CHAPTERS_PER_USER_PER_DAY}`,
   ].join(' · ');
 }

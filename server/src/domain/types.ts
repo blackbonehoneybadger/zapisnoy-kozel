@@ -94,3 +94,31 @@ export interface RewardHistoryItem {
   note: string;
   txSignature?: string;
 }
+
+/**
+ * Авторитетная запись одиночного забега DOFFA Defense (см. services/runService.ts).
+ * Создаётся при run:start (плата за вход уже списана), закрывается при
+ * run:finish. Сохранённый результат делает повторный finish идемпотентным.
+ */
+export interface RunRecord {
+  runId: string;
+  userId: string;
+  startedAt: number;
+  finishedAt?: number;
+  /** Списанная плата за вход (зёрна). */
+  beansEntryFee: number;
+  finished: boolean;
+  // ── Статистика, присланная клиентом при завершении (НЕ доверяется blindly — см. runService). ──
+  roomsCleared?: number;
+  miniBossKilled?: boolean;
+  chapterComplete?: boolean;
+  durationMs?: number;
+  /** Сид забега — заготовка под будущую серверную ре-симуляцию для проверки. */
+  seed?: number;
+  // ── Авторитетный результат (заполняет только сервер). ──
+  beansGranted?: number;
+  doffaGranted?: number;
+  rewardStatus?: 'none' | 'available' | 'review';
+  /** Отметки античита (например, implausible_duration) — глава уходит в review. */
+  flags?: string[];
+}

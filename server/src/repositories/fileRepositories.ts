@@ -5,12 +5,13 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import type { ClaimRecord, DoffaUser, MatchResult, Reward } from '../domain/types';
+import type { ClaimRecord, DoffaUser, MatchResult, Reward, RunRecord } from '../domain/types';
 import type {
   ClaimRepository,
   MatchRepository,
   Repositories,
   RewardRepository,
+  RunRepository,
   UserRepository,
 } from './types';
 
@@ -153,6 +154,23 @@ class FileClaimRepository implements ClaimRepository {
   }
 }
 
+class FileRunRepository implements RunRepository {
+  constructor(private readonly c: JsonCollection<RunRecord>) {}
+  async get(runId: string) {
+    return this.c.find(runId);
+  }
+  async save(run: RunRecord) {
+    return this.c.upsert(run);
+  }
+  async listByUser(userId: string, limit = 50) {
+    return this.c
+      .all()
+      .filter((r) => r.userId === userId)
+      .sort((a, b) => b.startedAt - a.startedAt)
+      .slice(0, limit);
+  }
+}
+
 /** Собирает файловые репозитории. Точка замены на PostgreSQL-реализацию. */
 export function createFileRepositories(): Repositories {
   return {
@@ -160,5 +178,6 @@ export function createFileRepositories(): Repositories {
     matches: new FileMatchRepository(new JsonCollection<MatchResult>('doffa-matches.json', (m) => m.matchId)),
     rewards: new FileRewardRepository(new JsonCollection<Reward>('doffa-rewards.json', (r) => r.id)),
     claims: new FileClaimRepository(new JsonCollection<ClaimRecord>('doffa-claims.json', (c) => c.id)),
+    runs: new FileRunRepository(new JsonCollection<RunRecord>('doffa-runs.json', (r) => r.runId)),
   };
 }

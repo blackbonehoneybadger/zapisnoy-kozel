@@ -38,6 +38,22 @@ describe('feature flags', () => {
     }
   });
 
+  it('ENABLE_BEAN_DUEL defaults to false when unset', async () => {
+    const { ENABLE_BEAN_DUEL } = await loadFeatures();
+    expect(ENABLE_BEAN_DUEL).toBe(false);
+  });
+
+  it('ENABLE_BEAN_DUEL turns on only for the (whitespace-tolerant) string "true"', async () => {
+    for (const v of ['TRUE', '1', 'yes', 'false', '']) {
+      vi.stubEnv('VITE_ENABLE_BEAN_DUEL', v);
+      const { ENABLE_BEAN_DUEL } = await loadFeatures();
+      expect(ENABLE_BEAN_DUEL, `value ${JSON.stringify(v)} should not enable the flag`).toBe(false);
+    }
+    vi.stubEnv('VITE_ENABLE_BEAN_DUEL', ' true ');
+    const { ENABLE_BEAN_DUEL } = await loadFeatures();
+    expect(ENABLE_BEAN_DUEL).toBe(true);
+  });
+
   it('SOL_BETTING_ENABLED defaults to false when unset', async () => {
     const { SOL_BETTING_ENABLED } = await loadFeatures();
     expect(SOL_BETTING_ENABLED).toBe(false);
